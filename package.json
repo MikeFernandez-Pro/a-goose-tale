@@ -1,0 +1,37 @@
+{
+  "name": "a-goose-tale",
+  "private": true,
+  "description": "A goose, a torch and a swarm of rats, in three.js on WebGPU, animated with three-vat",
+  "license": "MIT",
+  "author": "Mike Fernandez <mike.fernandez.sec@gmail.com>",
+  "type": "module",
+  "packageManager": "pnpm@10.19.0",
+  "scripts": {
+    "bake": "three-vat bake models/rat.glb --out public/models/rat.vat.glb",
+    "dev": "pnpm bake && vite",
+    "phone": "pnpm bake && vite --host --mode phone",
+    "build": "pnpm bake && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "page": "node tools/page.mjs",
+    "models": "node tools/slim-models.mjs"
+  },
+  "dependencies": {
+    "three": "^0.187.0",
+    "three-vat": "^5.0.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "@types/node": "^22.20.5",
+    "@types/three": "^0.187.0",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "meshoptimizer": "^1.3.0",
+    "playwright-core": "1.63.0",
+    "typescript": "^5.6.0",
+    "vite": "^7.1.0",
+    "vitest": "^2.1.0"
+  }
+}

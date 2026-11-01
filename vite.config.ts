@@ -1,0 +1,38 @@
+// `vitest/config` re-exports vite's `defineConfig` with the `test` block typed,
+// so one config serves the dev server, the build and the swarm's tests.
+import { defineConfig } from 'vitest/config'
+import basicSsl from '@vitejs/plugin-basic-ssl'
+import { gooseRoute } from './tools/gooseroute-plugin'
+import { gooseSounds } from './tools/goosesounds-plugin'
+
+// The game is one page and one program, so this is a plain vite app.
+export default defineConfig(({ mode }) => ({
+  base: './',
+  // `pnpm phone`: served over https to the network with a self-signed
+  // certificate, since a phone gets WebGPU only in a secure context, and a
+  // LAN address over http is not one. The browser warns once. Cast: vitest 2
+  // types this config against vite 5, the plugin is typed against vite 7.
+  // The dev server also saves the goose game's route from its 2D page (tools/gooseroute-plugin.ts) and its sound mix
+  // from the sound panel (tools/goosesounds-plugin.ts).
+  plugins: [gooseRoute() as never, gooseSounds() as never, ...(mode === 'phone' ? [basicSsl() as never] : [])],
+  // Another project's dev server holds 5173 on this machine, and vite answers
+  // any path with its index: a game moved to 5174 looked like the other page.
+  // One port, and a refusal to start rather than a quiet move to the next.
+  server: { port: 4321, strictPort: true },
+  resolve: {
+    // One copy of three, or the decode's nodes and the scene's disagree.
+    dedupe: ['three'],
+  },
+  build: {
+    // Top-level await in the entry: the renderer and the rat are awaited.
+    target: 'es2022',
+    // three's WebGPU build alone is most of a megabyte. Known, and not a
+    // warning worth reading on every build.
+    chunkSizeWarningLimit: 2048,
+  },
+  test: {
+    // The swarm has no renderer and no DOM: it runs in plain Node.
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+  },
+}))
