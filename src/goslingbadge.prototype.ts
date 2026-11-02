@@ -22,24 +22,23 @@ const PORTRAIT = `${import.meta.env.BASE_URL}ui/gosling-badge.webp`
  */
 export const portraitLook = { zoom: 0.82, x: 0.5, y: 0.5 }
 /**
- * The colours behind each gosling's portrait, at its middle and at its edge, one gosling's from
- * another's at a glance, as set from the panel on 2026-10-29. More goslings than these go round
- * them again.
+ * The one flat colour behind each gosling's portrait, one gosling's from another's at a glance, as its
+ * panel sets them. More goslings than these go round them again.
  */
 export const kidBackgrounds = [
-  { middle: '#8861a8', edge: '#1f1529' },
-  { middle: '#55a5af', edge: '#394e51' },
-  { middle: '#ae1e33', edge: '#62273a' },
-  { middle: '#9acc85', edge: '#2c4d1f' },
-  { middle: '#feab3e', edge: '#b17943' },
-  { middle: '#3d5c9e', edge: '#111a2e' },
+  { colour: '#8861a8' },
+  { colour: '#8861a8' },
+  { colour: '#ae1e33' },
+  { colour: '#6cd56e' },
+  { colour: '#febd4d' },
+  { colour: '#517ad2' },
 ]
 /** The portrait's background, as `portraitLook` frames it now, behind gosling `kid`. */
 function framed(kid: number): string {
   const { zoom, x, y } = portraitLook
-  const { middle, edge } = kidBackgrounds[kid % kidBackgrounds.length]!
+  const { colour } = kidBackgrounds[kid % kidBackgrounds.length]!
   const across = SIZE * zoom
-  return `url(${PORTRAIT}) ${SIZE / 2 - x * across}px ${SIZE / 2 - y * across}px / ${across}px ${across}px no-repeat, radial-gradient(circle, ${middle} 0%, ${edge} 100%)`
+  return `url(${PORTRAIT}) ${SIZE / 2 - x * across}px ${SIZE / 2 - y * across}px / ${across}px ${across}px no-repeat, ${colour}`
 }
 /** The icon, painted whole in its ring (5_icon_Mike.png, 2026-10-31), cut out of its black square and packed 256 square. */
 const ICON = `${import.meta.env.BASE_URL}ui/gosling-icon.webp`
@@ -59,8 +58,8 @@ const OUTLINE = '#000'
 const OUTLINE_WIDE = 1.2
 /** How wide the doodle is, px; how big it all is at the edge, of that, in view, and in view with the goose close; how high its middle hangs over the gosling's head in view, px. */
 const SIZE = 64
-const AT_EDGE = 1.4
-const IN_VIEW = 1.2
+const AT_EDGE = 1.25
+const IN_VIEW = 1.1
 const CLOSE = 0.75
 const LIFT = 74
 /** How far the arrow stands off its middle, px. */
@@ -141,9 +140,12 @@ export interface GoslingBadge {
   update(at: CallAt | null, shown: number, dt: number, kid?: number, close?: number): { x: number; y: number }
   /** A honk from it: the badge pops. */
   pop(): void
+  /** How far it reaches from its middle at the screen's edge, its arrow's tip and all, px, as now fitted. */
+  readonly edgeReach: number
 }
 
-export function createGoslingBadge(look: BadgeLook = 'portrait'): GoslingBadge {
+/** The badge drawn as `look` has it, all of it, its lift over the gosling too, `fit()` times its size, read each frame. */
+export function createGoslingBadge(look: BadgeLook = 'portrait', fit: () => number = () => 1): GoslingBadge {
   const box = document.createElement('div')
   box.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;opacity:0'
   const turn = document.createElement('div')
@@ -215,8 +217,9 @@ export function createGoslingBadge(look: BadgeLook = 'portrait'): GoslingBadge {
       if (portrait && frame !== framed(shownKid)) portrait.style.background = frame = framed(shownKid)
       const popping = popped < POP ? Math.sin((Math.PI * popped) / POP) : 0
       const inViewSize = IN_VIEW + (CLOSE - IN_VIEW) * close
-      const scale = (AT_EDGE + (inViewSize - AT_EDGE) * inView) * (1 + POP_GROW * popping)
-      const middle = { x, y: y - (LIFT + BOB * Math.sin(clock * BOB_RATE)) * inView }
+      const fitted = fit()
+      const scale = (AT_EDGE + (inViewSize - AT_EDGE) * inView) * (1 + POP_GROW * popping) * fitted
+      const middle = { x, y: y - (LIFT + BOB * Math.sin(clock * BOB_RATE)) * inView * fitted }
       box.style.opacity = String(opacity)
       box.style.transform = `translate(${middle.x}px, ${middle.y}px) scale(${scale})`
       body.style.transform = `rotate(${popSide * POP_TILT * popping}deg) scaleX(${facing})`
@@ -226,6 +229,9 @@ export function createGoslingBadge(look: BadgeLook = 'portrait'): GoslingBadge {
     pop() {
       popped = 0
       popSide = Math.random() < 0.5 ? -1 : 1
+    },
+    get edgeReach() {
+      return (ARROW_OFF + 8) * AT_EDGE * fit()
     },
   }
 }
@@ -239,9 +245,6 @@ export function mountBadgeControls(): void {
   gui.add(portraitLook, 'zoom', 0.5, 5, 0.01).name('zoom')
   gui.add(portraitLook, 'x', 0, 1, 0.005).name('offset x')
   gui.add(portraitLook, 'y', 0, 1, 0.005).name('offset y')
-  kidBackgrounds.forEach((colours, k) => {
-    gui.addColor(colours, 'middle').name(`gosling ${k + 1}, middle`)
-    gui.addColor(colours, 'edge').name(`gosling ${k + 1}, edge`)
-  })
+  kidBackgrounds.forEach((background, k) => gui.addColor(background, 'colour').name(`gosling ${k + 1}`))
   gui.close()
 }
