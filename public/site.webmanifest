@@ -1,7 +1,7 @@
 {
   "name": "A Goose Tale",
   "short_name": "A Goose Tale",
-  "description": "A gander, his torch and a swarm of rats: bring your goslings home in this WebGPU tale, played in your browser.",
+  "description": "Guide a brave little gander through a night-time tale. Armed with only his torch, escape the swarm of rats and bring his family back together.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#000000",
