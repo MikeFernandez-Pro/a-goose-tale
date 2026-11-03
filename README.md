@@ -5,7 +5,7 @@ brazier, gathering his goslings as he goes, to the pond where their mother
 waits. The dark between the fires is full of rats, and they keep out of his
 light.
 
-**[Play it in your browser](https://mikefernandez-pro.github.io/a-goose-tale/)**
+**[Play it in your browser](https://agoosetale.com)**
 
 Built with [three.js](https://threejs.org) on `WebGPURenderer` (`?webgl` draws
 through its WebGL 2 backend instead), with the swarm animated by
