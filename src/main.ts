@@ -4817,7 +4817,7 @@ function enterWhenAsked(go: () => void) {
     enterAsked = undefined
     enter.disabled = true
     // From a pad's press, the sounds' own unlock on a click or key never ran.
-    if (gooseSounds?.context.state === 'suspended') void gooseSounds.context.resume()
+    gooseSounds?.unlock()
     go()
   }
   enter.addEventListener('click', once)

@@ -174,6 +174,8 @@ export interface GooseSounds {
   readonly tunes: Record<GooseSound, Tune>
   /** A take of the sound, `take` if given, heard as tuned, from nowhere in particular, even paused; looped if its tune says so, till stopped. */
   preview(sound: GooseSound, take?: string): void
+  /** Ask the browser to let the sounds play, in a gesture of the player's for it to agree. */
+  unlock(): void
   /** The mix as it now is, to save. */
   mix(): SoundMix
   /** The mix put back as goosesounds.json has it. */
@@ -200,11 +202,16 @@ export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE
   // The panel's previews past the hush, so a paused game can still be listened to.
   const previews = new GainNode(context)
   previews.connect(listener.getInput())
+  // iOS takes a finger's lifting and the click after it for a gesture, not its landing, and says 'interrupted' where
+  // others say 'suspended'. A sample of silence started in the gesture is what its older versions want besides.
   const unlock = () => {
-    if (context.state === 'suspended') void context.resume()
+    if (context.state === 'running') return
+    const silence = new AudioBufferSourceNode(context, { buffer: new AudioBuffer({ length: 1, sampleRate: context.sampleRate }) })
+    silence.connect(context.destination)
+    silence.start()
+    context.resume().catch(() => undefined)
   }
-  addEventListener('pointerdown', unlock)
-  addEventListener('keydown', unlock)
+  for (const gesture of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(gesture, unlock, { capture: true })
   const heard = () => {
     const on = muted || document.hidden ? 0 : volume
     master.gain.setTargetAtTime(hushed ? 0 : on, context.currentTime, 0.08)
@@ -401,6 +408,7 @@ export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE
     load,
     play,
     loop,
+    unlock,
     async preview(sound, take) {
       unlock()
       await load(sound)
