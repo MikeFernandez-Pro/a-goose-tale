@@ -27,7 +27,7 @@ import { attribute, mix, uniform } from 'three/tsl'
 import { modelLoader } from './gltf'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import type { Act } from './gooseoutro'
+import { blendAct, type Act, type ActBlend } from './gooseoutro'
 import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from './play'
 import { standingIn, swimmingIn, type PondLook } from './pond'
@@ -169,7 +169,7 @@ export async function createGoslings(
       played.setEffectiveWeight(0)
       return played
     }
-    return { bird, body, mixer, idle: action(CLIPS.idle), scared: action(CLIPS.scared), run: action(CLIPS.run), walk: action(CLIPS.walk), waterIdle: action(CLIPS.waterIdle), swim: action(CLIPS.swim), jump: action(CLIPS.jump), shake: action(CLIPS.shake), swimming: 0, turn: TURN[0]! + (TURN[1]! - TURN[0]!) * own, yaw: Number.NaN, pace: 0, moving: 0, was: { x: 0, z: 0 } }
+    return { bird, body, mixer, idle: action(CLIPS.idle), scared: action(CLIPS.scared), run: action(CLIPS.run), walk: action(CLIPS.walk), waterIdle: action(CLIPS.waterIdle), swim: action(CLIPS.swim), jump: action(CLIPS.jump), shake: action(CLIPS.shake), swimming: 0, turn: TURN[0]! + (TURN[1]! - TURN[0]!) * own, yaw: Number.NaN, pace: 0, moving: 0, was: { x: 0, z: 0 }, act: { amount: 0 } as ActBlend }
   })
   /** The held time the clips were last played to, s. */
   let playedTo = Number.NaN
@@ -264,13 +264,13 @@ export async function createGoslings(
         }
         const doing = cued?.act
         const acting = doing && (doing.clip === 'shake' ? one.shake : one.jump)
-        one.shake?.setEffectiveWeight(acting && acting === one.shake ? 1 : 0)
+        one.shake?.setEffectiveWeight(0)
         if (acting) {
-          for (const other of [one.idle, one.scared, one.run, one.walk, one.waterIdle, one.swim, one.jump, one.shake]) other?.setEffectiveWeight(other === acting ? 1 : 0)
           acting.timeScale = 0
           acting.time = doing.share * acting.getClip().duration
           bird.position.y += doing.lift
         }
+        blendAct(one.act, acting, dt, [one.idle, one.scared, one.run, one.walk, one.waterIdle, one.swim, one.jump, one.shake])
         if (step > 0) one.mixer.update(step)
       })
     },

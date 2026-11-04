@@ -11,6 +11,7 @@
 // draws back, and the night fades out to the game's title, then a key to play again.
 // What happens when and where each bird is, as the ending's time has it; the
 // page draws it (main.ts).
+import type { AnimationAction } from 'three/webgpu'
 import type { Point } from './plain'
 
 /** When each beat comes, s into the ending; and how near the island's waterline he is when it starts, m. */
@@ -38,10 +39,12 @@ export const OUTRO = {
   /** The night fades out, and the title comes in over it. */
   fade: [12, 13.2],
   title: [12.8, 13.8],
+  /** Who made it comes in at the foot of the screen, a second after the title is all in. */
+  by: [14.8, 15.6],
   /** The play again key comes in under it, once the title has held a while: its last frames before that are the clip's. */
-  again: [16.8, 17.6],
+  again: [16.3, 17.1],
   /** The ending over: the title and the key stay. */
-  end: 17.6,
+  end: 17.1,
 } as const
 
 /** How far up the island from the waterline he stands, m, and how far short of him she stops, facing him. */
@@ -459,6 +462,29 @@ export interface Act {
   lift: number
 }
 
+/** How long a gosling takes to blend into what he does in place, and back out of it, s. */
+export const ACT_BLEND = 0.2
+
+/** How far a gosling is blended into what he does in place, 0 to 1, and its clip, held at its last pose as he blends out. */
+export interface ActBlend {
+  amount: number
+  action?: AnimationAction | undefined
+}
+
+/**
+ * Gosling's clips `dt` s on, `acting` the clip of what he does in place now, none once done: every one of `rest`, as
+ * weighted for this frame, gives way as his act blends in, and takes over again as it blends out.
+ */
+export function blendAct(blend: ActBlend, acting: AnimationAction | undefined, dt: number, rest: readonly (AnimationAction | undefined)[]): void {
+  if (acting) blend.action = acting
+  const moved = dt / ACT_BLEND
+  blend.amount = Math.min(1, Math.max(0, blend.amount + (acting ? moved : -moved)))
+  const shown = blend.amount * blend.amount * (3 - 2 * blend.amount)
+  for (const other of rest) other?.setEffectiveWeight(other.getEffectiveWeight() * (1 - shown))
+  blend.action?.setEffectiveWeight(shown)
+  if (blend.amount === 0) blend.action = undefined
+}
+
 /** Gosling `k`'s act `t` s into the ending, his (`brood`) or the island's: shaking dry once ashore, hopping in the ring. */
 export function actOf(stage: Stage, brood: boolean, k: number, t: number): Act | undefined {
   if (brood) {
@@ -547,5 +573,7 @@ export const aimOf = (t: number): number => eased(t, [0, OUTRO.landed])
 /** How dark the night has faded out, 0 to 1, and how far the title is in. */
 export const fadeOf = (t: number): number => eased(t, OUTRO.fade)
 export const titleOf = (t: number): number => eased(t, OUTRO.title)
+/** How far who made it is in, 0 to 1. */
+export const byOf = (t: number): number => eased(t, OUTRO.by)
 /** How far the play again key is in, 0 to 1. */
 export const againOf = (t: number): number => eased(t, OUTRO.again)

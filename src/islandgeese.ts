@@ -16,7 +16,7 @@ import { modelLoader } from './gltf'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { oneMesh } from './goslings'
 import { ShellToonMaterial, type ShellLook } from './shell'
-import type { Act } from './gooseoutro'
+import { blendAct, type Act, type ActBlend } from './gooseoutro'
 import type { Point } from './plain'
 
 const MOTHER_MODEL = './models/gooseMother.glb'
@@ -189,6 +189,7 @@ export async function createIslandGeese(places: IslandPlaces, goslingHeight: { h
       running: 0,
       /** His own pace, a share of the folder's. */
       pace: 0.8 + 0.4 * own,
+      act: { amount: 0 } as ActBlend,
     }
   })
 
@@ -305,16 +306,15 @@ export async function createIslandGeese(places: IslandPlaces, goslingHeight: { h
         g.idle?.setEffectiveWeight(1 - g.running)
         g.run?.setEffectiveWeight(g.running)
         if (g.run) g.run.timeScale = Math.max(0.6, (look.goslings.speed * g.pace) / RUN_PACE)
-        // Shaking dry or hopping, his clip held at how far through it is, the rest let go.
+        // Shaking dry or hopping, his clip held at how far through it is, blended in over the rest and back out.
         const act = cued?.act
         const acting = act && g[act.clip]
-        for (const one of [g.jump, g.shake]) one?.setEffectiveWeight(one === acting ? 1 : 0)
+        for (const one of [g.jump, g.shake]) one?.setEffectiveWeight(0)
         if (acting) {
-          g.idle?.setEffectiveWeight(0)
-          g.run?.setEffectiveWeight(0)
           acting.timeScale = 0
           acting.time = act.share * acting.getClip().duration
         }
+        blendAct(g.act, acting, dt, [g.idle, g.run, g.jump, g.shake])
         g.bird.position.set(g.at.x, places.ground(g.at.x, g.at.z) + (act?.lift ?? 0), g.at.z)
         g.bird.rotation.y = g.yaw
         g.body.scale.setScalar(goslingHeight.height * g.body.userData.perMetre)

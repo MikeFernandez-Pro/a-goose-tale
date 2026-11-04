@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { HEART_SHOWS, OUTRO, SHAKE, actOf, againOf, heartsOf, aimOf, dawnOf, morningOf, ganderAt, goslingOf, layOutro, legTimes, motherAt, outroDue, peepsOf, planAt, type Cast, type Island } from './gooseoutro'
+import type { AnimationAction } from 'three/webgpu'
+import { ACT_BLEND, HEART_SHOWS, OUTRO, SHAKE, actOf, againOf, blendAct, byOf, heartsOf, aimOf, dawnOf, morningOf, ganderAt, goslingOf, layOutro, legTimes, motherAt, outroDue, peepsOf, planAt, type ActBlend, type Cast, type Island } from './gooseoutro'
 import type { Point } from './plain'
 
 /** A round island 4 m across its middle at the origin. */
@@ -242,8 +243,42 @@ describe('the goose game ending', () => {
     expect(morningOf(3)).toBe(1)
   })
 
+  it('blends a gosling into his act and back out of it, the rest giving way, the clip held through the way out', () => {
+    const clip = () => {
+      let weight = 0
+      return { getEffectiveWeight: () => weight, setEffectiveWeight: (to: number) => void (weight = to) } as unknown as AnimationAction
+    }
+    const idle = clip()
+    const hop = clip()
+    const blend: ActBlend = { amount: 0 }
+    const frame = (acting: AnimationAction | undefined, dt: number) => {
+      idle.setEffectiveWeight(1)
+      hop.setEffectiveWeight(0)
+      blendAct(blend, acting, dt, [idle, hop])
+    }
+    frame(hop, ACT_BLEND / 2)
+    expect(hop.getEffectiveWeight()).toBeCloseTo(0.5)
+    expect(idle.getEffectiveWeight()).toBeCloseTo(0.5)
+    frame(hop, ACT_BLEND)
+    expect(hop.getEffectiveWeight()).toBe(1)
+    expect(idle.getEffectiveWeight()).toBe(0)
+    frame(undefined, ACT_BLEND / 2)
+    expect(hop.getEffectiveWeight()).toBeCloseTo(0.5)
+    expect(idle.getEffectiveWeight()).toBeCloseTo(0.5)
+    frame(undefined, ACT_BLEND)
+    expect(hop.getEffectiveWeight()).toBe(0)
+    expect(idle.getEffectiveWeight()).toBe(1)
+    expect(blend.action).toBeUndefined()
+  })
+
   it('offers to play again only once the title has held a while, and has it up by the end', () => {
-    expect(againOf(OUTRO.title[1] + 2.9)).toBe(0)
+    expect(againOf(OUTRO.title[1] + 2.4)).toBe(0)
     expect(againOf(OUTRO.end)).toBe(1)
+  })
+
+  it('says who made it a second after the title is all in, before the offer to play again', () => {
+    expect(byOf(OUTRO.title[1] + 1)).toBe(0)
+    expect(byOf(OUTRO.title[1] + 1.1)).toBeGreaterThan(0)
+    expect(byOf(OUTRO.again[0])).toBe(1)
   })
 })

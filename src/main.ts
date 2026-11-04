@@ -86,7 +86,7 @@ import { createTent } from './tent'
 import { createPicnic } from './picnic'
 import { createIslandTree } from './islandtree'
 import { createIslandGeese, type IslandCue } from './islandgeese'
-import { DRAIN, HEART_SHOWS, OUTRO, againOf, aimOf, dawnOf, fadeOf, ganderAt, goslingOf, heartsOf, layOutro, morningOf, motherAt, outroDue, peepsOf, planAt, pullOf, titleOf, type Island, type Stage } from './gooseoutro'
+import { DRAIN, HEART_SHOWS, OUTRO, againOf, aimOf, byOf, dawnOf, fadeOf, ganderAt, goslingOf, heartsOf, layOutro, morningOf, motherAt, outroDue, peepsOf, planAt, pullOf, titleOf, type Island, type Stage } from './gooseoutro'
 import { ROUTE, WADE, keptShown, laid, shownOf, toSave, type Plain, type Point, type Route } from './plain'
 import { defaultRollingLook, rollAgain, rollingGround } from './rolling'
 import { createWater, defaultWaterLook, WATER_LOOKS } from './water'
@@ -1915,6 +1915,8 @@ function padBeside(button: HTMLButtonElement): PadButton {
 }
 /** On a pad, its button beside Play again. */
 let againPad: PadButton | undefined
+/** Who made it, a link at the foot of the screen, coming in before Play again: at the foot, so the title stands where the loading screen has it. */
+const outroBy = outroAgain ? document.createElement('a') : undefined
 if (outroCard && outroTitle) {
   outroCard.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;opacity:0;pointer-events:none;z-index:20'
   outroTitle.style.cssText = 'font-family:Gaegu,cursive;font-weight:700;font-size:min(13vw,128px);color:#f6ead0;opacity:0'
@@ -1938,6 +1940,14 @@ if (outroCard && outroTitle) {
     slot.append(outroAgain)
   }
   outroCard.append(outroTitle, slot)
+  if (outroBy) {
+    outroBy.textContent = 'a game by Mike Fernandez'
+    outroBy.href = 'https://www.mike-fernandez.dev/'
+    outroBy.target = '_blank'
+    outroBy.rel = 'noopener'
+    outroBy.style.cssText = 'position:absolute;bottom:max(20px,env(safe-area-inset-bottom));font:700 22px/1.2 Gaegu,cursive;color:#f6ead0;text-decoration:none;opacity:0;pointer-events:none'
+    outroCard.append(outroBy)
+  }
   document.body.append(outroCard)
 }
 /**
@@ -1991,6 +2001,10 @@ function outroFrame() {
   if (outroAgain) {
     outroAgain.style.opacity = String(againOf(outroT))
     outroAgain.style.pointerEvents = againShown() ? 'auto' : 'none'
+  }
+  if (outroBy) {
+    outroBy.style.opacity = String(byOf(outroT) * 0.75)
+    outroBy.style.pointerEvents = byOf(outroT) > 0 ? 'auto' : 'none'
   }
 }
 /** The swarm's lights with the dawn's first: reaching out from the two of them as it comes up, the rats draining off out of it. */
