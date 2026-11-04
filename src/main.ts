@@ -1788,7 +1788,8 @@ function startOutro() {
   dawnFloor = undefined
   outroT = 0
   outroHeard = -1
-  gooseSounds?.play('outro')
+  // In by now, asked for when the last gosling was found; else as soon as it comes.
+  void gooseSounds?.load('outro').then(() => gooseSounds.play('outro'))
 }
 /** He and his goslings where the ending has them, the camera's look with them. */
 function walkOutro() {
@@ -5245,6 +5246,8 @@ renderer.setAnimationLoop(() => {
         interact: commands.interact,
         look: gooseCamera === 'chase' ? drawnForward : null,
       })
+      // The ending's music asked for when the last gosling is found, not held all the game.
+      if (outroOn && goosePlay.goslings[goosePlay.guide]?.state === 'guiding') void gooseSounds?.load('outro')
       if (outroOn && outroDue(outroIsland!, goosePlay.holder)) startOutro()
       // Woken at a fire, under the black: the camera, the lamp and his height there at once, not gliding after him.
       if (goosePlay.deaths !== fallsSeen) {

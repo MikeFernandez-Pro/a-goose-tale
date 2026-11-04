@@ -30,7 +30,6 @@ import { modelLoader } from './gltf'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { ShellToonMaterial, type ShellLook, type PaintLook } from './shell'
-import { createStrokes } from './strokes'
 import { NO_COLOUR, NO_NORMALS, setLayer } from './texturesets'
 import { random } from './swarm'
 import { createInscriptions, inscribable, inscribe, mountInscriptionControls, type Inscriptions } from './inscriptions.prototype'
@@ -398,7 +397,7 @@ export async function createGraves(where: GraveGround, groundAt: (x: number, z: 
 
   // The words cut in each, under the brush strokes.
   const inscriptions = createInscriptions()
-  const material = new ShellToonMaterial({ color: new Color(look.colour), painted: { strokes: createStrokes(), extent: STROKE_BODY, base: inscriptions.normal(viewNormal) } })
+  const material = new ShellToonMaterial({ color: new Color(look.colour), painted: { extent: STROKE_BODY, base: inscriptions.normal(viewNormal) } })
   // The plain stone colour, or the set's, lit, darkened and turned, or the stone colour again over it as much as the
   // folder has it, the set's relief still on it.
   material.colorNode = inscriptions.colour(mix(materialColor, saturation(hue(colourTexel.rgb, turned), saturated).mul(lightness), textured.mul(plain.oneMinus())))

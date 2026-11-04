@@ -47,12 +47,11 @@
 import { AdditiveBlending, Box3, Color, CylinderGeometry, DoubleSide, Euler, Group, Quaternion, Mesh, MeshBasicNodeMaterial, MeshToonNodeMaterial, Object3D, Sprite, SpriteNodeMaterial, Vector3, BufferGeometry, type Material, type Texture } from 'three/webgpu'
 import { color, float, max, smoothstep, texture, uniform, uv } from 'three/tsl'
 import { leaveGlowing } from './post'
-import { modelLoader } from './gltf'
+import { modelLoader, unpackNormals } from './gltf'
 import { CAGE_CAMPFIRE, CART_MIDDLE, WELL_RADIUS, airOf, turned as turnedBy, type GoosePlay, type SceneState, type Tree, type Trunk } from './gooseplay'
 import { keptShown, shownOf, type Brazier, type Point, type Shown } from './plain'
 import type { LightLook } from './lights'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from './shell'
-import { createStrokes, type Strokes } from './strokes'
 import { createCartWood, defaultCartWood, type CartWood, type CartWoodLook } from './cartwood'
 import type { ShineLook } from './panel'
 import type { ToonLook } from './toon'
@@ -732,7 +731,7 @@ async function loadBurningTree(): Promise<{ wood: BufferGeometry; top: number; c
  * pits' are, their file's scale and the set's undone: their shells, for the
  * goose's look; the cart's wood, MODEL_CART_WOOD, planked (cartwood.ts).
  */
-async function loadCageSet(gradient: Texture, strokes: Strokes): Promise<{ set: Group; cart: Group; campfire: Group; corpse: Group; key: Group; materials: Map<string, MeshToonNodeMaterial>; palette: Palette; shells: { cart: ShellToonMaterial[]; corpse: ShellToonMaterial[] }; wood: CartWood }> {
+async function loadCageSet(gradient: Texture): Promise<{ set: Group; cart: Group; campfire: Group; corpse: Group; key: Group; materials: Map<string, MeshToonNodeMaterial>; palette: Palette; shells: { cart: ShellToonMaterial[]; corpse: ShellToonMaterial[] }; wood: CartWood }> {
   const [file, skeleton] = await Promise.all([CAGE_MODEL, SKELETON_MODEL].map(async (model) => (await modelLoader().loadAsync(model)).scene))
   // The skeleton in place of the set's corpse, its skull on the corpse's.
   const corpse = file.getObjectByName(MODEL_SET.corpse)!
@@ -762,7 +761,7 @@ async function loadCageSet(gradient: Texture, strokes: Strokes): Promise<{ set: 
       const under = shelled.get(mesh)
       if (under) {
         const metres = mesh.getWorldScale(scale).x * SET_SCALE
-        const shell = new ShellToonMaterial({ ...parameters, painted: { strokes, extent: STROKE_BODY / metres } })
+        const shell = new ShellToonMaterial({ ...parameters, painted: { extent: STROKE_BODY / metres } })
         under.push(shell)
         toon = shell
       } else toon = new MeshToonNodeMaterial({ ...parameters, gradientMap: gradient })
@@ -772,6 +771,8 @@ async function loadCageSet(gradient: Texture, strokes: Strokes): Promise<{ set: 
     }
     mesh.material = toon
     mesh.castShadow = mesh.receiveShadow = true
+    // The corpse's bones as the rope's and the iron's, so they are one shader.
+    if (shelled.has(mesh)) unpackNormals(mesh.geometry)
   })
   // The key and the padlock cast no shadow: too small to show one, and a draw each in the moon's shadow pass (2026-10-27).
   for (const name of [MODEL_SET.key, MODEL_SET.lock]) file.getObjectByName(name)?.traverse((o) => (o.castShadow = false))
@@ -795,7 +796,7 @@ async function loadCageSet(gradient: Texture, strokes: Strokes): Promise<{ set: 
   const metres = car.getWorldScale(scale).x * SET_SCALE
   const plankAt = (names.indexOf(MODEL_CART_WOOD) + 0.5) / names.length
   const wood = createCartWood(metres, texture(palette.material.map!, uv()).rgb, uv().x.sub(plankAt).abs().lessThan(0.25 / names.length))
-  const cartShell = new ShellToonMaterial({ side: DoubleSide, painted: { strokes, extent: STROKE_BODY / metres, base: wood.normal } })
+  const cartShell = new ShellToonMaterial({ side: DoubleSide, painted: { extent: STROKE_BODY / metres, base: wood.normal } })
   cartShell.colorNode = wood.color
   shells.cart.push(cartShell)
   palette.merge(car, meshesOf(car), cartShell)
@@ -858,7 +859,6 @@ export async function createGooseScenes(
   for (const name of MODEL_COLLIDERS) well.getObjectByName(name)?.removeFromParent()
   well.getObjectByName(MODEL_LAMP_POST)?.removeFromParent()
   splitWinch(well)
-  const strokes = createStrokes()
   const shells: ShellToonMaterial[] = []
   const fileColours = new Map<string, number>()
   const meshesUnder = (root: Object3D, skip?: Object3D) => {
@@ -878,8 +878,8 @@ export async function createGooseScenes(
   const bucketMeshes = meshesUnder(bucketModel)
   // In the shell, painted with strokes as big on the ground as the pits' are: the well, its winch and its bucket merged
   // in the file's units, the pumpkins in metres.
-  const wellShell = new ShellToonMaterial({ painted: { strokes, extent: STROKE_BODY / SCALE } })
-  const pumpkinShell = new ShellToonMaterial({ painted: { strokes, extent: STROKE_BODY } })
+  const wellShell = new ShellToonMaterial({ painted: { extent: STROKE_BODY / SCALE } })
+  const pumpkinShell = new ShellToonMaterial({ painted: { extent: STROKE_BODY } })
   const paletteNames = [...fileColours.keys()]
   const palette = createPalette(paletteNames, wellShell, pumpkinShell)
   const pumpkinKinds = pumpkinsOf(standing, palette)
@@ -920,7 +920,7 @@ export async function createGooseScenes(
   palette.merge(winchModel, winding)
   palette.merge(bucketModel, bucketMeshes)
   // The rope down to the bucket, a cylinder of its own, in the rope's colour.
-  const ropeMaterial = new ShellToonMaterial({ painted: { strokes, extent: STROKE_BODY } })
+  const ropeMaterial = new ShellToonMaterial({ painted: { extent: STROKE_BODY } })
   const wellColours = Object.fromEntries([...fileColours].map(([name, colour]) => [name, WELL_COLOURS[name] ?? colour]))
   const wellGlows = Object.fromEntries(MODEL_GLOWS.filter((name) => fileColours.has(name)).map((name) => [name, WELL_GLOWS[name] ?? 0]))
   const wellChanged = () => {
@@ -947,7 +947,7 @@ export async function createGooseScenes(
       { x: -0.88, z: 1.4, turn: -93, kind: 1 },
     ],
   }
-  const cageSet = await loadCageSet(gradient, strokes)
+  const cageSet = await loadCageSet(gradient)
   // The cart's planks, as the cart wood folder edits them; set from the panel on 2026-10-28.
   // Again on 2026-10-29: the cart's own colour gone, only the planks' relief on it, deep, and bigger planks.
   const cartWood = { ...defaultCartWood(), wood: 1, scale: 2.05, relief: 2.96 }
@@ -958,14 +958,17 @@ export async function createGooseScenes(
   // The fire pit by each well, in the shell in its iron.
   const pitCount = play.wellFires.length
   const pitFile = pitCount > 0 ? (await modelLoader().loadAsync(PIT_MODEL)).scene : undefined
-  const iron = new ShellToonMaterial({ color: PIT_IRON, painted: { strokes, extent: STROKE_BODY } })
+  const iron = new ShellToonMaterial({ color: PIT_IRON, painted: { extent: STROKE_BODY } })
   pitFile?.updateMatrixWorld(true)
   const newPit = () => {
     const group = new Group()
     pitFile!.traverse((o) => {
       const mesh = o as Mesh
       if (!mesh.isMesh) return
-      const piece = new Mesh(mesh.geometry.clone().applyMatrix4(mesh.matrixWorld).scale(PIT_SCALE, PIT_SCALE, PIT_SCALE), iron)
+      const geometry = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld).scale(PIT_SCALE, PIT_SCALE, PIT_SCALE)
+      // As the rope's, so the iron and the rope are one shader.
+      unpackNormals(geometry)
+      const piece = new Mesh(geometry, iron)
       piece.castShadow = piece.receiveShadow = true
       group.add(piece)
     })
@@ -1099,8 +1102,10 @@ export async function createGooseScenes(
     // Its brazier where the play stands it, on the ground there, turned with the tree.
     const fire = new Group()
     for (const piece of treeFile.fire) {
-      const shell = new ShellToonMaterial({ color: piece.color, painted: { strokes, extent: STROKE_BODY } })
+      const shell = new ShellToonMaterial({ color: piece.color, painted: { extent: STROKE_BODY } })
       shells.push(shell)
+      // As the rope's and the iron's, so all three are one shader.
+      unpackNormals(piece.geometry)
       add(fire, new Mesh(piece.geometry, shell), new Vector3())
     }
     fire.position.set(scene.fire.x - scene.x, groundAt(scene.fire.x, scene.fire.z) - group.position.y, scene.fire.z - scene.z)

@@ -14,7 +14,6 @@
 // little red, as bright as the grave candles' flames, in the scenes' shell.
 import { BufferAttribute, BufferGeometry, CatmullRomCurve3, Matrix4, Mesh, Quaternion, Vector3, type Object3D } from 'three/webgpu'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from './shell'
-import { createStrokes } from './strokes'
 import type { ToonLook } from './toon'
 
 /** The limb's line, from its butt at the origin to its broken end at (0, 1, 0), a little S-bent; how thick it is at its butt and at its end, a share of its length; and from how far up it is charred, and from how far its tip glows. */
@@ -128,7 +127,7 @@ export interface BurningBranch {
 }
 
 export function createBranch(): BurningBranch {
-  const material = new ShellToonMaterial({ parts: 3, painted: { strokes: createStrokes(), extent: 1 } })
+  const material = new ShellToonMaterial({ parts: 3, painted: { extent: 1 } })
   const object = new Mesh(branchGeometry(), material)
   object.castShadow = object.receiveShadow = true
   object.frustumCulled = false

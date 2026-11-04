@@ -9,7 +9,6 @@
 import { DoubleSide, Group, type Color, type Material, type Mesh } from 'three/webgpu'
 import { modelLoader } from './gltf'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from './shell'
-import { createStrokes } from './strokes'
 import { createPalette } from './palettemesh'
 import { groundOf, islandMiddle, type PondLook } from './pond'
 import type { ToonLook } from './toon'
@@ -86,7 +85,7 @@ export async function createTent(look: TentLook = defaultTentLook()): Promise<Te
     look.colours[name] ??= color.getHex()
   }
   // Both sides drawn, so its faces show from behind too.
-  const material = new ShellToonMaterial({ side: DoubleSide, painted: { strokes: createStrokes(), extent: (STROKE_BODY * MODEL_HEIGHT) / look.size } })
+  const material = new ShellToonMaterial({ side: DoubleSide, painted: { extent: (STROKE_BODY * MODEL_HEIGHT) / look.size } })
   const palette = createPalette(names, material)
   palette.merge(file, meshes)
   const object = new Group().add(file)

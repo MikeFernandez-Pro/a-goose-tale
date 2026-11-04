@@ -11,7 +11,6 @@ import { abs, cameraViewMatrix, clamp, dot, float, hue, ivec2, max, min, mix, mx
 import { SHORE_FIELD, SHORE_REACH, type ShoreField } from './pond'
 import { ROAD_REACH, type RoadField } from './road'
 import { ShellToonMaterial } from './shell'
-import { createStrokes } from './strokes'
 import { loadMap, NO_COLOUR } from './texturesets'
 
 /** How far the plane runs from the centre: past the largest arena, into the fog. */
@@ -466,7 +465,7 @@ export async function floor(
   const world = (slopes ? normalWorld.mul(up).add(lean) : vec3(lean.x, up, lean.z)).normalize()
   // The shell paints its strokes over the map's normal, as the camera sees it; a stroke's density counts per metre.
   const material = new ShellToonMaterial({
-    painted: { strokes: createStrokes(), extent: 1, base: cameraViewMatrix.mul(vec4(world, 0)).xyz.normalize() },
+    painted: { extent: 1, base: cameraViewMatrix.mul(vec4(world, 0)).xyz.normalize() },
   })
   const plainColour = saturation(hue(colourTexel.rgb, turned), saturated).mul(lightness)
   const wellColour = wellColourTexel && saturation(hue(wellColourTexel.rgb, wellTurned), wellSaturated).mul(wellLightness)

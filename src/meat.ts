@@ -36,7 +36,6 @@ import { gooseDeath } from './goosedeath'
 import { gaitAt, type Gait, type GaitSettings } from './goosegait'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { ShellToonMaterial, type PaintLook, type ShellLook, type StripeLook } from './shell'
-import { createStrokes } from './strokes'
 import type { ToonLook } from './toon'
 
 /** The character the meat is: its model and clips, which way it faces, and where its torch burns. */
@@ -399,7 +398,7 @@ export async function createMeat(options: MeatOptions = {}): Promise<Meat> {
   // Its own left to right, as modelled: square to the way it faces, along the ground.
   const side = new Vector3(Math.cos(CHARACTER.facing), 0, -Math.sin(CHARACTER.facing))
 
-  const material = new ShellToonMaterial({ parts: names.length, striped: true, painted: { strokes: createStrokes(), extent: modelHeight } })
+  const material = new ShellToonMaterial({ parts: names.length, striped: true, painted: { extent: modelHeight } })
   const merged = new SkinnedMesh(geometry, material)
   merged.bind(body.skeleton, body.bindMatrix)
   merged.castShadow = merged.receiveShadow = true

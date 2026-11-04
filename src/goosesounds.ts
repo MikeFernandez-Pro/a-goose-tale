@@ -28,6 +28,8 @@ interface Sound {
   silent?: number
   steady?: boolean
   cut?: number
+  /** Loaded only once asked for (`GooseSounds.load`), its decoded takes too big to hold all the game for when it plays. */
+  late?: boolean
 }
 // His, and what he does at a scene, he always as near as the camera, are heard everywhere: no distance.
 const SOUNDS = {
@@ -87,7 +89,7 @@ const SOUNDS = {
   // The ending's music, once from its start as the ending starts, the track above faded out under it: Clavier
   // Clavier's "Childhood Memories" (Pixabay 304560, https://pixabay.com/users/clavier-music-16027823/), a 64 s piece,
   // ~5 dB louder than the track, so lower here.
-  outro: { type: 'mp3', gain: 0.15, steady: true },
+  outro: { type: 'mp3', gain: 0.15, steady: true, late: true },
 } satisfies Record<string, Sound>
 export type GooseSound = keyof typeof SOUNDS
 export const GOOSE_SOUNDS = Object.keys(SOUNDS) as GooseSound[]
@@ -155,6 +157,8 @@ export interface Loop {
 }
 
 export interface GooseSounds {
+  /** The sound's takes loaded, a late one's from the first ask: nothing played of it till then. */
+  load(sound: GooseSound): Promise<void>
   /** One of the sound's takes, made at `at` (none, heard everywhere), `gain` its level over the mix's, `after` s from now. */
   play(sound: GooseSound, at?: At, gain?: number, after?: number): void
   /** A loop of the sound, from a time of its own into it and at `rate` its speed, so two of the same never sound as one. */
@@ -213,12 +217,19 @@ export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE
   const files = new Map<string, Promise<AudioBuffer[]>>()
   const takes = new Map<GooseSound, AudioBuffer[]>()
   const last = new Map<GooseSound, number>()
-  for (const sound of GOOSE_SOUNDS) {
-    const { type, file = sound } = spec(sound)
-    const name = (take: string) => (take ? `${file}_${take}.${type}` : `${file}.${type}`)
-    if (!files.has(file)) files.set(file, Promise.all(takesOf(sound).map((take) => loader.loadAsync(base + name(take)))))
-    void files.get(file)!.then((buffers) => takes.set(sound, buffers))
+  const loading = new Map<GooseSound, Promise<void>>()
+  const load = (sound: GooseSound) => {
+    let loaded = loading.get(sound)
+    if (!loaded) {
+      const { type, file = sound } = spec(sound)
+      const name = (take: string) => (take ? `${file}_${take}.${type}` : `${file}.${type}`)
+      if (!files.has(file)) files.set(file, Promise.all(takesOf(sound).map((take) => loader.loadAsync(base + name(take)))))
+      loaded = files.get(file)!.then((buffers) => void takes.set(sound, buffers))
+      loading.set(sound, loaded)
+    }
+    return loaded
   }
+  for (const sound of GOOSE_SOUNDS) if (!spec(sound).late) void load(sound)
   /** Every take of each sound now playing, to stop. */
   const playing = new Map<GooseSound, Set<AudioBufferSourceNode>>(GOOSE_SOUNDS.map((sound) => [sound, new Set()]))
 
@@ -387,10 +398,12 @@ export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE
       hushed = on
       heard()
     },
+    load,
     play,
     loop,
-    preview(sound, take) {
+    async preview(sound, take) {
       unlock()
+      await load(sound)
       const buffers = takes.get(sound)
       if (!buffers) return
       const node = source(sound, buffers, take)

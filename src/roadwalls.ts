@@ -17,7 +17,6 @@
 // on every change, hugging the ground as it rolls. He, his goslings and the
 // rats keep out of them.
 import { BufferAttribute, BufferGeometry, Mesh } from 'three/webgpu'
-import { attribute, positionLocal } from 'three/tsl'
 import { alongOf, clearRoad, createStone, intoClear, roadAt, type ArchShell, type ArchStone } from './arches'
 import type { Plain, Point } from './plain'
 import type { RoadLine } from './road'
@@ -350,8 +349,8 @@ export interface RoadWalls {
 
 /** The walls, none laid yet, their slabs as `stone` has them, standing on the ground `groundAt` has under them. */
 export async function createRoadWalls(stone: ArchStone, groundAt: (x: number, z: number) => number = () => 0): Promise<RoadWalls> {
-  // Laid in the world's metres, so where a point is is where it is, and how far up off the ground its own.
-  const slabs = await createStone(stone, STROKE_BODY, () => ({ metres: positionLocal, offGround: attribute<'float'>('stoneUp', 'float') }))
+  // Laid in the world's metres, so where a point is is where it is, at the stone's size of 1.
+  const slabs = await createStone(stone, STROKE_BODY)
   const object = new Mesh(new BufferGeometry(), slabs.shell)
   object.castShadow = object.receiveShadow = true
   object.visible = false

@@ -44,7 +44,6 @@ import { attribute, batchIndirectIndex, cameraProjectionMatrix, cameraViewMatrix
 import { Trails, type TrailLook } from './trails'
 import { ShellToonMaterial } from './shell'
 import { leaveOutOfShading } from './post'
-import { createStrokes } from './strokes'
 import { DRAW, GpuCull, type Pair } from './gpucull'
 import { MeshoptSimplifier } from 'three/addons/libs/meshopt_simplifier.module.js'
 import type { HeightGrid } from './heights'
@@ -482,7 +481,7 @@ export class Rats {
       parts: parts.length,
       tint: varying(tint),
       vertexColors: parts.length === 0 && vat.geometry.hasAttribute('color'),
-      painted: { strokes: createStrokes(), extent: length },
+      painted: { extent: length },
       rimScale,
     })
     parts.forEach((part, i) => this.material.parts[i].value.set(part.color))

@@ -15,16 +15,15 @@
 // or the water, all of it in the vertex shader, as the game's other falling leaves
 // (fallingleaves.prototype.ts): one mesh, no storage and no compute pass. They cast
 // no shadow, as those don't.
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshLambertNodeMaterial, NoColorSpace, Sphere, TextureLoader, Uint16BufferAttribute, Vector2, Vector3, type BufferAttribute, type Material, type Node, type Texture } from 'three/webgpu'
+import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshLambertNodeMaterial, Sphere, Uint16BufferAttribute, Vector2, Vector3, type BufferAttribute, type Material, type Node, type Texture } from 'three/webgpu'
 import { attribute, float, floor, fract, Fn, mix, mx_noise_vec3, normalLocal, renderGroup, rotate, saturation, sin, smoothstep, step, texture, time, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
-import { LEAF_TEXTURE, createBark, createFootGrass, createLeafMaterial, createStretches, defaultBarkLook, defaultGrassLook, defaultLeafLook, thinTips, type BarkLook, type GrassLook, type LeafLook, type Stretches } from './deadtrees'
+import { createBark, createFootGrass, createLeafMaterial, createStretches, defaultBarkLook, defaultGrassLook, defaultLeafLook, loadLeafMap, thinTips, type BarkLook, type GrassLook, type LeafLook, type Stretches } from './deadtrees'
 import type { FloorLook } from './ground'
 import { modelLoader } from './gltf'
 import type { Point } from './plain'
 import { groundOf, islandMiddle, type PondLook } from './pond'
 import { leaveOutOfBloom } from './post'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from './shell'
-import { createStrokes } from './strokes'
 import { random } from './swarm'
 import type { ToonLook } from './toon'
 import { cardCentres, createTreeWind, defaultTreeWindLook, type TreeWindLook } from './treesway'
@@ -322,12 +321,11 @@ export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeL
   const grass = createFootGrass()
   const barkLaid = createBark(grass)
   barkLaid.set(look.bark)
-  const bark = new ShellToonMaterial({ color: look.wood, side: DoubleSide, painted: { strokes: createStrokes(), extent: (STROKE_BODY * laid) / look.size, base: barkLaid.normal } })
+  const bark = new ShellToonMaterial({ color: look.wood, side: DoubleSide, painted: { extent: (STROKE_BODY * laid) / look.size, base: barkLaid.normal } })
   bark.positionNode = wind.wood
   bark.colorNode = mix(barkLaid.colour, grass.colour, grass.amount)
   // The dead trees' leaf texture, white leaves on black, read as they read it.
-  const leafMap = await new TextureLoader().loadAsync(LEAF_TEXTURE)
-  leafMap.colorSpace = NoColorSpace
+  const leafMap = await loadLeafMap()
   const leafy = createLeafMaterial(texture(leafMap, uv()).r)
   const leafMaterial = leafy.material
   leafMaterial.positionNode = wind.leaves

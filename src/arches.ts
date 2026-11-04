@@ -21,15 +21,14 @@
 // start much as the road and the floor are as the page opens (main.ts). The
 // file has no texture layout of its own, so the arch's is worked out as it
 // loads.
-import { BufferAttribute, Group, Mesh, Vector2, type BufferGeometry, type Node } from 'three/webgpu'
+import { BufferAttribute, Group, Mesh, Vector2, type BufferGeometry } from 'three/webgpu'
 import { attribute, cameraViewMatrix, float, hue, mix, modelWorldMatrix, mx_noise_float, normalWorld, positionLocal, renderGroup, saturation, smoothstep, texture, uniform, vec2, vec3, vec4 } from 'three/tsl'
-import { modelLoader } from './gltf'
+import { modelLoader, unpackNormals } from './gltf'
 import { loadRoad, type RoadLook } from './ground'
 import type { Plain, Point } from './plain'
 import type { RoadLine } from './road'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from './shell'
 import type { ToonLook } from './toon'
-import { createStrokes } from './strokes'
 
 /** How far along the road from a fire no arch stands, m, either way: clear of its brazier and its scene. */
 export const ARCH_CLEAR = 4
@@ -249,6 +248,8 @@ function layOut(geometry: BufferGeometry): void {
   geometry.setAttribute('stoneUv', new BufferAttribute(uv, 2))
   geometry.setAttribute('stoneAlong', new BufferAttribute(along, 3))
   geometry.setAttribute('stoneOut', new BufferAttribute(out, 3))
+  // As the road walls', so the two are one shader.
+  unpackNormals(geometry)
 }
 
 /** The arches drawn: laid over the road where `lay` has them, sized as `set` has them, its slabs as `setStone` has them, in the shell as `setShell` has it. */
@@ -267,17 +268,18 @@ export async function createArches(look: ArchLook, stone: ArchStone, groundAt: (
   const model = file.getObjectByName(MODEL_MESH) as Mesh
   const geometry = (model.geometry as BufferGeometry).clone().applyMatrix4(model.matrixWorld).translate(0, -MODEL_FOOT.y, -MODEL_FOOT.z)
   layOut(geometry)
-  // How far it is sunk, for heights off the ground in metres; its strokes counted on the stone at the size it is first set to.
-  const sunk = uniform(look.y).setGroup(renderGroup)
-  const slabs = await createStone(stone, STROKE_BODY / look.scale, (size) => {
-    const metres = positionLocal.mul(size)
-    return { metres, offGround: metres.y.add(sunk) }
-  })
+  // Its strokes counted on the stone at the size it is first set to.
+  const slabs = await createStone(stone, STROKE_BODY / look.scale)
+  // How far each point is up off the ground, m, as the road walls lay theirs.
+  const position = geometry.getAttribute('position')
+  const up = new BufferAttribute(new Float32Array(position.count), 1)
+  geometry.setAttribute('stoneUp', up)
   const object = new Group()
   let laid: readonly Arch[] = []
   const setStretch = () => {
     slabs.setSize(look.scale)
-    sunk.value = look.y
+    for (let i = 0; i < position.count; i++) up.setX(i, position.getY(i) * look.scale + look.y)
+    up.needsUpdate = true
   }
   setStretch()
   const place = () => {
@@ -323,10 +325,10 @@ export interface Stone {
  * The road's slabs, its colour and normal maps, laid on a piece of stone as the floor lays them along the road, by its
  * geometry's `stoneUv`, where on it in its units, and `stoneAlong` and `stoneOut`, the ways those grow in its frame: its
  * tiles stretched to `setSize`'s metres a unit, turned, coloured by a hue, saturation and lightness and leaning by a
- * relief, and as wet as `stone` has them, `where` saying, from the size, where a point is in metres and how far it is
- * up off the ground. Its strokes counted `extent` of its units apart.
+ * relief, and as wet as `stone` has them, by how far up off the ground its `stoneUp` has each point, m. Its strokes
+ * counted `extent` of its units apart.
  */
-export async function createStone(stone: ArchStone, extent: number, where: (size: Node<'float'>) => { metres: Node<'vec3'>; offGround: Node<'float'> }): Promise<Stone> {
+export async function createStone(stone: ArchStone, extent: number): Promise<Stone> {
   const [roadColour, roadNormal] = await loadRoad()
   const colourMap = texture(roadColour)
   const normalMap = texture(roadNormal)
@@ -352,7 +354,8 @@ export async function createStone(stone: ArchStone, extent: number, where: (size
   const streakLength = uniform(1).setGroup(renderGroup)
   const size = uniform(1).setGroup(renderGroup)
   // Where it is wet, 0 to 1: up from the ground, less above, and streaks run down from there, long and thin, upright.
-  const { metres, offGround } = where(size)
+  const metres = positionLocal.mul(size)
+  const offGround = attribute<'float'>('stoneUp', 'float')
   const low = float(1).sub(smoothstep(rise, rise.add(fade), offGround))
   const streak = smoothstep(0.15, 0.55, mx_noise_float(vec3(metres.x.div(streakWidth), metres.z.div(streakWidth), metres.y.div(streakLength))))
   const height = mix(top, 1, low)
@@ -369,7 +372,7 @@ export async function createStone(stone: ArchStone, extent: number, where: (size
   const mapped = normalMap.sample(at).xyz.mul(2).sub(1)
   const wetNormal = normalWorld.add(u.mul(mapped.x).add(v.mul(mapped.y)).mul(relief.mul(float(1).sub(fill.mul(wet))))).normalize()
   const shell = new ShellToonMaterial({
-    painted: { strokes: createStrokes(), extent, base: cameraViewMatrix.mul(vec4(wetNormal, 0)).xyz.normalize() },
+    painted: { extent, base: cameraViewMatrix.mul(vec4(wetNormal, 0)).xyz.normalize() },
     specularScale: mix(dryShine, shine, wet),
   })
   shell.colorNode = saturation(hue(painted, turned), saturated.mul(saturate.mul(wet).add(1)))

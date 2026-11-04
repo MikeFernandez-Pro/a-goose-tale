@@ -30,7 +30,7 @@
 // them after. The texture is justASimpleTree's own, white leaves on black, as
 // it paints it (scripts/generators/leaves_texture.mjs), not the file's copy.
 // Their glow, their own colour shown as light, is kept out of the bloom.
-import { Box3, BufferAttribute, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Matrix4, NoColorSpace, Quaternion, Sphere, TextureLoader, Vector2, Vector3, type Material, SRGBColorSpace } from 'three/webgpu'
+import { Box3, BufferAttribute, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Matrix4, NoColorSpace, Quaternion, Sphere, TextureLoader, Vector2, Vector3, type Material, type Texture, SRGBColorSpace } from 'three/webgpu'
 import { abs, attribute, dFdx, dFdy, dot, float, fract, hue, materialColor, max, mix, mx_noise_float, normalView, normalViewGeometry, normalWorld, positionGeometry, positionView, positionWorld, pow, renderGroup, saturation, select, smoothstep, texture, uniform, uv, vec2, vec3 } from 'three/tsl'
 import { modelLoader } from './gltf'
 import type { Frustum, Mesh, Node } from 'three/webgpu'
@@ -39,7 +39,6 @@ import type { Plain, Point } from './plain'
 import type { StoneBlock } from './roadwalls'
 import { leaveOutOfBloom } from './post'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from './shell'
-import { createStrokes } from './strokes'
 import { NO_COLOUR, NO_NORMALS, setLayer } from './texturesets'
 import { random } from './swarm'
 import type { ToonLook } from './toon'
@@ -240,7 +239,16 @@ const GIANT_TREE: TreeFile = {
  * The leaves' texture: justASimpleTree's pointed cluster, a 2 x 2 atlas of four clusters, white leaves on black, painted
  * by its own code (scripts/generators/leaves_texture.mjs); the way up its canvas is, as the cards' uvs read it.
  */
-export const LEAF_TEXTURE = './textures/leaves/pointed-cluster.webp'
+const LEAF_TEXTURE = './textures/leaves/pointed-cluster.webp'
+/** The leaves' texture, loaded once, for all that read it: the dead trees and the island's oak. */
+let leafMap: Promise<Texture> | undefined
+export function loadLeafMap(): Promise<Texture> {
+  leafMap ??= new TextureLoader().loadAsync(LEAF_TEXTURE).then((map) => {
+    map.colorSpace = NoColorSpace
+    return map
+  })
+  return leafMap
+}
 /** The trees laid: the giant one, for the test; the dead trees under `?deadtrees`. */
 const TREES = typeof location !== 'undefined' && new URLSearchParams(location.search).has('deadtrees') ? DEAD_TREES : GIANT_TREE
 /** How long a body the shell's painted strokes count along, m: the goose's, as the scenes' (goosescenes.ts). */
@@ -947,9 +955,8 @@ export async function createDeadTrees(wood: number, groundAt: (x: number, z: num
 
   const foot = createFootGrass()
   const barkLaid = createBark(foot)
-  const barkStrokes = createStrokes()
   const newBark = () => {
-    const material = new ShellToonMaterial({ color: wood, side: DoubleSide, painted: { strokes: barkStrokes, extent: STROKE_BODY, base: barkLaid.normal } })
+    const material = new ShellToonMaterial({ color: wood, side: DoubleSide, painted: { extent: STROKE_BODY, base: barkLaid.normal } })
     material.colorNode = mix(barkLaid.colour, foot.colour, foot.amount)
     material.positionNode = wind.wood
     return material
@@ -1005,8 +1012,7 @@ export async function createDeadTrees(wood: number, groundAt: (x: number, z: num
   // white on black.
   let leafy: LeafMaterial | undefined
   if (crowns.length > 0 && crowns.length === variants) {
-    const map = await new TextureLoader().loadAsync(LEAF_TEXTURE)
-    map.colorSpace = NoColorSpace
+    const map = await loadLeafMap()
     leafy = createLeafMaterial(texture(map, uv()).r)
   }
   const leafMaterial = leafy?.material

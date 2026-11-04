@@ -238,7 +238,8 @@ export class Trails {
   /** `ribbon`, where the ribbons are read from: by default the attributes the page packs each frame. */
   constructor(colour: ColourUniform, ribbon: () => Ribbon = packed) {
     this.colour = colour
-    this.material = new MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: AdditiveBlending, side: DoubleSide })
+    // Both sides in one pass: added light is the same in any order, and two passes would be two shaders to build on a phone.
+    this.material = new MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: AdditiveBlending, side: DoubleSide, forceSinglePass: true })
     const along = positionGeometry.x
     this.material.positionNode = Fn(() => {
       const across = positionGeometry.y

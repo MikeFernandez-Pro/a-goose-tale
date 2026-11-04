@@ -43,6 +43,7 @@ import {
   type LightingModelReflectedLight,
   type Node,
   type NodeBuilder,
+  type Texture,
 } from 'three/webgpu'
 import {
   attribute,
@@ -66,7 +67,7 @@ import {
   vec3,
   vec4,
 } from 'three/tsl'
-import type { Strokes } from './strokes'
+import { strokesAt } from './strokes'
 import { createToonGradient, writeToon, type ToonLook } from './toon'
 
 /** What the rats folder edits of the shell, beyond its colour. */
@@ -115,13 +116,12 @@ export interface PaintLook {
 }
 
 /**
- * What painted normals need of the model: the strokes; the length in the
+ * What painted normals need of the model: the length in the
  * model's own units that the density counts strokes along, a body for a rat,
  * a metre for the floor; and the normal they go over, in view space, where
  * the model has one of its own (the floor's map), else the surface's.
  */
 export interface Painted {
-  strokes: Strokes
   extent: number
   base?: Node
 }
@@ -254,9 +254,8 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   private readonly specularScale: Node<'float'> | undefined
   /** The painted normals' uniforms; unused on a shell made without them. */
   readonly paint = { strength: uniform(0), density: uniform(6), rounding: uniform(0), strokeOffset: uniform(new Vector2()), extent: uniform(1) }
-  private readonly strokes: Strokes | undefined
-  /** The stroke size the strokes were last drawn at. */
-  private strokeSize = 1
+  /** The strokes' texture node, its texture the one at the folder's stroke size. */
+  private readonly strokes: { value: Texture } | undefined
 
   constructor({
     parts = 0,
@@ -272,7 +271,6 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     this.gradient = gradient
     this.rimScale = rimScale
     this.specularScale = specularScale
-    this.strokes = painted?.strokes
     if (painted !== undefined) {
       // Strokes laid over the body by its rest-pose position, slanted so no
       // face sees them edge on, bumped over the base normal by three's bump
@@ -283,7 +281,9 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
       this.paint.extent.value = painted.extent
       const over = vec2(rest.z.add(slant), rest.y.add(slant)).mul(this.paint.density).div(this.paint.extent).add(this.paint.strokeOffset)
       // A vec3, as @types/three 0.187 types the bump node with no type of its own.
-      const bumped = bumpMap(texture(painted.strokes.texture, over), this.paint.strength, asVec3(painted.base ?? normalView)) as unknown as Node<'vec3'>
+      const strokes = texture(strokesAt(1), over)
+      this.strokes = strokes
+      const bumped = bumpMap(strokes, this.paint.strength, asVec3(painted.base ?? normalView)) as unknown as Node<'vec3'>
       const up = cameraViewMatrix.mul(vec4(0, 1, 0, 0)).xyz
       this.normalNode = mix(bumped, up, this.paint.rounding).normalize()
     }
@@ -369,10 +369,7 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     this.paint.strength.value = look.strength
     this.paint.density.value = look.density
     this.paint.rounding.value = look.rounding
-    if (look.size !== this.strokeSize && this.strokes !== undefined) {
-      this.strokeSize = look.size
-      this.strokes.draw(look.size)
-    }
+    if (this.strokes !== undefined) this.strokes.value = strokesAt(look.size)
   }
 
   /** Take the rats folder's values; the shader reads them from the next frame. */

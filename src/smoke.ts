@@ -70,7 +70,8 @@ export interface Smoke {
 
 export function createSmoke(): Smoke {
   // Drawn after the opaque scene, writing no depth: written, it hid the flame drawn after it wherever the trail crossed in front.
-  const material = new MeshBasicNodeMaterial({ side: DoubleSide, transparent: true, depthWrite: false })
+  // Both its sides in one pass: a ribbon turned to the camera, and two passes would be two shaders to build on a phone.
+  const material = new MeshBasicNodeMaterial({ side: DoubleSide, transparent: true, depthWrite: false, forceSinglePass: true })
   const geometry = new BufferGeometry()
   const positions = new BufferAttribute(new Float32Array((ROWS + 1) * 2 * 3), 3)
   geometry.setAttribute('position', positions)

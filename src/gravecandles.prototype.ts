@@ -9,7 +9,6 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { modelLoader } from './gltf'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from './shell'
-import { createStrokes } from './strokes'
 import { createPalette } from './palettemesh'
 import { random } from './swarm'
 import type { ToonLook } from './toon'
@@ -100,7 +99,7 @@ export async function createGraveCandles(groundAt: (x: number, z: number) => num
     look.colours[name] ??= color.getHex()
     look.glows[name] ??= 0
   }
-  const material = new ShellToonMaterial({ painted: { strokes: createStrokes(), extent: STROKE_BODY } })
+  const material = new ShellToonMaterial({ painted: { extent: STROKE_BODY } })
   const palette = createPalette(names, material)
   // One candle, its colours read off the palette, in the file's units, its foot on the origin.
   const candle = palette.merge(file, meshes).geometry
