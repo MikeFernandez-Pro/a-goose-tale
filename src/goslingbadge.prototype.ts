@@ -29,7 +29,7 @@ export const kidBackgrounds = [
   { colour: '#8861a8' },
   { colour: '#8861a8' },
   { colour: '#ae1e33' },
-  { colour: '#6cd56e' },
+  { colour: '#71c653' },
   { colour: '#febd4d' },
   { colour: '#517ad2' },
 ]
