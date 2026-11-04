@@ -136,6 +136,8 @@ const PITCH_SPREAD = 0.06
 /** How long a cut take fades out over, s of the take. */
 const CUT_FADE = 0.08
 const GAIN_SPREAD = 0.15
+/** How long the sounds' clock must stand still, ms, for it to have stopped. */
+const CLOCK_STOPPED = 200
 /** How far a gosling walks between steps, m. */
 const GOSLING_STRIDE = 0.25
 /** The least time between two goslings' steps, s: a patter, however many walk with him. */
@@ -194,6 +196,9 @@ export interface GooseSounds {
 
 /** The sounds, loading; nothing heard until the page is first clicked or keyed, as browsers ask, nor while it is hidden. */
 export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE_URL}sounds/goose/`): GooseSounds {
+  // Heard whatever the phone's silent mode says: iOS would silence the game with no word, and the music is half of it.
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+  if (session) session.type = 'playback'
   const listener = new AudioListener()
   camera.add(listener)
   const context = listener.context
@@ -204,12 +209,38 @@ export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE
   previews.connect(listener.getInput())
   // iOS takes a finger's lifting and the click after it for a gesture, not its landing, and says 'interrupted' where
   // others say 'suspended'. A sample of silence started in the gesture is what its older versions want besides.
+  // Its audio taken by another app and given back, iOS can go on saying 'running' with the clock stopped: only a stop
+  // and a start in a gesture sets it going again, the session asked for anew if that alone has not (2026-11-04: on the
+  // iPhone a touch has taken both, so which of them does it is not known).
+  let clock = -1
+  let clockAt = 0
+  let restarts = 0
+  const readClock = () => {
+    if (context.currentTime !== clock) restarts = 0
+    clock = context.currentTime
+    clockAt = performance.now()
+  }
+  document.addEventListener('visibilitychange', readClock)
   const unlock = () => {
-    if (context.state === 'running') return
+    const stopped = context.state === 'running' && context.currentTime === clock && performance.now() - clockAt > CLOCK_STOPPED
+    if (context.currentTime !== clock || stopped) readClock()
+    if (context.state === 'running' && !stopped) return
     const silence = new AudioBufferSourceNode(context, { buffer: new AudioBuffer({ length: 1, sampleRate: context.sampleRate }) })
     silence.connect(context.destination)
     silence.start()
-    context.resume().catch(() => undefined)
+    if (!stopped) {
+      context.resume().catch(() => undefined)
+      return
+    }
+    restarts++
+    if (restarts > 1 && session) {
+      session.type = 'auto'
+      session.type = 'playback'
+    }
+    context
+      .suspend()
+      .then(() => context.resume())
+      .catch(() => undefined)
   }
   for (const gesture of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(gesture, unlock, { capture: true })
   const heard = () => {
