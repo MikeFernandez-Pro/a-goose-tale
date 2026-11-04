@@ -615,13 +615,12 @@ export const BRANCH_ZONE = 0.6
 /** How close to the cage or the dead tree's trunk he works it, m, past its body: the scenes' zones. */
 export const WORK_REACH = 0.8
 /**
- * The cage's door, in the face of its bars toward +z, unturned: how far along x its middle is from the cage's, m, and
- * how wide it is, m (`public/models/cage.glb`'s door at its scale). Unlocked, its gosling waits CAGE_DOOR_OPENS s for
+ * The cage's door, in the face of its bars toward +z, unturned: how far along x its middle is from the cage's, m
+ * (`public/models/cage.glb`'s door at its scale). Unlocked, its gosling waits CAGE_DOOR_OPENS s for
  * the padlock to drop and the door to swing open, as the page draws them, then walks out through it at CAGE_WALK m/s,
  * CAGE_STEP_OUT m past it, and only then runs to the goose.
  */
 export const CAGE_DOOR_X = 0.005
-export const CAGE_DOOR_WIDTH = 0.27
 export const CAGE_DOOR_OPENS = 0.9
 export const CAGE_WALK = 0.9
 const CAGE_STEP_OUT = 0.4

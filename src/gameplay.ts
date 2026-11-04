@@ -1,12 +1,10 @@
-// What the game plays by, past the run's and the swarm's own defaults: how many
-// rats, how they run and crowd, how far off they notice the holder, and how
+// What the game plays by, past the run's and the swarm's own defaults: how the
+// rats run and crowd, how far off they notice the holder, and how
 // fast the holder walks. The 3D page (main.ts) and the 2D prototype
 // (twod.prototype.ts) both read these, so the two play alike: the 2D page
 // tests the play the 3D page will have, never a copy of its numbers.
 import { defaultTuning, type Tuning } from './swarm'
 
-/** How many rats the game starts with. */
-export const RATS = 2000
 /** How far off a rat notices the holder, m: past the fog, so a rat that comes is never seen setting off, and short of the level, so the far rats seethe where they are. */
 export const NOTICE = 9
 /** How fast the light walks to start, m/s: a jog; set from the panel on 2026-10-08. */

@@ -4,7 +4,7 @@
 // the goose is, how much torch he has, which goslings are in the circle and
 // where.
 import { describe, expect, it } from 'vitest'
-import { BRANCH_REACH, BRANCH_ZONE, CAGE, CAGE_CAMPFIRE, DIP, CAGE_DOOR_OPENS, CAGE_DOOR_WIDTH, CAGE_DOOR_X, CAMPFIRE_OUTLINE, CORPSE_OUTLINE, FALL, FALL_CARRY, FOLLOW_LAG, GOSLING_RADIUS, PIT_OUTLINE, PIT_PAD, RISE, SPAWN_TRUNK, TREE_FIRE_OUTLINE, TREE_OUTLINE, GOSLING_TOP, GoosePlay, HOP, TRUNK, WELL_BODIES, WELL_OUTLINE, WELL_RADIUS, WELL_REACH, cartMiddleOf, cartOf, turned, wellBodiesOf, type Cage, type GooseSettings } from './gooseplay'
+import { BRANCH_REACH, BRANCH_ZONE, CAGE, CAGE_CAMPFIRE, DIP, CAGE_DOOR_OPENS, CAGE_DOOR_X, CAMPFIRE_OUTLINE, CORPSE_OUTLINE, FALL, FALL_CARRY, FOLLOW_LAG, GOSLING_RADIUS, PIT_OUTLINE, PIT_PAD, RISE, SPAWN_TRUNK, TREE_FIRE_OUTLINE, TREE_OUTLINE, GOSLING_TOP, GoosePlay, HOP, TRUNK, WELL_BODIES, WELL_OUTLINE, WELL_RADIUS, WELL_REACH, cartMiddleOf, cartOf, turned, wellBodiesOf, type Cage, type GooseSettings } from './gooseplay'
 import { HOLDER_RADIUS, within } from './walls'
 import { type Brazier, type Point, type Route } from './plain'
 import { STEP } from './swarm-remote'
@@ -18,6 +18,8 @@ const AT_CAMPFIRE = Math.max(...CAMPFIRE_OUTLINE.map((p) => Math.hypot(p.x, p.z)
 /** How near the dead tree's trunk, and the brazier by it, the walker stops, m: against its roots, and its legs. */
 const AT_TREE = Math.max(...TREE_OUTLINE.map((p) => Math.hypot(p.x, p.z))) + HOLDER_RADIUS + 0.1
 const AT_TREE_FIRE = Math.max(...TREE_FIRE_OUTLINE.map((p) => Math.hypot(p.x, p.z))) + HOLDER_RADIUS + 0.1
+/** How wide the cage's door is, m: `public/models/cage.glb`'s door at its scale. */
+const CAGE_DOOR_WIDTH = 0.27
 
 /** Walk the goose toward `to`, a frame at a time, until within `r` or `most` seconds on; whether he got there. `each` is told of every frame. */
 function walkTo(play: GoosePlay, to: Point, r = AT, most = 60, each: (play: GoosePlay) => void = () => {}): boolean {
