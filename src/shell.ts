@@ -236,11 +236,17 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     painted,
     rimScale,
     specularScale,
+    sharing,
     ...parameters
-  }: ConstructorParameters<typeof MeshToonNodeMaterial>[0] & { parts?: number; tint?: Node; painted?: Painted; rimScale?: RimScale; specularScale?: Node<'float'> } = {}) {
-    const gradient = createToonGradient()
+  }: ConstructorParameters<typeof MeshToonNodeMaterial>[0] & { parts?: number; tint?: Node; painted?: Painted; rimScale?: RimScale; specularScale?: Node<'float'>; sharing?: ShellToonMaterial } = {}) {
+    const gradient = sharing?.gradient ?? createToonGradient()
     super({ ...parameters, gradientMap: gradient })
     this.gradient = gradient
+    // Another shader of one look: what `set`, `setPaint`, `setToon` and `setBeat` write on that one reaches this.
+    if (sharing) {
+      this.shell = sharing.shell
+      this.paint = sharing.paint
+    }
     this.rimScale = rimScale
     this.specularScale = specularScale
     if (painted !== undefined) {
@@ -253,7 +259,7 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
       this.paint.extent.value = painted.extent
       const over = vec2(rest.z.add(slant), rest.y.add(slant)).mul(this.paint.density).div(this.paint.extent).add(this.paint.strokeOffset)
       // A vec3, as @types/three 0.187 types the bump node with no type of its own.
-      const strokes = texture(strokesAt(1), over)
+      const strokes = (sharing?.strokes as ReturnType<typeof texture> | undefined) ?? texture(strokesAt(1), over)
       this.strokes = strokes
       const bumped = bumpMap(strokes, this.paint.strength, asVec3(painted.base ?? normalView)) as unknown as Node<'vec3'>
       const up = cameraViewMatrix.mul(vec4(0, 1, 0, 0)).xyz

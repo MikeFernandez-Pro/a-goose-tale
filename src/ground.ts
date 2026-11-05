@@ -6,10 +6,11 @@
 // how saturated, which way its hue turns, how big a tile is on the ground, which way it is turned, and how deep its relief,
 // through uniforms, so a slider recompiles nothing. In the goose game the old road (road.ts) is laid over it in stone,
 // its slabs laid along it and across, so they follow it round its bends.
-import { Color, DataTexture, DataUtils, FloatType, HalfFloatType, LinearFilter, Mesh, NearestFilter, RGFormat, RGBAFormat, Vector4, type Node, PlaneGeometry, Vector2, Vector3, type Texture } from 'three/webgpu'
+import { BufferAttribute, Color, DataTexture, DataUtils, FloatType, HalfFloatType, LinearFilter, Mesh, NearestFilter, RedFormat, RepeatWrapping, RGFormat, RGBAFormat, Vector4, type Node, PlaneGeometry, Vector2, Vector3, type Texture } from 'three/webgpu'
 import { abs, cameraViewMatrix, clamp, dot, float, hue, ivec2, max, min, mix, mx_noise_float, normalWorld, positionWorld, pow, renderGroup, saturation, smoothstep, sqrt, step, texture, uniform, vec2, vec3, vec4 } from 'three/tsl'
 import { SHORE_FIELD, SHORE_REACH, type ShoreField } from './pond'
 import { ROAD_REACH, type RoadField } from './road'
+import { splitTriangles, tiledNoise } from './groundzones'
 import { ShellToonMaterial } from './shell'
 import { loadMap, NO_COLOUR } from './texturesets'
 
@@ -260,6 +261,11 @@ const LUMA = vec3(0.2126, 0.7152, 0.0722)
 const BED_LIGHT = 0.253
 /** How deep below the floor the bed may first show, m: the floor itself never takes it, however the line wavers. */
 const BED_STARTS = 0.01
+/** The noise texture's side, texels, and how many of the noise's cells lie across it. */
+const NOISE_SIZE = 256
+const NOISE_CELLS = 32
+/** How far apart a unit of the noise's third coordinate sets its uses on the texture, in cells. */
+const NOISE_APART = 1.37
 
 /** Each floor's painting, white where it has none, and normal map, loaded once asked for, kept after: the floor's, or the grass at the dead trees' feet (deadtrees.ts). */
 export function load(name: FloorName): Promise<[Texture, Texture]> {
@@ -284,11 +290,20 @@ export async function floor(
     bed,
     wellGround,
     road,
+    cut = new Set(),
+    zones = false,
+    noiseMap = false,
   }: {
     slopes?: boolean
     bed?: BedLook
     wellGround?: WellGroundLook
     road?: RoadLook
+    /** What `?groundcut=` leaves out of the shader, for the bench to price: none as played. */
+    cut?: ReadonlySet<string>
+    /** Part the floor's triangles, those that can show the bed or the wells' ground under the whole shader, the rest under one without. */
+    zones?: boolean
+    /** Read the noise from a texture, for working it out per pixel. */
+    noiseMap?: boolean
   } = {},
 ): Promise<Floor> {
   const [map, normals] = await load(start)
@@ -298,6 +313,15 @@ export async function floor(
   /** The floor laid, and the one last asked for: a newer ask while one loads wins. */
   let asked = start
 
+  const noiseTexels = noiseMap ? new DataTexture(tiledNoise(NOISE_SIZE, NOISE_CELLS), NOISE_SIZE, NOISE_SIZE, RedFormat) : undefined
+  if (noiseTexels) {
+    noiseTexels.wrapS = noiseTexels.wrapT = RepeatWrapping
+    noiseTexels.magFilter = noiseTexels.minFilter = LinearFilter
+    noiseTexels.needsUpdate = true
+  }
+  // Each use, by its third coordinate, on a part of the texture of its own.
+  const perlin = (at: Node<'vec3'>): Node<'float'> => (cut.has('noise') ? float(0) : noiseTexels ? texture(noiseTexels, at.xy.add(at.z.mul(NOISE_APART)).div(NOISE_CELLS)).r.mul(2).sub(1) : mx_noise_float(at))
+  const turnHue = (colour: Node<'vec3'>, by: Node<'float'>): Node<'vec3'> => (cut.has('hue') ? colour : hue(colour, by))
   const lightness = uniform(1)
   const saturated = uniform(1)
   const turned = uniform(0)
@@ -350,7 +374,7 @@ export async function floor(
   // How far into the bed the ground is, 0 on the floor, 1 all bed: by its depth below the floor, wavered by the noise,
   // and nothing on the floor itself.
   const depth = max(positionWorld.y.negate(), 0)
-  const waver = mx_noise_float(vec3(positionWorld.xz.div(bedWobbleSize), 0))
+  const waver = perlin(vec3(positionWorld.xz.div(bedWobbleSize), 0))
   const downBank = smoothstep(bedFrom, bedTo, depth.add(waver.mul(bedWobble))).mul(smoothstep(0, BED_STARTS, depth))
   // And out past the shore, onto the floor, by how far it is from the shore, its edge wavering by the same noise:
   // all bed inside the shore, so the beach runs on down the bank. None where there is no beach.
@@ -389,7 +413,7 @@ export async function floor(
   // How far out from the nearest well's middle the ground is, in radii stretched along x and z, its edge wavered by
   // noise of its own size: all of it inside the radius, none past the fade.
   const nearestWell = wellSpots.reduce<Node<'float'>>((near, spot) => min(near, ground.sub(spot.add(wellOffset)).div(wellStretch).length()), float(1e6))
-  const wellWaver = mx_noise_float(vec3(ground.div(wellWobbleSize), 7.3))
+  const wellWaver = perlin(vec3(ground.div(wellWobbleSize), 7.3))
   const wellFadeIn = smoothstep(wellRadius.add(wellFade), wellRadius, nearestWell.add(wellWaver.mul(wellWobble)))
   // Broken up by the paintings, as the bed's fade is.
   const wellLighter = wellColourTexel ? dot(wellColourTexel.rgb, LUMA).sub(dot(colourTexel.rgb, LUMA)) : float(0)
@@ -443,7 +467,7 @@ export async function floor(
   // How much of the road is here: by how far from its middle, its edge wavered by the noise, and how much of it is
   // left there. A slab keeps by its height, its low edges going first, and in patches by the same noise; its joints
   // are the dirt's, and nothing is laid off the road.
-  const roadNoise = mx_noise_float(vec3(ground.div(roadPatchSize), 13.1))
+  const roadNoise = perlin(vec3(ground.div(roadPatchSize), 13.1))
   // How far from its middle, mixed from each cell's own distance: the signed one passes through nought between a cell
   // left of the road and one right of it, or one out of its reach (ROAD_REACH, as if right of it), and laid a thin
   // line of road there, 4 m off its left side and between two legs of it.
@@ -462,15 +486,15 @@ export async function floor(
   const bedLean = bedNormalTexel && leanOf(bedNormalTexel, bedTurn, bedRelief)
   const lean = bedLean ? mix(pavedLean.lean, bedLean.lean, inBed) : pavedLean.lean
   const up = bedLean ? mix(pavedLean.up, bedLean.up, inBed) : pavedLean.up
-  const world = (slopes ? normalWorld.mul(up).add(lean) : vec3(lean.x, up, lean.z)).normalize()
+  const world = cut.has('normals') ? normalWorld : (slopes ? normalWorld.mul(up).add(lean) : vec3(lean.x, up, lean.z)).normalize()
+  const seen = cameraViewMatrix.mul(vec4(world, 0)).xyz.normalize()
   // The shell paints its strokes over the map's normal, as the camera sees it; a stroke's density counts per metre.
-  const material = new ShellToonMaterial({
-    painted: { extent: 1, base: cameraViewMatrix.mul(vec4(world, 0)).xyz.normalize() },
-  })
-  const plainColour = saturation(hue(colourTexel.rgb, turned), saturated).mul(lightness)
-  const wellColour = wellColourTexel && saturation(hue(wellColourTexel.rgb, wellTurned), wellSaturated).mul(wellLightness)
+  const material = new ShellToonMaterial(cut.has('strokes') ? {} : { painted: { extent: 1, base: seen } })
+  if (cut.has('strokes')) material.normalNode = seen
+  const plainColour = saturation(turnHue(colourTexel.rgb, turned), saturated).mul(lightness)
+  const wellColour = wellColourTexel && saturation(turnHue(wellColourTexel.rgb, wellTurned), wellSaturated).mul(wellLightness)
   const groundColour = wellColour ? mix(plainColour, wellColour, inWell) : plainColour
-  const roadColour = roadColourTexel && saturation(hue(roadColourTexel.rgb, roadTurned), roadSaturated).mul(roadLightness)
+  const roadColour = roadColourTexel && saturation(turnHue(roadColourTexel.rgb, roadTurned), roadSaturated).mul(roadLightness)
   const pavedColour = roadColour ? mix(groundColour, roadColour, inRoad) : groundColour
   // Under the water the ground takes less of the light, by the Beer-Lambert law: what is left of each colour after
   // the way down to it and back up, twice its depth under the surface, the red going first. Its colour is what the
@@ -478,11 +502,58 @@ export async function floor(
   const underWater = max(waterLevel.sub(positionWorld.y), 0)
   const held = pow(underwater, vec3(underWater.mul(2).mul(murk)))
   material.colorNode = bedNormalTexel ? mix(pavedColour, bedColour, inBed).mul(held) : pavedColour
+  // The same floor with no bed and no wells' ground, the road's and the floor's alone: for where they cannot show.
+  const plainLeanRoad = roadLean ? { lean: mix(plainLean.lean, roadLean.lean, inRoad), up: mix(plainLean.up, roadLean.up, inRoad) } : plainLean
+  const plainWorld = (slopes ? normalWorld.mul(plainLeanRoad.up).add(plainLeanRoad.lean) : vec3(plainLeanRoad.lean.x, plainLeanRoad.up, plainLeanRoad.lean.z)).normalize()
+  const plainMaterial = zones
+    ? new ShellToonMaterial({
+        sharing: material,
+        painted: { extent: 1, base: cameraViewMatrix.mul(vec4(plainWorld, 0)).xyz.normalize() },
+      })
+    : undefined
+  if (plainMaterial) plainMaterial.colorNode = roadColour ? mix(plainColour, roadColour, inRoad) : plainColour
+  let shoreLaid: ShoreField | undefined
+  let wellsLaid: readonly { x: number; z: number }[] = []
+  /** Whether a triangle, its middle, its lowest corner's height and how far its corners lie from its middle, could show the bed or the wells' ground. */
+  const showsMore = (x: number, lowest: number, z: number, radius: number) => {
+    // Below the floor, the bank's sand begins; the plain's own ground lies at nought and up.
+    if (lowest < -0.001) return true
+    const well = wellRadius.value + wellFade.value + Math.abs(wellWobble.value)
+    const stretch = Math.min(wellStretch.value.x, wellStretch.value.y)
+    for (const spot of wellsLaid) {
+      if (Math.hypot((x - spot.x - wellOffset.value.x) / wellStretch.value.x, (z - spot.z - wellOffset.value.y) / wellStretch.value.y) - radius / stretch < well) return true
+    }
+    if (!shoreLaid) return false
+    const { data, minX, minZ, size } = shoreLaid
+    const cell = size / SHORE_FIELD
+    const column = Math.min(Math.max(Math.floor((x - minX) / cell), 0), SHORE_FIELD - 1)
+    const row = Math.min(Math.max(Math.floor((z - minZ) / cell), 0), SHORE_FIELD - 1)
+    return data[row * SHORE_FIELD + column]! - radius - cell * Math.SQRT2 < beach.value + Math.abs(beachWobble.value)
+  }
+  /** The floor's triangles parted anew, the shore or the wells having moved: only a phone's, with no panel moving their looks. */
+  const layZones = () => {
+    if (!plainMaterial || !shoreLaid) return
+    const geometry = mesh.geometry
+    mesh.updateMatrixWorld()
+    const local = geometry.getAttribute('position')
+    const world = new Float32Array(local.count * 3)
+    const corner = new Vector3()
+    for (let k = 0; k < local.count; k++) {
+      corner.fromBufferAttribute(local, k).applyMatrix4(mesh.matrixWorld)
+      world.set([corner.x, corner.y, corner.z], k * 3)
+    }
+    const { index, plain } = splitTriangles(world, geometry.getIndex()?.array, showsMore)
+    geometry.setIndex(new BufferAttribute(index, 1))
+    geometry.clearGroups()
+    geometry.addGroup(0, plain, 0)
+    geometry.addGroup(plain, index.length - plain, 1)
+    mesh.material = [plainMaterial, material]
+  }
   /** The bed laid, and the one last asked for; the same for the ground under the wells. */
   let bedAsked = bed?.texture
   let wellAsked = wellGround?.texture
 
-  const mesh = new Mesh(new PlaneGeometry(EXTENT * 2, EXTENT * 2), material)
+  const mesh: Mesh = new Mesh(new PlaneGeometry(EXTENT * 2, EXTENT * 2), material)
   mesh.rotation.x = -Math.PI / 2
   mesh.receiveShadow = true
   const laid: Floor = {
@@ -536,6 +607,8 @@ export async function floor(
     setWells(wells) {
       if (!wellSet) return
       wellSpots.forEach((spot, k) => spot.value.set(wells[k]?.x ?? 1e6, wells[k]?.z ?? 1e6))
+      wellsLaid = wells
+      layZones()
     },
     setWellGround(look) {
       if (!wellColourTexel || !wellNormalTexel) return
@@ -601,6 +674,8 @@ export async function floor(
     }
     shoreMap.needsUpdate = true
     shoreBox.value.set(field.minX, field.minZ, 1 / field.size, 1 / field.size)
+    shoreLaid = field
+    layZones()
   }
   if (bed) laid.setBed(bed)
   if (wellGround) laid.setWellGround(wellGround)

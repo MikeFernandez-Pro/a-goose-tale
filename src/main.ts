@@ -751,11 +751,17 @@ const wellGroundLook = defaultWellGroundLook()
 const ROAD = true
 const roadShape = defaultRoadShape()
 const roadLook = defaultRoadLook()
+// `?groundcut=wells,bed,noise,hue,strokes,normals`: what the bench prices of the floor's shader, each left out of it.
+const groundCut = new Set(url.get('groundcut')?.split(','))
 const ground = await floor(look.floor.texture, {
   slopes: true,
-  bed: bedLook,
-  wellGround: wellGroundLook,
+  bed: groundCut.has('bed') ? undefined : bedLook,
+  wellGround: groundCut.has('wells') ? undefined : wellGroundLook,
   road: ROAD ? roadLook : undefined,
+  cut: groundCut,
+  // `?groundzones=0` and `?noisemap=0` for the bench to price them.
+  zones: lean && moon === 'none' && url.get('groundzones') !== '0',
+  noiseMap: lean && url.get('noisemap') !== '0',
 })
 // Starting by the burning tree's branch, he carries no torch of his own: the branch, picked up, is his torch.
 /** The burning branch, where the route lays one, held by its butt in his bill: out to his right, forward and up, under half as long as he is tall, a fifth of it back past his bill. */
