@@ -6,10 +6,10 @@
 // a key pressed reaches the rats a step late and their motion stays smooth.
 //
 // The page sends what the step reads, every frame: the count, the torch, the
-// lights the level places, the tuning and what it cannot see. Nothing else crosses: the light's walk is the page's, worked out
-// from the arena's radius alone. And only when they change, the level's walls
+// lights the plain places, the tuning and what it cannot see. Nothing else crosses: the light's walk is the page's, worked out
+// from the range's radius alone. And only when they change, the plain's walls
 // as they stand, the nearest picked again as the goose walks, and the rats to be placed again.
-import { arenaFor, type Bounds, type Dark, type FixedLight, type Ground, type Light, type StepReport, type Target, type Tuning } from './swarm'
+import { rangeRadiusFor, type Bounds, type Dark, type FixedLight, type Ground, type Light, type StepReport, type Target, type Tuning } from './swarm'
 import type { Pair } from './gpucull'
 import type { PlaySwarm } from './play'
 import type { Wall } from './walls'
@@ -25,7 +25,7 @@ export interface State {
   /** Swarm time at the end of the step, s. */
   time: number
   count: number
-  arena: number
+  rangeRadius: number
   x: Float32Array
   z: Float32Array
   /** How high each rat rides on the pile, m, and its pitch, radians nose up. */
@@ -48,16 +48,16 @@ export interface Start {
   capacity: number
   seed: number
   count: number
-  /** How much wider than the count asks the arena is. */
-  arenaScale: number
-  /** The level's walls, the box rats start in, and the lights they start out of. */
+  /** How much wider than the count asks the range is. */
+  rangeScale: number
+  /** The plain's walls, the box rats start in, and the lights they start out of. */
   ground: Ground
 }
 export interface Input {
   type: 'input'
   count: number
   light: Light
-  /** The lights the level places, beside the torch. */
+  /** The lights the plain places, beside the torch. */
   lights: FixedLight[]
   /** The targets that pull the rats near them, besides the holder. */
   targets: Target[]
@@ -78,7 +78,7 @@ export interface Recycle {
   place: Float32Array
   moved: Uint8Array
 }
-/** The level's walls as they now stand, the nearest picked again as the goose walks. */
+/** The plain's walls as they now stand, the nearest picked again as the goose walks. */
 export interface SetWalls {
   type: 'walls'
   walls: Wall[]
@@ -130,9 +130,9 @@ const LATEST = 2
  */
 export class RemoteSwarm implements PlaySwarm {
   readonly capacity: number
-  /** Rats alive, as last asked of it, or as of the latest state; and the arena's radius, as of the latest state. */
+  /** Rats alive, as last asked of it, or as of the latest state; and the range's radius, as of the latest state. */
   count: number
-  arena: number
+  rangeRadius: number
   /** Where every rat is this frame, the first `count` of each: read by `sample`. */
   readonly x: Float32Array
   readonly z: Float32Array
@@ -194,10 +194,10 @@ export class RemoteSwarm implements PlaySwarm {
   /** Whether the last sample held each rat on a beat of its own: then no one pair says where the rats are. */
   private staggered = false
 
-  constructor(capacity: number, seed: number, count: number, arenaScale = 1, ground: Ground = { walls: [] }, worker: SwarmPort = spawnWorker()) {
+  constructor(capacity: number, seed: number, count: number, rangeScale = 1, ground: Ground = { walls: [] }, worker: SwarmPort = spawnWorker()) {
     this.capacity = capacity
     this.count = count
-    this.arena = arenaFor(count, arenaScale, ground.bounds)
+    this.rangeRadius = rangeRadiusFor(count, rangeScale, ground.bounds)
     this.putTill = new Uint32Array(capacity)
     this.x = new Float32Array(capacity)
     this.z = new Float32Array(capacity)
@@ -210,7 +210,7 @@ export class RemoteSwarm implements PlaySwarm {
     this.placedOn = new Int32Array(capacity).fill(-1)
     this.worker = worker
     this.worker.onmessage = (event: MessageEvent<State>) => this.receive(event.data)
-    this.post({ type: 'start', capacity, seed, count, arenaScale, ground })
+    this.post({ type: 'start', capacity, seed, count, rangeScale, ground })
   }
 
   /** What the next steps read: sent every frame, so the panel's edits need no wiring of their own. */
@@ -235,7 +235,7 @@ export class RemoteSwarm implements PlaySwarm {
     this.post(input)
   }
 
-  /** The level's walls as they now stand, the nearest picked again as the goose walks: the worker's next step reads them. */
+  /** The plain's walls as they now stand, the nearest picked again as the goose walks: the worker's next step reads them. */
   setWalls(walls: readonly Wall[], bounds?: Bounds): void {
     const message: SetWalls = { type: 'walls', walls: walls.map(({ from, to }) => ({ from: { ...from }, to: { ...to } })) }
     if (bounds !== undefined) message.bounds = { ...bounds }
@@ -422,7 +422,7 @@ export class RemoteSwarm implements PlaySwarm {
     this.gap += (gap - this.gap) * 0.1
     this.arrived = now
     this.count = this.asked ?? state.count
-    this.arena = state.arena
+    this.rangeRadius = state.rangeRadius
     this.ms = state.ms
     this.inside = state.inside
     this.reached = state.reached

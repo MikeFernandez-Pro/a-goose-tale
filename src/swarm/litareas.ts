@@ -10,19 +10,19 @@
 // The swarm keeps rats out of what the tables say is lit, and the drawing
 // lights the ground from the same tables, read the same way (lights.ts): what
 // looks lit is what the rats avoid. Row 0 is the torch's, seen again wherever
-// it moves; the rest are the lit lights the level places, in the swarm's
+// it moves; the rest are the lit lights the plain places, in the swarm's
 // order, each seen again only when it moves, or when the walls change.
 // Water's row is its shore, as it was handed over, whatever the walls.
 import type { FixedLight } from './swarm'
 import type { Walls } from './walls'
 
-/** The most lights the level places a step reads at once: the first lit ones. The GPU step hands them over as a uniform array this long. */
+/** The most lights the plain places a step reads at once: the first lit ones. The GPU step hands them over as a uniform array this long. */
 export const MAX_LIGHTS = 16
 /** Directions a table holds round its light. */
 export const ANGLES = 512
 /** How far a table reads, m: past every reach a light is given and the torch's lamp at full strength. */
 const SEEN_CAP = 8
-/** The torch's row, then one a light the level places. */
+/** The torch's row, then one a light the plain places. */
 export const LIT_ROWS = 1 + MAX_LIGHTS
 
 const TAU = Math.PI * 2

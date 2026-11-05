@@ -67,7 +67,7 @@ export class FlowField {
   private readonly heapCell = new Int32Array(CELLS * 5)
   private readonly heapKey = new Float64Array(CELLS * 5)
 
-  /** The level's walls as they now stand: worked out again at the next update. */
+  /** The plain's walls as they now stand: worked out again at the next update. */
   setWalls(walls: Walls): void {
     this.walls = walls
     this.active = walls.count > 0

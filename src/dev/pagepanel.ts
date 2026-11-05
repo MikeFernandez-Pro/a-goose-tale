@@ -37,7 +37,7 @@ export interface PageParts {
   lookChanged: () => void
   shadowsChanged: () => void
   runTuning: GoosePlay<PlaySwarm>['runTuning']
-  level: GoosePlay<PlaySwarm>['level']
+  layout: GoosePlay<PlaySwarm>['layout']
   goosePlay: GoosePlay<PlaySwarm>
   zoneRings: ReturnType<typeof createZoneRings>
   darkLook: DarkLook
@@ -67,7 +67,7 @@ export interface PageParts {
 }
 
 /** The panel on `parts`. */
-export function mountPagePanel({ settings, tuning, look, capacity, rats, RAT_RADIUS, torchChanged, lookChanged, shadowsChanged, runTuning, level, goosePlay, zoneRings, darkLook, feel, openingShow, pondLook, pondWorld, roadside, fires, ground, pondWater, bedLook, gooseGround, goosePlain, pondPlace, rollingLook, roadShape, roadLook, goslingSpeeds, goslingSize, burningTreeLight, fireShadowLook, gooseScenes, wellGroundLook, view, tilt }: PageParts) {
+export function mountPagePanel({ settings, tuning, look, capacity, rats, RAT_RADIUS, torchChanged, lookChanged, shadowsChanged, runTuning, layout, goosePlay, zoneRings, darkLook, feel, openingShow, pondLook, pondWorld, roadside, fires, ground, pondWater, bedLook, gooseGround, goosePlain, pondPlace, rollingLook, roadShape, roadLook, goslingSpeeds, goslingSize, burningTreeLight, fireShadowLook, gooseScenes, wellGroundLook, view, tilt }: PageParts) {
   const { waterLook, water, pond, nest, nestLook, nestLeaves, nestNeedles, layNest, islandFireLook, layIslandFire, tent, picnic, islandTree, layIslandTree, islandGeese } = pondWorld
   const { arches, archLook, archStone, archShell, archesChanged, archesShell, layArches, roadWalls, roadWallLook, wallStone, wallShell, layWalls, deadTreesMesh, deadTreeLook, deadTreeShape, deadTreeShine, deadTreeBark, deadTreeGrass, deadTreeLeaves, deadTreeWind, leavesFallAsTrees, layTrees, bushesMesh, bushLook, bushShape, bushLeaves, layBushes, gooseSee, gooseSeeLook, layRoad } = roadside
   const { fireLook, fireLooks, pitFireLook, crownFireLook, trunkFireLook, footFireLook, branchLook, burningBranch } = fires
@@ -105,14 +105,14 @@ export function mountPagePanel({ settings, tuning, look, capacity, rats, RAT_RAD
     },
   }, {
     tuning: runTuning,
-    level,
+    layout,
     // The game's dark, and its rats' seed: a new seed sets the rats down afresh, the page loaded again on it.
     goose: {
       settings: goosePlay.settings,
       refillZones: zoneRings.zones,
       dark: darkLook,
       feel,
-      introLight: openingShow.openingLight && openingShow.openingLightLook,
+      openingLight: openingShow.openingLight && openingShow.openingLightLook,
       // The pond folder lays the pond again on every change.
       pond: { look: pondLook, changed: () => {
           pond.set(pondLook)

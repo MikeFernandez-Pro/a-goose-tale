@@ -4,10 +4,10 @@
 // the tests play what the page has, never a copy of its numbers.
 import { defaultTuning, type Tuning } from '../swarm/swarm'
 
-/** How far off a rat notices the holder, m: past the fog, so a rat that comes is never seen setting off, and short of the level, so the far rats seethe where they are. */
+/** How far off a rat notices the holder, m: past the fog, so a rat that comes is never seen setting off, and short of the plain's length, so the far rats seethe where they are. */
 export const NOTICE = 9
-/** How fast the light walks to start, m/s: a jog; set from the panel on 2026-10-08. */
-export const LIGHT_SPEED = 2
+/** How fast the goose walks to start, m/s: a jog; set from the panel on 2026-10-08. */
+export const GOOSE_PACE = 2
 /** How far past the torch's reach no rat is set down when the run starts again, m: room to breathe before the front comes. */
 export const RESTART_ROOM = 2
 /**

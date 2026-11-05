@@ -11,7 +11,7 @@ import { type PerspectiveCamera, type WebGPURenderer, Vector3 } from 'three/webg
 import { filming, url, phone, featureOn, noPanel } from '../game/address'
 import { createHoldHint, promptedOf } from './holdhint'
 import { createGoslingBadge, mountBadgeControls } from './goslingbadge'
-import { createCallHint, type CallAt, callAt } from './callhint'
+import { createGoslingCall, type CallAt, callAt } from './goslingcall'
 import { touchLayout, STICK_REACH, BUTTON_RADIUS } from './goosetouch'
 import { EXCITED_FROM } from '../sound/gooseheard'
 
@@ -97,10 +97,10 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
   let callSeen = false
   /** How loud the badge's gosling calls, far off (CALL_FAR m) and near (CALL_QUIET m): barely heard, then louder as the goose comes. */
   const BADGE_HEARD = [0.08, 1] as const
-  /** The nearest waiting gosling's call, over him or at the screen's edge on his side (callhint.ts); none in a take. */
-  const callHint =
+  /** The nearest waiting gosling's call, over him or at the screen's edge on his side (goslingcall.ts); none in a take. */
+  const goslingCall =
     !filming
-      ? createCallHint(
+      ? createGoslingCall(
           (far) => {
             const heard = callBadge ? BADGE_HEARD[1] + (BADGE_HEARD[0] - BADGE_HEARD[1]) * far : CALL_HEARD[0] + (CALL_HEARD[1] - CALL_HEARD[0]) * far
             gooseSounds?.play('call', callHeard, heard)
@@ -163,25 +163,25 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
     return !at.out && (holdShown || (aheadShown && !atWell)) ? 0 : 1
   }
   /** How long after the opening the first gosling calls, the goose's torch lit or not, s; and how long since it ended. */
-  const CALL_AFTER_INTRO = 1
-  let sinceIntro = 0
+  const CALL_AFTER_OPENING = 1
+  let sinceOpening = 0
   /**
    * The nearest gosling still waiting calling him, till he finds the little one: only the nearest, so one passed by falls quiet as
    * he goes on, and he need not find them all. Once he is within EXCITED_FROM m the gosling stops calling: the little one has seen him
    * coming, and peeps happily instead (excitedFrame). With none left waiting, the badge stays on the gosling leading him home, quiet, till the ending.
    */
-  function callHintFrame(dt: number) {
-    if (!callHint || opening.running()) return
+  function goslingCallFrame(dt: number) {
+    if (!goslingCall || opening.running()) return
     if (ending.running()) {
       callBadge?.update(null, 0, dt)
-      return callHint.update(null, dt)
+      return goslingCall.update(null, dt)
     }
     // One just found, the rest wait CALL_REST s before the next calls: he has the little one back first.
     const waiting = goosePlay.goslings.filter((g) => g?.state === 'waiting').length
     if (stillWaiting >= 0 && waiting < stillWaiting) callRest = CALL_REST
     stillWaiting = waiting
     callRest = Math.max(0, callRest - dt)
-    sinceIntro += dt
+    sinceOpening += dt
     const { holder } = goosePlay
     const away = (g: { x: number; z: number }) => Math.hypot(g.x - holder.x, g.z - holder.z)
     let next = -1
@@ -195,10 +195,10 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
     const off = g ? away(g) : Infinity
     // Let out of his cage, he is found: no badge, no call, while its door opens and he walks out.
     const freed = goosePlay.scenes.some((s) => s.brazier === next && s.kind === 'cage' && s.open)
-    if (!g || freed || (callRest > 0 && !guiding) || sinceIntro < CALL_AFTER_INTRO) {
+    if (!g || freed || (callRest > 0 && !guiding) || sinceOpening < CALL_AFTER_OPENING) {
       calling = -1
       callBadge?.update(null, 0, dt)
-      return callHint.update(null, dt)
+      return goslingCall.update(null, dt)
     }
     // Over his head as drawn, up a tree or down a well.
     goslings.headOf(next, callFrom)
@@ -213,7 +213,7 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
     if (off < EXCITED_FROM || guiding) {
       calling = -1
       callBadge?.update(at, badgeShown(at, next, off), dt, next, close)
-      return callHint.update(null, dt)
+      return goslingCall.update(null, dt)
     }
     if (next !== calling) {
       calling = next
@@ -225,10 +225,10 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
     callAway = off
     const far = Math.min(1, Math.max(0, (off - CALL_QUIET) / (CALL_FAR - CALL_QUIET)))
     const size = CALL_NEAREST + (CALL_LOUDEST - CALL_NEAREST) * far
-    if (!callBadge) return callHint.update({ ...at, size, far, urgency: callUrgency }, dt)
+    if (!callBadge) return goslingCall.update({ ...at, size, far, urgency: callUrgency }, dt)
     callBadge.update(at, badgeShown(at, next, off), dt, next, close)
     callSeen = !at.out
-    callHint.update({ x: at.x, y: at.y, size: BADGE_CALL, far, urgency: callUrgency }, dt)
+    goslingCall.update({ x: at.x, y: at.y, size: BADGE_CALL, far, urgency: callUrgency }, dt)
   }
 
   /**
@@ -265,8 +265,8 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
       const at = callAt(aheadAt, box, CALL_MARGIN)
       return aheadHint.update(at, 0, 'pick it up!', false, at.out ? Math.atan2(at.out.y, at.out.x) : Math.PI / 2)
     }
-    if (!branch && burningTreeLight >= 0 && !torchFilledOnce() && sinceIntro >= START_HINT_AFTER) {
-      const tree = goosePlay.level.lights[burningTreeLight]!
+    if (!branch && burningTreeLight >= 0 && !torchFilledOnce() && sinceOpening >= START_HINT_AFTER) {
+      const tree = goosePlay.layout.lights[burningTreeLight]!
       aheadAt.set(tree.x, standAt(tree.x, tree.z) + AHEAD_HEIGHT, tree.z).project(camera)
       aheadShown = true
       return aheadHint.update(callAt(aheadAt, box, CALL_MARGIN), 0, 'light your torch', false)
@@ -298,5 +298,5 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
     if (scene.kind === 'cage' && !scene.open) return { zone: play.zoneOf(scene), word: scene.carried ? 'unlock it' : 'find the key' }
     return undefined
   }
-  return { holdHintFrame, callHintFrame, aheadFrame }
+  return { holdHintFrame, goslingCallFrame, aheadFrame }
 }

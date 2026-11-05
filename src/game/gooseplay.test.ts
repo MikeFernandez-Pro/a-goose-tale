@@ -132,7 +132,7 @@ function fillAtPit(play: GoosePlay, b: Brazier, each: (play: GoosePlay) => void 
   const pit = play.wellFires.find((f) => f.brazier === k)
   const well = play.scenes.find((s) => s.brazier === k)
   if (pit === undefined || well === undefined) return false
-  return toPit(play, well, play.level.lights[pit.light]!, each) && fillAt(play, play.level.lights[pit.light]!, each, AT_PIT)
+  return toPit(play, well, play.layout.lights[pit.light]!, each) && fillAt(play, play.layout.lights[pit.light]!, each, AT_PIT)
 }
 
 /** To `pit`, the fire pit by `well`: round the well's end first if the pit is across it, past it up the plain. Whether he got there. */
@@ -631,8 +631,8 @@ describe('the goose play', () => {
       const [ring] = wellBodiesOf(well)
       ring!.outline.forEach((p, k) => close(p, turned(WELL_OUTLINE[k]!, turn)))
       const b = ROUTE_THREE.braziers[0]!
-      close(play.level.lights[well.brazier]!, b)
-      expect(play.level.lights[well.brazier]!.on).toBe(false)
+      close(play.layout.lights[well.brazier]!, b)
+      expect(play.layout.lights[well.brazier]!.on).toBe(false)
     })
 
     it('turns an unturned well not at all', () => {
@@ -742,10 +742,10 @@ describe('the goose play', () => {
       const play = new GoosePlay({ route: ROUTE_THREE, torch: 25, rats: 2000, seed: 3 })
       const k = play.plain.braziers.findIndex((b) => b.scene === 'well')
       const pit = play.wellFires.find((f) => f.brazier === k)!
-      expect(play.level.lights[pit.light]!.reach).toBe(play.settings.wellFireReach)
+      expect(play.layout.lights[pit.light]!.reach).toBe(play.settings.wellFireReach)
       play.settings.wellFireReach = 5
       stand(play, STEP)
-      const light = play.level.lights[pit.light]!
+      const light = play.layout.lights[pit.light]!
       expect(light.reach).toBe(5)
       expect(play.run.lights()[pit.light]!.reach).toBe(5)
       // Stood at it, the rats he draws press on its new edge and come no nearer, less a rat's size and the flame's lean.
@@ -868,7 +868,7 @@ describe('the goose play', () => {
     it('fills the torch at its fire pit only while the interact key is held, over its set time, and lights it again if it was out', () => {
       const play = new GoosePlay({ ...FEW, wellAhead: 3.5, refillHold: 2 })
       // In its dip.
-      const pit = play.level.lights[play.wellFires[0]!.light]!
+      const pit = play.layout.lights[play.wellFires[0]!.light]!
       expect(toPit(play, play.scenes.find((s) => s.kind === 'well')!, pit)).toBe(true)
       // Stood there, nothing.
       play.run.fuel = 0
@@ -938,7 +938,7 @@ describe('the goose play', () => {
         const tree = play.scenes.find((s) => s.kind === 'tree')!
         expect(tree.kind === 'tree' && tree.fireLight).toBe(play.plain.braziers.length)
         if (tree.kind !== 'tree') return
-        const fire = play.level.lights[tree.fireLight]!
+        const fire = play.layout.lights[tree.fireLight]!
         expect(fire).toMatchObject({ ...tree.fire, flame: true, on: true })
         expect(play.lights()).toContainEqual(expect.objectContaining({ ...tree.fire, on: true }))
         // On its right, a little up the plain; its light at its furthest lean stops short of the trunk, and not by much: near it.
@@ -1328,7 +1328,7 @@ describe('the goose play', () => {
       braziers: [{ x: 0, z: 10, reach: 3, gosling: { x: 0.5, z: 10 }, dying: { trigger: 6, after: 1, lasts: 2 } }],
       pond: { x: 0, z: -30, radius: 5, shore: 0.3 },
     }
-    const lightOf = (play: GoosePlay) => play.level.lights[0]!
+    const lightOf = (play: GoosePlay) => play.layout.lights[0]!
 
     it('burns full until he first comes near it, burns on its set time, then shrinks to nothing and is out', () => {
       const play = new GoosePlay({ ...FEW, route: DYING })
@@ -1493,7 +1493,7 @@ describe("a ghost's gosling", () => {
 
   it('waits where the route has him, his brazier unlit, with no ghost walking', () => {
     const play = new GoosePlay({ ...FEW, route })
-    expect(play.level.lights[0]!.on).toBe(false)
+    expect(play.layout.lights[0]!.on).toBe(false)
     stand(play, 2)
     expect(play.goslings[0]).toMatchObject({ x: middle.x + 3, z: middle.z, state: 'waiting' })
   })
@@ -1659,13 +1659,13 @@ describe('the burning branch', () => {
     play.frame(STEP, { heading: null, interact: true })
   }
 
-  it("starts him carrying nothing, his torch out, the branch lying burning: a lit light, the last of the level's", () => {
+  it("starts him carrying nothing, his torch out, the branch lying burning: a lit light, the last of the plain's", () => {
     const play = branched()
     const branch = play.branch!
     expect(play.armed).toBe(false)
     expect(play.run.torch.lit).toBe(false)
     expect(branch).toMatchObject({ ...lies, landed: true, carried: false })
-    expect(branch.light).toBe(play.level.lights.length - 1)
+    expect(branch.light).toBe(play.layout.lights.length - 1)
     expect(play.lights()[branch.light]).toMatchObject({ ...lies, reach: BRANCH_REACH, on: true })
     stand(play, 1)
     expect(play.run.fuel).toBe(0)
@@ -1710,7 +1710,7 @@ describe('the burning branch', () => {
     expect(play.caughtAt).toBe(play.t)
     expect(play.caughtFrom).toBe(0)
     const light = play.branch!.light
-    expect(play.level.lights[light]!.on).toBe(false)
+    expect(play.layout.lights[light]!.on).toBe(false)
     expect(play.lights()[light]!.on).toBe(false)
     // Its light stays out, wherever he takes it.
     expect(walkTo(play, { x: lies.x, z: lies.z - 3 })).toBe(true)
@@ -1771,7 +1771,7 @@ describe('the burning branch', () => {
     const play = new GoosePlay(FEW)
     expect(play.branch).toBeUndefined()
     expect(play.armed).toBe(true)
-    expect(play.level.lights).toHaveLength(new GoosePlay({ ...FEW, route }).level.lights.length - 1)
+    expect(play.layout.lights).toHaveLength(new GoosePlay({ ...FEW, route }).layout.lights.length - 1)
   })
 })
 
@@ -1793,7 +1793,7 @@ describe('the bodies on the ground', () => {
     const play = new GoosePlay({ ...FEW, wellAhead: 3.5 })
     play.settings.wellFire.x = 1
     stand(play, STEP)
-    const pit = play.level.lights[play.wellFires[0]!.light]!
+    const pit = play.layout.lights[play.wellFires[0]!.light]!
     expect(toPit(play, play.scenes.find((s) => s.kind === 'well')!, pit)).toBe(true)
     walkTo(play, pit, 0.05, 2, () => expect(offWell(pit, play.holder, PIT_OUTLINE)).toBeGreaterThan(HOLDER_RADIUS - 0.01))
     expect(offWell(pit, play.holder, PIT_OUTLINE)).toBeLessThan(HOLDER_RADIUS + 0.05)
@@ -1819,7 +1819,7 @@ describe('the bodies on the ground', () => {
     const k = play.plain.braziers.findIndex((b) => b.scene === 'cage')
     for (const before of play.plain.braziers.slice(0, k)) expect(visit(play, before)).toBe(true)
     const cage = cageOf(play)
-    const fire = play.level.lights[k]!
+    const fire = play.layout.lights[k]!
     const campfire = CAMPFIRE_OUTLINE.map((p) => turned(p, cage.turn))
     walkTo(play, fire, 0.05, 15, () => expect(offWell(fire, play.holder, campfire)).toBeGreaterThan(HOLDER_RADIUS - 0.01))
     expect(offWell(fire, play.holder, campfire)).toBeLessThan(HOLDER_RADIUS + 0.05)
@@ -2028,6 +2028,6 @@ describe('a run kept and taken up again', () => {
     const after = new GoosePlay(ON_BRANCH)
     after.restore(before.saved())
     expect(after.branch).toMatchObject({ carried: true })
-    expect(after.level.lights[after.branch!.light]!.on).toBe(false)
+    expect(after.layout.lights[after.branch!.light]!.on).toBe(false)
   })
 })

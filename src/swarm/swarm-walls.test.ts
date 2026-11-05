@@ -1,6 +1,6 @@
-// The swarm on a level's ground (#175), through its own calls only: walls no
+// The swarm on a plain's ground (#175), through its own calls only: walls no
 // rat and not the holder crosses, light that stops at them, rats that do not
-// notice a holder too far off, and rats that start wherever the level is
+// notice a holder too far off, and rats that start wherever the plain is
 // dark. What is lit is worked out here on its own, a straight line from the
 // light to the rat that no wall's box cuts, and never read from the swarm.
 import { describe, expect, it } from 'vitest'
@@ -200,7 +200,7 @@ describe('a rat behind a wall', () => {
   })
 })
 
-describe("the level's rats", () => {
+describe("the plain's rats", () => {
   it('start everywhere its box is dark: in it, out of every wall, and out of every light', () => {
     const walls = [wall(-4, -4, 4, -4), wall(4, -4, 4, 4), wall(0, 2, 0, 9)]
     const start: FixedLight[] = [
@@ -338,10 +338,10 @@ describe('the rats placed again', () => {
   })
 })
 
-describe('the step on a level', () => {
+describe('the step on a plain', () => {
   it('keeps within its budget, a step every sixtieth of a second, with two dozen walls and eight lights', () => {
     const count = 8192
-    // A maze of short walls over the arena.
+    // A maze of short walls over the range.
     const walls: Wall[] = []
     for (let k = 0; k < 24; k++) {
       const x = ((k % 6) - 2.5) * 6

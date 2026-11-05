@@ -13,8 +13,8 @@ import type { Ending } from './ending'
 import type { TiltShift } from '../look/tiltshift'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { Walk } from '../ui/goosecontrols'
-import { shakeAt } from './gooseintro'
-import { pullOf } from './gooseoutro'
+import { shakeAt } from './openingscript'
+import { pullOf } from './endingscript'
 
 /**
  * Where the camera starts from the light, and its field of view: a third

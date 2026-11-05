@@ -6,7 +6,7 @@ import type { ComputeNode, StorageBufferAttribute } from 'three/webgpu'
 import { computeWGSL, unassignedReads } from '../dev/test-wgsl'
 import { GpuCull, HELD } from './gpucull'
 import { GpuSwarm, MOST_FRAME, MOST_STEPS, StepClock, type Device } from './gpuswarm'
-import { FLICKER, IDLE, MAX_LIGHTS, MAX_TARGETS, RUN, Swarm, WALK, arenaRadiusFor, defaultTuning, pullTargets, shoreLight, type FixedLight, type Light, type Target } from './swarm'
+import { FLICKER, IDLE, MAX_LIGHTS, MAX_TARGETS, RUN, Swarm, WALK, rangeRadiusForCount, defaultTuning, pullTargets, shoreLight, type FixedLight, type Light, type Target } from './swarm'
 import { STEP } from './swarm-remote'
 import { MAX_WALLS } from './walls'
 
@@ -173,7 +173,7 @@ describe('GpuSwarm.send', () => {
     frame(1, 2)
     swarm.stand()
     expect(cull.blend.count.value).toBe(2)
-    expect(swarm.arena).toBe(arenaRadiusFor(2))
+    expect(swarm.rangeRadius).toBe(rangeRadiusForCount(2))
   })
 })
 
@@ -215,7 +215,7 @@ describe('GpuSwarm at the holder', () => {
   })
 })
 
-describe("GpuSwarm and the level's lights", () => {
+describe("GpuSwarm and the plain's lights", () => {
   it('hands the step the lit ones, where each is, its reach and how far off it can matter, as they stand each frame', () => {
     const { swarm, frame, lights, tuning } = swarmOf(4)
     lights.push({ x: 1, z: 2, reach: 1.5, on: true }, { x: 3, z: 4, reach: 2, on: false }, { x: 5, z: 6, reach: 0.5, on: true })
@@ -274,8 +274,8 @@ describe('GpuSwarm and the targets', () => {
   })
 })
 
-describe("GpuSwarm and the level's walls", () => {
-  it(`hands the step every wall from end to end, and refuses a level of more than ${MAX_WALLS}`, () => {
+describe("GpuSwarm and the plain's walls", () => {
+  it(`hands the step every wall from end to end, and refuses a plain of more than ${MAX_WALLS}`, () => {
     const walls = Array.from({ length: MAX_WALLS }, (_, k) => ({ from: { x: k, z: -1 }, to: { x: k, z: 1 } }))
     const swarm = new GpuSwarm(new GpuCull(CAPACITY, 36, 1), new FakeDevice(), CAPACITY, SEED, 4, 1, () => 0, { walls })
     expect(swarm.walls[0]!.toArray()).toEqual([0, -1, 0, 1])

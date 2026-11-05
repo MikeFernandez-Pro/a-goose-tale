@@ -1,4 +1,4 @@
-// The burning branch A Goose Tale starts with (gooseplay.ts, gooseintro.ts):
+// The burning branch A Goose Tale starts with (gooseplay.ts, openingscript.ts):
 // snapped off the burning tree's crown in the opening, it falls burning,
 // lies on the ground among the rats, and once he picks it up it is his torch,
 // held by its butt in his bill, out to his right, its broken end where the

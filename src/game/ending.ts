@@ -1,4 +1,4 @@
-// The ending (gooseoutro.ts) as the page plays it: he and the mother on the island's shore, the dawn, the hearts and the title.
+// The ending (endingscript.ts) as the page plays it: he and the mother on the island's shore, the dawn, the hearts and the title.
 import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import { type PondLook, islandMiddle, islandShoreAt } from '../world/pond'
@@ -15,7 +15,7 @@ import type { GooseSounds } from '../sound/goosesounds'
 import type { Goose } from '../characters/goose'
 import { type PerspectiveCamera, type WebGPURenderer, Color, Vector3 } from 'three/webgpu'
 import { url } from './address'
-import { type Stage, type Island, layOutro, ganderAt, planAt, aimOf, motherAt, goslingOf, againOf, heartsOf, HEART_SHOWS, morningOf, fadeOf, titleOf, byOf, DRAIN, dawnOf } from './gooseoutro'
+import { type Stage, type Island, layEnding, ganderAt, planAt, aimOf, motherAt, goslingOf, againOf, heartsOf, HEART_SHOWS, morningOf, fadeOf, titleOf, byOf, DRAIN, dawnOf } from './endingscript'
 import { type PadButton, padBeside } from '../ui/holdhint'
 import { dropKeptRun } from './keptrun'
 
@@ -43,7 +43,7 @@ const DAWN: DawnLook = {
 }
 
 /**
- * The ending: once he swims near the island, unless `?outro=0`; its own clock, s, on with the play's, -1 until it
+ * The ending: once he swims near the island, unless `?ending=0`; its own clock, s, on with the play's, -1 until it
  * starts. Laid out once as it starts, from where they all are, and played to its end, the title staying.
  */
 export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, waterLook, water, ground, deadTreesMesh, deadTreeGrass, islandTree, nightLights, light, gooseSounds, goose, camera, renderer }: {
@@ -65,7 +65,7 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
   camera: PerspectiveCamera
   renderer: WebGPURenderer
 }) {
-  const on = url.get('outro') !== '0'
+  const on = url.get('ending') !== '0'
   const ending = {
     on,
     t: -1,
@@ -121,12 +121,12 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
     ending.brood = play.goslings.flatMap((g, k) => (g?.state === 'circle' || g?.state === 'guiding' ? [k] : []))
     const { mother, motherYaw, goslings: island } = islandGeese.cast()
     const brood = ending.brood.map((k) => ({ x: play.goslings[k]!.x, z: play.goslings[k]!.z }))
-    ending.stage = layOutro(ending.island, { gander: { ...play.holder }, mother, door: tent.object.visible ? tent.door() : undefined, motherYaw, island, brood })
+    ending.stage = layEnding(ending.island, { gander: { ...play.holder }, mother, door: tent.object.visible ? tent.door() : undefined, motherYaw, island, brood })
     nightLook = dawnLookOf(look)
     dawnFloor = undefined
     ending.t = 0
     // In by now, asked for when the last gosling was found; else as soon as it comes.
-    void gooseSounds?.load('outro').then(() => gooseSounds.play('outro'))
+    void gooseSounds?.load('ending').then(() => gooseSounds.play('ending'))
   }
   /** He and his goslings where the ending has them, the camera's look with them. */
   function walkEnding() {
@@ -244,7 +244,7 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
     document.body.append(endingCard)
   }
   /**
-   * The hearts going up over the two of them once they meet (gooseoutro.ts heartsOf), drawn as the game's words are:
+   * The hearts going up over the two of them once they meet (endingscript.ts heartsOf), drawn as the game's words are:
    * each swells in past its size and settles, rises a little and slowly, floats round their heads in loops of HEART_LOOP px, and fades.
    * HEART_WIDE px across at its usual size; HEART_UP m over him it starts, HEART_RISE px it rises, HEART_SCATTER px to
    * its side at the most.

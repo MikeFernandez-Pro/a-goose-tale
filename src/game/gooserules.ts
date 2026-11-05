@@ -1,12 +1,12 @@
 // What the game starts with: how its rats crowd and run, the panel's first settings, and how he feels to play.
 import type { Settings, GooseFeel } from '../settings'
 import { url, debugOn } from './address'
-import { RAT_SPEEDS, SIZE_BY_SPEED, LIGHT_SPEED, CROWD } from './gameplay'
+import { RAT_SPEEDS, SIZE_BY_SPEED, GOOSE_PACE, CROWD } from './gameplay'
 import { defaultTuning } from '../swarm/swarm'
 import type { Feathers } from '../characters/feathers'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
-const FILM_LIGHT_SPEED = 2
+const FILM_GOOSE_PACE = 2
 /** The game's rats to start, 100 since 2026-11-02, more coming with each gosling found: ?rats=N asks for others. */
 const GOOSE_RATS = 100
 // The game's rats as set from the panel on 2026-10-26: quicker to come on, and quicker still from the light, bigger; bigger again, 2.2, since 2026-10-29, and spaced 1.2 the same day (1.8 read as too tame).
@@ -34,7 +34,7 @@ export function startingSettings(capacity: number): Settings {
     debug: debugOn || url.has('film'),
     shadows: url.has('shadows'),
     runAnimation: 1.7,
-    lightSpeed: url.has('film') ? FILM_LIGHT_SPEED : LIGHT_SPEED,
+    goosePace: url.has('film') ? FILM_GOOSE_PACE : GOOSE_PACE,
     paused: false,
     bringRound: true,
     // The game's rats come round from out of the camera's view or past GOOSE_ROUND_PAST m, the fog nearer where it is on.

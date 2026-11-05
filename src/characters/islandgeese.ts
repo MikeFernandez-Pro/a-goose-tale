@@ -5,7 +5,7 @@
 // (geese.glb's, as goslings.ts draws them) at play in front of the tent, each
 // running to a spot of dry ground picked at random, standing a moment, and off
 // again. Drawn only: nothing in the play knows of them. In the ending
-// (gooseoutro.ts) the page directs them instead: she gets up and runs down to
+// (endingscript.ts) the page directs them instead: she gets up and runs down to
 // meet him, the goslings run to the water's edge and on to the ring, hopping.
 // Each bird is one skinned mesh in one shell, its parts' colours as its
 // vertices', its white the goose's (`setDown`), his rim too (`setRim`), as the
@@ -16,7 +16,7 @@ import { modelLoader } from '../look/gltf'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { oneMesh } from './goslings'
 import { ShellToonMaterial, type ShellLook } from '../look/shell'
-import { blendAct, type Act, type ActBlend } from '../game/gooseoutro'
+import { blendAct, type Act, type ActBlend } from '../game/endingscript'
 import type { Point } from '../world/plain'
 
 const MOTHER_MODEL = './models/gooseMother.glb'

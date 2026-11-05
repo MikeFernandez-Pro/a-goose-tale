@@ -15,7 +15,7 @@ import { type PerspectiveCamera, Vector3 } from 'three/webgpu'
 import type { Beats } from './beats'
 import type { Opening } from './opening'
 import type { Ending } from './ending'
-import { rumbleAt } from './gooseintro'
+import { rumbleAt } from './openingscript'
 import type { FixedLight } from '../swarm/swarm'
 
 /** What is felt, on what the page has made. */
@@ -262,10 +262,10 @@ export function createGooseFelt({ goosePlay, feel, gooseSounds, hisAt, standAt, 
     if (Number.isNaN(woken)) return placed
     const [from, top, to] = WAKE_FLARE_AT
     const up = woken < top ? eased(woken, from, top) : 1 - eased(woken, top, to)
-    const { restAt, level } = goosePlay
+    const { restAt, layout } = goosePlay
     let nearest = -1
     let best = Number.POSITIVE_INFINITY
-    level.lights.forEach((one, k) => {
+    layout.lights.forEach((one, k) => {
       const off = Math.hypot(one.x - restAt.x, one.z - restAt.z)
       if (one.flame && one.on && off < best) [nearest, best] = [k, off]
     })

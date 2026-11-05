@@ -2,7 +2,7 @@
 // with no renderer, no DOM and no swarm of its own, so it is tested in Node.
 // The goose play (gooseplay.ts) hands it a frame's input, where the keys send
 // the holder and how fast, and reads back where the holder stands, the way he
-// faces, the torch, and the level's lights and walls as they stand, which it
+// faces, the torch, and the plain's lights and walls as they stand, which it
 // hands on to the swarm. Everything else in the game, the goslings, the
 // scenes, the bites and the filling of the torch at a fire, is the goose
 // play's own.
@@ -13,7 +13,7 @@
 // out, and stays out until the goose play fills it again.
 //
 // The holder walks toward where he is sent, at the speed asked, a metre
-// inside the arena, along any of the level's walls he meets and never through
+// inside the range, along any of the plain's walls he meets and never through
 // it.
 //
 // Nothing is drawn at random: the same inputs give the same run.
@@ -21,7 +21,7 @@ import { walkLight, type Bounds, type FixedLight } from '../swarm/swarm'
 import { Walls, type Wall } from '../swarm/walls'
 
 /**
- * A light the level places: where it stands, how far it reaches, m, whether
+ * A light the plain places: where it stands, how far it reaches, m, whether
  * it is a flame the torch can be filled at, and whether it is lit.
  */
 export interface PlacedLight {
@@ -30,12 +30,12 @@ export interface PlacedLight {
   reach: number
   flame: boolean
   on: boolean
-  /** How far round (x, z) its body stands, m, where the level has one (a collider): the torch is filled at it from that much further. */
+  /** How far round (x, z) its body stands, m, where it has one (a collider): the torch is filled at it from that much further. */
   pad?: number
 }
 
-/** The level, as data: where the holder starts, the lights, the walls, and the box the rats start in. */
-export interface Level {
+/** The plain's layout, as data: where the holder starts, the lights, the walls, and the box the rats start in. */
+export interface PlainLayout {
   start: { x: number; z: number }
   lights: PlacedLight[]
   walls: Wall[]
@@ -75,8 +75,8 @@ export interface RunInput {
   toward: { x: number; z: number } | null
   /** How fast the holder walks, m/s. */
   speed: number
-  /** The arena's radius, m: the holder stays a metre inside it. */
-  arena: number
+  /** The range's radius, m: the holder stays a metre inside it. */
+  rangeRadius: number
 }
 
 /** The torch as it stands: where the holder carries it, how far it reaches, m, and whether it burns. */
@@ -96,17 +96,17 @@ export class Run {
   started = false
   /** The way the holder faces: the way he last walked, a unit direction, north at first. */
   readonly facing = { x: 0, z: -1 }
-  /** The level's walls, which the holder walks along and never through. */
+  /** The plain's walls, which the holder walks along and never through. */
   private readonly holderWalls: Walls
 
   constructor(
-    /** The level: read live, so its lights' reach can be tuned as the run goes. */
-    readonly level: Level,
+    /** The layout: read live, so its lights' reach can be tuned as the run goes. */
+    readonly layout: PlainLayout,
     /** The tuning: read live, every step. */
     readonly tuning: RunTuning,
   ) {
-    this.holder = { ...level.start }
-    this.holderWalls = new Walls(level.walls)
+    this.holder = { ...layout.start }
+    this.holderWalls = new Walls(layout.walls)
   }
 
   /** The torch as it stands. */
@@ -118,14 +118,14 @@ export class Run {
     return { x: this.holder.x, z: this.holder.z, reach, lit: fuel > 0 }
   }
 
-  /** The level's lights as they stand, for the swarm. */
+  /** The plain's lights as they stand, for the swarm. */
   lights(): FixedLight[] {
-    return this.level.lights.map(({ x, z, reach, on }) => ({ x, z, reach, on }))
+    return this.layout.lights.map(({ x, z, reach, on }) => ({ x, z, reach, on }))
   }
 
-  /** The level's walls, for the swarm and the lit areas. */
+  /** The plain's walls, for the swarm and the lit areas. */
   walls(): Wall[] {
-    return [...this.level.walls]
+    return [...this.layout.walls]
   }
 
   /** One step of the run: the holder walks, along any wall he meets, turning the way he goes, and the torch burns once he has set off. */
@@ -139,7 +139,7 @@ export class Run {
         facing.x = (toward.x - holder.x) / d
         facing.z = (toward.z - holder.z) / d
       }
-      walkLight(input.arena, holder, toward, input.dt, input.speed, this.holderWalls)
+      walkLight(input.rangeRadius, holder, toward, input.dt, input.speed, this.holderWalls)
     }
     if (this.started) this.fuel = Math.max(0, this.fuel - this.tuning.burnRate * input.dt)
   }

@@ -18,7 +18,7 @@ function state(time: number, count = 3, moved: number[] = []): State {
     type: 'state',
     time,
     count,
-    arena: 10,
+    rangeRadius: 10,
     x: of(1),
     y: of(2),
     z: of(3),

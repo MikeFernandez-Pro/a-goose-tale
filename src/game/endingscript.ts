@@ -15,7 +15,7 @@ import type { AnimationAction } from 'three/webgpu'
 import type { Point } from '../world/plain'
 
 /** When each beat comes, s into the ending; and how near the island's waterline he is when it starts, m. */
-export const OUTRO = {
+export const ENDING = {
   near: 4,
   /** He stands on the island, where he meets her. */
   landed: 4,
@@ -139,11 +139,11 @@ export interface Island {
   shoreAt(angle: number): number
 }
 
-/** Whether he, at `at`, is near enough the island's waterline for the ending: in from OUTRO.near of it. */
-export function outroDue(island: Island, at: Point): boolean {
+/** Whether he, at `at`, is near enough the island's waterline for the ending: in from ENDING.near of it. */
+export function endingDue(island: Island, at: Point): boolean {
   const dx = at.x - island.middle.x
   const dz = at.z - island.middle.z
-  return Math.hypot(dx, dz) - island.shoreAt(Math.atan2(dz, dx)) < OUTRO.near
+  return Math.hypot(dx, dz) - island.shoreAt(Math.atan2(dz, dx)) < ENDING.near
 }
 
 /** A way a bird goes: from `from`, leg after leg, each left at `leave` s at the soonest, at `pace` m/s. */
@@ -220,7 +220,7 @@ function draw(k: number, channel: number): number {
 }
 
 /** The ending laid out on `island` for `cast`. */
-export function layOutro(island: Island, cast: Cast): Stage {
+export function layEnding(island: Island, cast: Cast): Stage {
   const { middle } = island
   const angle = Math.atan2(cast.gander.z - middle.z, cast.gander.x - middle.x)
   const way = { x: Math.cos(angle), z: Math.sin(angle) }
@@ -300,7 +300,7 @@ export function layOutro(island: Island, cast: Cast): Stage {
   const brood: Plan[] = cast.brood.map((from, k) => {
     const off = { x: shore.x + way.x * OFF_SHORE + along.x * broodSides[k]!, z: shore.z + way.z * OFF_SHORE + along.z * broodSides[k]! }
     const swim = Math.hypot(off.x - from.x, off.z - from.z)
-    const due = OUTRO.landed - 0.2 + BROOD_STAGGER * k
+    const due = ENDING.landed - 0.2 + BROOD_STAGGER * k
     return { from: { ...from }, legs: [{ to: off, leave: 0, pace: Math.max(0.3, swim / due) }, { to: up(LAND_IN, broodSides[k]!), leave: 0, pace: CLIMB }] }
   })
   const shakes = brood.map((plan) => legTimes(plan)[1]!.end)
@@ -308,7 +308,7 @@ export function layOutro(island: Island, cast: Cast): Stage {
   // The island's goslings from where they play.
   const home: Plan[] = cast.island.map((from) => ({ from: { ...from }, legs: [] }))
 
-  // Then every one of them round the two of them: before OUTRO.settle running round them on a wider oval, all one
+  // Then every one of them round the two of them: before ENDING.settle running round them on a wider oval, all one
   // way at one pace, each on to it at its nearest point and spaced so none runs into another; then each steps in from
   // where he is to his place on an oval hugging them, a little in or out.
   const all = [...brood, ...home]
@@ -338,14 +338,14 @@ export function layOutro(island: Island, cast: Cast): Stage {
   }
   // Each leaves where he is, the island's as they leave their play, his once shaken dry, for the wider oval's point
   // nearest him, and runs on round from there, the island's waiting there for the two of them to meet; on it in time to
-  // run, he is where he would be round it at OUTRO.settle.
+  // run, he is where he would be round it at ENDING.settle.
   const runs = all.map((plan, k) => {
     const his = k < brood.length
-    const leave = his ? Math.max(legTimes(plan).at(-1)!.end, shakes[k]! + SHAKE) : OUTRO.call + OUTRO.stagger * draw(k, 1)
+    const leave = his ? Math.max(legTimes(plan).at(-1)!.end, shakes[k]! + SHAKE) : ENDING.call + ENDING.stagger * draw(k, 1)
     const on = nearest(plan.legs.at(-1)?.to ?? plan.from)
-    const joins = Math.max(leave + Math.max(JOIN_LEAST, on.off / RUN), his ? 0 : OUTRO.met + OUTRO.stagger * draw(k, 2))
-    const running = joins < OUTRO.settle - JOIN_LEAST
-    return { leave, joins, running, s: running ? on.s + ((OUTRO.settle - joins) * PLAY_RUN) / lap : 0 }
+    const joins = Math.max(leave + Math.max(JOIN_LEAST, on.off / RUN), his ? 0 : ENDING.met + ENDING.stagger * draw(k, 2))
+    const running = joins < ENDING.settle - JOIN_LEAST
+    return { leave, joins, running, s: running ? on.s + ((ENDING.settle - joins) * PLAY_RUN) / lap : 0 }
   })
   // Spaced: on round from the one after the widest gap, each PLAY_ROOM m on from the one before at the least.
   const running = runs.map((_, k) => k).filter((k) => runs[k]!.running)
@@ -391,26 +391,26 @@ export function layOutro(island: Island, cast: Cast): Stage {
   all.forEach((plan, k) => {
     const { leave, joins, running, s } = runs[k]!
     if (running) {
-      // On round as he joined, and on or back to his share of it by OUTRO.settle, as far of the way as he has the time for.
+      // On round as he joined, and on or back to his share of it by ENDING.settle, as far of the way as he has the time for.
       const wanted = places.get(k)! - s
       const toShare = wanted - Math.round(wanted)
-      const span = OUTRO.settle - joins
+      const span = ENDING.settle - joins
       const fan = toShare * Math.min(1, (FAN_PACE * span) / (Math.abs(toShare) * lap || 1))
       const own = wide * (1 + RUN_WOBBLE * (draw(k, 7) * 2 - 1))
-      const track = (t: number) => oval(angleAt(s - ((OUTRO.settle - t) * PLAY_RUN) / lap + fan * eased(t, [joins, OUTRO.settle])), own)
+      const track = (t: number) => oval(angleAt(s - ((ENDING.settle - t) * PLAY_RUN) / lap + fan * eased(t, [joins, ENDING.settle])), own)
       const from = plan.legs.at(-1)?.to ?? plan.from
       const on = track(joins)
       go(plan, on, leave, Math.max(RUN, lengthOf(from, around(from, on)) / (joins - leave)))
-      const steps = Math.ceil(((OUTRO.settle - joins) * PLAY_RUN * LAP_LEGS) / lap)
+      const steps = Math.ceil(((ENDING.settle - joins) * PLAY_RUN * LAP_LEGS) / lap)
       for (let i = 1; i <= steps; i++) {
-        const start = joins + ((OUTRO.settle - joins) * (i - 1)) / steps
-        const end = joins + ((OUTRO.settle - joins) * i) / steps
+        const start = joins + ((ENDING.settle - joins) * (i - 1)) / steps
+        const end = joins + ((ENDING.settle - joins) * i) / steps
         const a = track(start)
         const b = track(end)
         plan.legs.push({ to: b, leave: start, pace: Math.hypot(b.x - a.x, b.z - a.z) / (end - start) })
       }
     }
-    go(plan, oval(angleAt(places.get(k)!), grow * (1 + RING_OUT * draw(k, 5))), Math.max(leave, OUTRO.settle), RUN)
+    go(plan, oval(angleAt(places.get(k)!), grow * (1 + RING_OUT * draw(k, 5))), Math.max(leave, ENDING.settle), RUN)
   })
   return { way, shore, gander, mother, pair, brood, island: home, shakes }
 }
@@ -427,7 +427,7 @@ function eased(t: number, [from, to]: readonly [number, number]): number {
  */
 export function ganderAt(stage: Stage, t: number): { at: Point; facing: Point } {
   const { from, to } = stage.gander
-  const u = Math.min(1, Math.max(0, t / OUTRO.landed))
+  const u = Math.min(1, Math.max(0, t / ENDING.landed))
   // Fast at first, as he swam, slowing to a stop.
   const s = 0.5 * u + 0.5 * (1 - (1 - u) ** 2)
   const d = Math.hypot(to.x - from.x, to.z - from.z)
@@ -441,18 +441,18 @@ export function ganderAt(stage: Stage, t: number): { at: Point; facing: Point } 
 /** The mother `t` s into the ending: where she is, which way she faces, a yaw, how far up off her nest, 0 to 1, and whether she runs. */
 export function motherAt(stage: Stage, t: number): { at: Point; yaw: number; up: number; running: boolean } {
   const { from, door, to, yaw } = stage.mother
-  const up = eased(t, [OUTRO.rise, OUTRO.risen])
+  const up = eased(t, [ENDING.rise, ENDING.risen])
   // Out of the door first, if she is in the tent, then to him.
   const way = door ? [door, to] : [to]
   let d = 0
   way.reduce((a, b) => ((d += Math.hypot(b.x - a.x, b.z - a.z)), b), from)
-  const pace = Math.max(MOTHER_LEAST, d / (OUTRO.met - OUTRO.risen))
-  const { at, going } = planAt({ from, legs: way.map((p) => ({ to: p, leave: OUTRO.risen, pace })) }, t)
+  const pace = Math.max(MOTHER_LEAST, d / (ENDING.met - ENDING.risen))
+  const { at, going } = planAt({ from, legs: way.map((p) => ({ to: p, leave: ENDING.risen, pace })) }, t)
   if (going) return { at, yaw: Math.atan2(going.x, going.z), up, running: true }
   // Got up, she turns to face him; there, she faces him.
   const him = stage.gander.to
   const toHim = Math.atan2(him.x - to.x, him.z - to.z)
-  return { at, yaw: t < OUTRO.risen ? yaw : toHim, up, running: false }
+  return { at, yaw: t < ENDING.risen ? yaw : toHim, up, running: false }
 }
 
 /** What a gosling does in place, his clip held at `share` of the way through, and how high he is off the ground, m. */
@@ -517,7 +517,7 @@ export interface Heart {
  */
 export function heartsOf(): Heart[] {
   const hearts: Heart[] = []
-  for (let at = OUTRO.met, k = 0; at + HEART_SHOWS <= OUTRO.fade[0] - HEART_DONE; k++) {
+  for (let at = ENDING.met, k = 0; at + HEART_SHOWS <= ENDING.fade[0] - HEART_DONE; k++) {
     const side = (k % 2 ? 1 : -1) * (HEART_SIDE + (1 - HEART_SIDE) * draw(k, 21))
     hearts.push({ at, side, size: HEART_SIZE[0] + (HEART_SIZE[1] - HEART_SIZE[0]) * draw(k, 22) })
     at += HEART_GAP[0] + (HEART_GAP[1] - HEART_GAP[0]) * draw(k, 23)
@@ -563,17 +563,17 @@ export function goslingOf(stage: Stage, brood: boolean, k: number, t: number): {
 }
 
 /** How far the morning's colours have come up `t` s into the ending, 0 night to 1. */
-export const morningOf = (t: number): number => eased(t, OUTRO.morning)
+export const morningOf = (t: number): number => eased(t, ENDING.morning)
 /** How far the dawn's light has come up `t` s into the ending, 0 night to 1. */
-export const dawnOf = (t: number): number => eased(t, OUTRO.dawn)
+export const dawnOf = (t: number): number => eased(t, ENDING.dawn)
 /** How far the camera has drawn back, m. */
-export const pullOf = (t: number): number => PULL * eased(t, OUTRO.pull)
+export const pullOf = (t: number): number => PULL * eased(t, ENDING.pull)
 /** How far the camera looks from him to the middle of the two of them, 0 to 1. */
-export const aimOf = (t: number): number => eased(t, [0, OUTRO.landed])
+export const aimOf = (t: number): number => eased(t, [0, ENDING.landed])
 /** How dark the night has faded out, 0 to 1, and how far the title is in. */
-export const fadeOf = (t: number): number => eased(t, OUTRO.fade)
-export const titleOf = (t: number): number => eased(t, OUTRO.title)
+export const fadeOf = (t: number): number => eased(t, ENDING.fade)
+export const titleOf = (t: number): number => eased(t, ENDING.title)
 /** How far who made it is in, 0 to 1. */
-export const byOf = (t: number): number => eased(t, OUTRO.by)
+export const byOf = (t: number): number => eased(t, ENDING.by)
 /** How far the play again key is in, 0 to 1. */
-export const againOf = (t: number): number => eased(t, OUTRO.again)
+export const againOf = (t: number): number => eased(t, ENDING.again)

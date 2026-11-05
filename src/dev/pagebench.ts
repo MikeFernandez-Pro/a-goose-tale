@@ -1,5 +1,5 @@
 // `?bench` (phonebench.ts) reads the game's places and what each thing drawn costs, on whatever it runs on, and posts it
-// to the dev server's log. For a phone: `pnpm phone`, then `?bench&intro=0&outro=0&mute` at the address it prints,
+// to the dev server's log. For a phone: `pnpm phone`, then `?bench&opening=0&ending=0&mute` at the address it prints,
 // the screen left on for a few minutes. `?bench=all` reads every cost and place; `?bench=load`, with no `mute`, what a
 // first visit fetches, the sounds with it, waiting at Enter. `?bench=soak` walks him up the road and
 // back for five minutes, with a stand between, which shows a phone heating up, and with the quality free to move, which

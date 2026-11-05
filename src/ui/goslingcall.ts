@@ -56,7 +56,7 @@ export function callWord(far: number): string {
   return far < 0.66 ? 'honk!' : 'honk!!'
 }
 
-export interface CallHint {
+export interface GoslingCall {
   /**
    * One frame, `dt` s on: the calling gosling at `at` on the page, px, or nothing calling. The page clamps a point out of
    * view to its edge itself.
@@ -161,7 +161,7 @@ interface Honk {
 }
 
 /** The calls, on the page, none showing; `called` told of each honk as it pops up, how far off its gosling is (0 to 1); `word` what a gosling that far off calls. */
-export function createCallHint(called?: (far: number) => void, word: (far: number) => string = callWord): CallHint {
+export function createGoslingCall(called?: (far: number) => void, word: (far: number) => string = callWord): GoslingCall {
   const honks: Honk[] = []
   /** Time to the next honk, s, and how many honks of the burst are still to come after it. */
   let wait = within(FIRST)

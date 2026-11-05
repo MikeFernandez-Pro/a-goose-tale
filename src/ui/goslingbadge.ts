@@ -10,7 +10,7 @@
 // it a little; the honk's word, small, as said, is written over the gosling
 // himself, in view, never by the badge.
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
-import type { CallAt } from './callhint'
+import type { CallAt } from './goslingcall'
 
 /** The gosling, painted whole (6_icon_Mike.png, 2026-11-01), facing right, on nothing, packed 256 square. */
 const PORTRAIT = `${import.meta.env.BASE_URL}ui/gosling-badge.webp`

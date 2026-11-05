@@ -33,7 +33,7 @@ let behind = 0
 
 scope.onmessage = ({ data }) => {
   if (data.type === 'start') {
-    swarm = new Swarm(data.capacity, data.seed, data.arenaScale, data.ground)
+    swarm = new Swarm(data.capacity, data.seed, data.rangeScale, data.ground)
     swarm.reset(data.count)
     count = data.count
     movedSince = new Uint8Array(data.capacity)
@@ -81,7 +81,7 @@ scope.onmessage = ({ data }) => {
     if (swarm === undefined) return
     if (count !== swarm.count) swarm.setCount(count)
     swarm.restart(data.lights)
-    // Placed, never slid across the level to where they now stand.
+    // Placed, never slid across the plain to where they now stand.
     movedSince.fill(1, 0, swarm.count)
   } else {
     free.push(data)
@@ -127,7 +127,7 @@ function step(): void {
   movedSince.fill(0)
   const { x, z, y, pitch, heading, gait, place, moved } = set
   scope.postMessage(
-    { type: 'state', time, count: n, arena: swarm.arena, x, z, y, pitch, heading, gait, place, moved, ms: report.ms, inside: report.inside, reached: report.reached },
+    { type: 'state', time, count: n, rangeRadius: swarm.rangeRadius, x, z, y, pitch, heading, gait, place, moved, ms: report.ms, inside: report.inside, reached: report.reached },
     [x.buffer, z.buffer, y.buffer, pitch.buffer, heading.buffer, gait.buffer, place.buffer, moved.buffer],
   )
 }

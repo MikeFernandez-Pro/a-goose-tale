@@ -1,16 +1,16 @@
-// The run, through its own calls only: a small level written here, stepped by
+// The run, through its own calls only: a small plain written here, stepped by
 // input at a fixed time step, and read for what a player would see: where
 // the holder stands and the way he faces, and whether the torch burns and
 // how far it reaches.
 import { describe, expect, it } from 'vitest'
-import { Run, defaultRunTuning, type Level, type RunInput } from './run'
+import { Run, defaultRunTuning, type PlainLayout, type RunInput } from './run'
 import { HOLDER_RADIUS, WALL_THICKNESS } from '../swarm/walls'
 
 const DT = 1 / 60
-const ARENA = 30
+const RANGE_RADIUS = 30
 
 /** A brazier ten metres east of the start, and a lit window ten metres west. */
-const level = (): Level => ({
+const layout = (): PlainLayout => ({
   start: { x: 0, z: 0 },
   lights: [
     { x: 10, z: 0, reach: 1.5, flame: true, on: true },
@@ -21,7 +21,7 @@ const level = (): Level => ({
 })
 
 /** A frame of input: nothing held. */
-const still = (extra: Partial<RunInput> = {}): RunInput => ({ dt: DT, toward: null, speed: 2, arena: ARENA, ...extra })
+const still = (extra: Partial<RunInput> = {}): RunInput => ({ dt: DT, toward: null, speed: 2, rangeRadius: RANGE_RADIUS, ...extra })
 
 /** Step `seconds` of the run under the same input. */
 function play(run: Run, seconds: number, input: RunInput = still()): void {
@@ -35,14 +35,14 @@ function walkTo(run: Run, x: number, z: number): void {
 
 describe('the torch', () => {
   it('starts full, lit and at its full reach, held at the start', () => {
-    const run = new Run(level(), defaultRunTuning())
+    const run = new Run(layout(), defaultRunTuning())
     expect(run.fuel).toBe(1)
     expect(run.torch).toEqual({ x: 0, z: 0, reach: defaultRunTuning().torchReach, lit: true })
   })
 
   it('holds full until the holder is first sent somewhere, then burns standing as well as walking', () => {
     const tuning = { ...defaultRunTuning(), burnRate: 0.05 }
-    const run = new Run(level(), tuning)
+    const run = new Run(layout(), tuning)
     play(run, 4)
     expect(run.started).toBe(false)
     expect(run.fuel).toBe(1)
@@ -55,7 +55,7 @@ describe('the torch', () => {
 
   it('burns its fuel at the set rate', () => {
     const tuning = { ...defaultRunTuning(), burnRate: 0.05 }
-    const run = new Run(level(), tuning)
+    const run = new Run(layout(), tuning)
     run.started = true
     play(run, 4)
     expect(run.fuel).toBeCloseTo(0.8, 6)
@@ -66,7 +66,7 @@ describe('the torch', () => {
 
   it('goes out at empty, and stays out', () => {
     const tuning = { ...defaultRunTuning(), burnRate: 0.25 }
-    const run = new Run(level(), tuning)
+    const run = new Run(layout(), tuning)
     run.started = true
     play(run, 3.9)
     expect(run.torch.lit).toBe(true)
@@ -82,7 +82,7 @@ describe('the torch', () => {
   it('reaches its full length for most of the fuel, and shrinks to nothing over the last part', () => {
     const tuning = { ...defaultRunTuning(), burnRate: 0.1, fade: 0.25 }
     const full = tuning.torchReach
-    const run = new Run(level(), tuning)
+    const run = new Run(layout(), tuning)
     run.started = true
     const reachAt: number[] = []
     // A reading every half second: fuel 1, 0.95, ... 0.
@@ -100,7 +100,7 @@ describe('the torch', () => {
 
   it('shrinks to its least reach rather than nothing while lit, along its curve', () => {
     const tuning = { ...defaultRunTuning(), burnRate: 0.1, fade: 1, torchReach: 2, torchLeast: 0.5, fadeCurve: 0.5 }
-    const run = new Run(level(), tuning)
+    const run = new Run(layout(), tuning)
     run.started = true
     expect(run.torch.reach).toBeCloseTo(2, 6)
     // A quarter of the fuel left: the least and the root of a quarter, a half, of the rest.
@@ -115,7 +115,7 @@ describe('the torch', () => {
 
   it('reaches as far as the tuning says, live', () => {
     const tuning = defaultRunTuning()
-    const run = new Run(level(), tuning)
+    const run = new Run(layout(), tuning)
     run.started = true
     tuning.torchReach = 2.5
     run.step(still())
@@ -125,7 +125,7 @@ describe('the torch', () => {
 
 describe('the holder', () => {
   it('walks toward where it is sent at the speed asked, and the torch goes with it', () => {
-    const run = new Run(level(), defaultRunTuning())
+    const run = new Run(layout(), defaultRunTuning())
     play(run, 1, still({ toward: { x: 0, z: -10 }, speed: 2 }))
     expect(run.holder.x).toBeCloseTo(0, 6)
     expect(run.holder.z).toBeCloseTo(-2, 6)
@@ -133,16 +133,16 @@ describe('the holder', () => {
     expect(run.torch.z).toBe(run.holder.z)
   })
 
-  it('stays a metre inside the arena', () => {
-    const run = new Run(level(), defaultRunTuning())
-    play(run, 10, still({ toward: { x: 0, z: -100 }, speed: 5, arena: 12 }))
+  it('stays a metre inside the range', () => {
+    const run = new Run(layout(), defaultRunTuning())
+    play(run, 10, still({ toward: { x: 0, z: -100 }, speed: 5, rangeRadius: 12 }))
     expect(Math.hypot(run.holder.x, run.holder.z)).toBeCloseTo(11, 6)
   })
 
   it('is stopped by a wall in its way, however fast it is sent, and walks round it', () => {
     // A wall two metres east, four long, across the way to a brazier.
-    const lv = { ...level(), walls: [{ from: { x: 2, z: -2 }, to: { x: 2, z: 2 } }] }
-    const run = new Run(lv, defaultRunTuning())
+    const laid = { ...layout(), walls: [{ from: { x: 2, z: -2 }, to: { x: 2, z: 2 } }] }
+    const run = new Run(laid, defaultRunTuning())
     let east = -Infinity
     for (let t = 0; t < 5; t += DT) {
       run.step(still({ toward: { x: 10, z: 0 }, speed: 12 }))
@@ -157,7 +157,7 @@ describe('the holder', () => {
   })
 
   it('faces the way it last walked, north at first, and keeps facing it standing', () => {
-    const run = new Run(level(), defaultRunTuning())
+    const run = new Run(layout(), defaultRunTuning())
     expect(run.facing).toEqual({ x: 0, z: -1 })
     play(run, 0.5, still({ toward: { x: 10, z: 0 } }))
     expect(run.facing.x).toBeCloseTo(1, 6)
@@ -169,15 +169,15 @@ describe('the holder', () => {
 
 describe('the lights', () => {
   it('are handed on as they stand: where each is, its reach, and lit', () => {
-    const lv = level()
-    const run = new Run(lv, defaultRunTuning())
+    const laid = layout()
+    const run = new Run(laid, defaultRunTuning())
     expect(run.lights()).toEqual([
       { x: 10, z: 0, reach: 1.5, on: true },
       { x: -10, z: 0, reach: 2, on: true },
     ])
-    // The level's reach, edited live as the panel does, and a light put out.
-    lv.lights[0]!.reach = 3
-    lv.lights[1]!.on = false
+    // The plain's reach, edited live as the panel does, and a light put out.
+    laid.lights[0]!.reach = 3
+    laid.lights[1]!.on = false
     expect(run.lights()).toEqual([
       { x: 10, z: 0, reach: 3, on: true },
       { x: -10, z: 0, reach: 2, on: false },
@@ -193,7 +193,7 @@ describe('a run', () => {
       inputs.push(still({ toward, speed: 1 + (i % 7) * 0.3 }))
     }
     const trace = () => {
-      const run = new Run(level(), { ...defaultRunTuning(), burnRate: 0.08 })
+      const run = new Run(layout(), { ...defaultRunTuning(), burnRate: 0.08 })
       return inputs.map((input) => {
         run.step(input)
         return [run.holder.x, run.holder.z, run.facing.x, run.facing.z, run.fuel, run.torch.reach, run.torch.lit]

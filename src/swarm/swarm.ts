@@ -57,12 +57,12 @@
 // the step's number and its index, not draws from one stream in order. So the
 // rats could be stepped in any order, or all at once, to the same swarm.
 //
-// Positions are metres on the ground (x, z), with the arena's centre at the
+// Positions are metres on the ground (x, z), with the range's centre at the
 // origin, and `y` how high a rat rides on the pile; a heading is a yaw in
 // radians, measured from +x toward +z, and a pitch the slope a rat takes,
 // nose up positive.
 //
-// The level (#175): walls no rat and not the holder crosses, and light that
+// The plain (#175): walls no rat and not the holder crosses, and light that
 // stops at walls. Each light's lit area is the ground it can see within its
 // reach (litareas.ts, ADR-0054): a rat will not step into one, and a rat in a
 // wall's shadow is not held off by the light behind the wall at all, so rats
@@ -94,7 +94,7 @@ export interface Light {
 }
 
 /**
- * A light the level places, as the swarm reads it: where it stands, how far it
+ * A light the plain places, as the swarm reads it: where it stands, how far it
  * reaches, m, and whether it is lit. It holds rats off as the torch does,
  * flickering as the torch's flame does; only the torch walks, and only the
  * torch is what the rats run at.
@@ -141,7 +141,7 @@ export function pullTargets(targets: readonly Target[], light: Light): Target[] 
   return [...targets].sort((a, b) => off(a) - off(b)).slice(0, MAX_TARGETS)
 }
 
-/** The ground the swarm runs on: the level's walls, the box rats start in, and the lights the level starts with, which they start out of. */
+/** The ground the swarm runs on: the plain's walls, the box rats start in, and the lights the plain starts with, which they start out of. */
 export interface Ground {
   walls: readonly Wall[]
   bounds?: Bounds
@@ -421,18 +421,18 @@ const WALL_MARGIN = 0.15
 const TRAPPED = 1
 const DIE = 0.6
 
-/** The arena's radius: sized to the count, so the swarm is under the same pressure at any count. */
-export const arenaRadiusFor = (count: number) => 7 + Math.sqrt(count / Math.PI) * 0.32
+/** The range's radius: sized to the count, so the swarm is under the same pressure at any count. */
+export const rangeRadiusForCount = (count: number) => 7 + Math.sqrt(count / Math.PI) * 0.32
 
-/** The arena's radius for `count` rats, `scale` times as wide as the count asks, and a metre past the corners of the level's box `bounds`, if any. */
-export function arenaFor(count: number, scale = 1, bounds?: Bounds): number {
-  const sized = arenaRadiusFor(count) * scale
+/** The range's radius for `count` rats, `scale` times as wide as the count asks, and a metre past the corners of the plain's box `bounds`, if any. */
+export function rangeRadiusFor(count: number, scale = 1, bounds?: Bounds): number {
+  const sized = rangeRadiusForCount(count) * scale
   if (bounds === undefined) return sized
   return Math.max(sized, Math.hypot(Math.max(-bounds.minX, bounds.maxX), Math.max(-bounds.minZ, bounds.maxZ)) + 1)
 }
 
-/** Walk `light`, or its holder, toward `target` for `dt` at `speed`, kept a metre inside an arena of radius `arena`, and sliding along any of `walls` it meets, kept `radius` m off them. */
-export function walkLight(arena: number, light: { x: number; z: number }, target: { x: number; z: number }, dt: number, speed = WALK_SPEED, walls?: Walls, radius = HOLDER_RADIUS): void {
+/** Walk `light`, or its holder, toward `target` for `dt` at `speed`, kept a metre inside a range of radius `rangeRadius`, and sliding along any of `walls` it meets, kept `radius` m off them. */
+export function walkLight(rangeRadius: number, light: { x: number; z: number }, target: { x: number; z: number }, dt: number, speed = WALK_SPEED, walls?: Walls, radius = HOLDER_RADIUS): void {
   const ox = light.x
   const oz = light.z
   const dx = target.x - light.x
@@ -444,7 +444,7 @@ export function walkLight(arena: number, light: { x: number; z: number }, target
     light.z += (dz / d) * step
   }
   const r = Math.hypot(light.x, light.z)
-  const limit = arena - 1
+  const limit = rangeRadius - 1
   if (r > limit) {
     light.x *= limit / r
     light.z *= limit / r
@@ -452,8 +452,8 @@ export function walkLight(arena: number, light: { x: number; z: number }, target
   if (walls !== undefined && walls.count > 0) walls.move(ox, oz, light.x, light.z, radius, light)
 }
 
-/** A point on the fixed loop the benchmark walks the light round an arena of radius `arena`, at `t` seconds. */
-const loopPoint = (arena: number, t: number) => ({ x: Math.sin(t * 0.12) * arena * 0.45, z: Math.sin(t * 0.24) * arena * 0.25 })
+/** A point on the fixed loop the benchmark walks the light round a range of radius `rangeRadius`, at `t` seconds. */
+const loopPoint = (rangeRadius: number, t: number) => ({ x: Math.sin(t * 0.12) * rangeRadius * 0.45, z: Math.sin(t * 0.24) * rangeRadius * 0.25 })
 
 /** The light's hard radius. Out, it is zero, and the swarm closes on the holder. */
 export const hardRadius = (light: Light, tuning: Tuning) => (light.on ? tuning.ringMax * light.strength : 0)
@@ -538,7 +538,7 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v)
 export class Swarm {
   /** Rats alive: the first `count` of every array. */
   count = 0
-  arena = arenaRadiusFor(0)
+  rangeRadius = rangeRadiusForCount(0)
   readonly x: Float32Array
   readonly z: Float32Array
   /** Each rat's facing: the light at its edge, else where it really goes, at a capped turn rate. */
@@ -585,7 +585,7 @@ export class Swarm {
   contagion = true
   /**
    * Whether a rat with no way out of the light dies: it sinks into the ground and is set down again out of sight,
-   * by `onDied` where given, else anywhere in the level's box out of the walls and the lights. The CPU step's alone:
+   * by `onDied` where given, else anywhere in the plain's box out of the walls and the lights. The CPU step's alone:
    * the GPU step knows nothing of it.
    */
   kills = false
@@ -651,7 +651,7 @@ export class Swarm {
   private readonly oldFlinch: Float32Array
   /** How far the flame reaches this step, as a share of the hard radius, at FLAME_BINS angles round the light, -pi to pi. */
   private readonly flame = new Float32Array(FLAME_BINS + 1)
-  // The neighbour grid, rebuilt as the arena or the rat size changes.
+  // The neighbour grid, rebuilt as the range or the rat size changes.
   private readonly cellOf: Int32Array
   private readonly sorted: Int32Array
   private gridN = 0
@@ -673,16 +673,16 @@ export class Swarm {
   private litShore = new Uint8Array(0)
   private nearQ = new Float64Array(0)
   private nearBurns = new Float64Array(0)
-  /** The level's walls; the ground each light sees against them, the torch's row 0 and the placed lights' from 1; and the box rats start in, if any. */
+  /** The plain's walls; the ground each light sees against them, the torch's row 0 and the placed lights' from 1; and the box rats start in, if any. */
   walls: Walls
   readonly areas: LitAreas
   /** The way round the walls to the holder, for the rats a wall stands between it and. */
   readonly flow = new FlowField()
   private bounds: Bounds | undefined
-  /** Where a rat brought round may be set down, beyond the box and the walls: a page's own rule, the floor of its level. */
+  /** Where a rat brought round may be set down, beyond the box and the walls: a page's own rule, the ground of its plain. */
   canStand: ((x: number, z: number) => boolean) | undefined
   private readonly spawnRing: SpawnRing | undefined
-  /** The lights the level starts with: what rats are set down out of. */
+  /** The lights the plain starts with: what rats are set down out of. */
   private startLights: readonly FixedLight[]
   /** Where a move the walls changed ends. */
   private readonly moveTo = { x: 0, z: 0 }
@@ -696,9 +696,9 @@ export class Swarm {
   constructor(
     readonly capacity: number,
     seed: number,
-    /** How much wider than the count asks the arena is: the bare simulation doubles it. */
-    private readonly arenaScale = 1,
-    /** The level's walls and where rats start: none, and the arena's circle. */
+    /** How much wider than the count asks the range is: the bare simulation doubles it. */
+    private readonly rangeScale = 1,
+    /** The plain's walls and where rats start: none, and the range. */
     ground: Ground = { walls: [] },
   ) {
     const floats = () => new Float32Array(capacity)
@@ -758,29 +758,29 @@ export class Swarm {
     return tuning.minSpeed + (tuning.maxSpeed - tuning.minSpeed) * this.places[i]
   }
 
-  /** Start over with `count` rats spread over the arena, or everywhere the level's box is dark. */
+  /** Start over with `count` rats spread over the range, or everywhere the plain's box is dark. */
   reset(count: number): void {
     this.count = count
     this.time = 0
     this.steps = 0
     this.was.fresh = true
-    this.arena = this.arenaFor(count)
+    this.rangeRadius = this.rangeRadiusFor(count)
     if (this.bounds !== undefined) this.seeStartLights()
     for (let i = 0; i < count; i++) {
       if (this.bounds !== undefined) this.spawnInDark(i)
-      else this.spawnOffWalls(i, () => Math.sqrt(this.random()) * this.arena * 0.97)
+      else this.spawnOffWalls(i, () => Math.sqrt(this.random()) * this.rangeRadius * 0.97)
     }
   }
 
-  /** Grow or shrink to `count`: newcomers arrive at the arena's edge, or anywhere the level's box is dark, and every rat already there stays put. */
+  /** Grow or shrink to `count`: newcomers arrive at the range's edge, or anywhere the plain's box is dark, and every rat already there stays put. */
   setCount(count: number): void {
     const was = this.count
     this.count = count
-    this.arena = this.arenaFor(count)
+    this.rangeRadius = this.rangeRadiusFor(count)
     if (this.bounds !== undefined && count > was) this.seeStartLights()
     for (let i = was; i < count; i++) {
       if (this.bounds !== undefined) this.spawnInDark(i)
-      else this.spawnOffWalls(i, () => this.arena * (0.9 + 0.08 * this.random()))
+      else this.spawnOffWalls(i, () => this.rangeRadius * (0.9 + 0.08 * this.random()))
     }
   }
 
@@ -797,17 +797,17 @@ export class Swarm {
   }
 
   /**
-   * Place every rat again, as at the start, everywhere the level's box is
+   * Place every rat again, as at the start, everywhere the plain's box is
    * dark: out of the walls as they now stand and out of `lights`, the lights
    * as they now stand and the torch where the holder starts again: the goose
    * waking where he last filled his torch, or the pond's shore handed over.
    */
   restart(lights: readonly FixedLight[]): void {
-    const level = this.startLights
+    const starting = this.startLights
     this.startLights = lights
     this.reset(this.count)
-    // Rats added later keep out of the level's lights, not the room the holder was given here.
-    this.startLights = level
+    // Rats added later keep out of the plain's lights, not the room the holder was given here.
+    this.startLights = starting
   }
 
   /**
@@ -820,24 +820,24 @@ export class Swarm {
     this.moved[i] = 1
   }
 
-  /** Walk the light toward `target` for `dt` at `speed`, kept a metre inside the arena and off the walls. */
+  /** Walk the light toward `target` for `dt` at `speed`, kept a metre inside the range and off the walls. */
   walkLight(light: Light, target: { x: number; z: number }, dt: number, speed = WALK_SPEED): void {
-    walkLight(this.arena, light, target, dt, speed, this.walls)
+    walkLight(this.rangeRadius, light, target, dt, speed, this.walls)
   }
 
-  /** The arena's radius for `count` rats. */
-  private arenaFor(count: number): number {
-    return arenaFor(count, this.arenaScale, this.bounds)
+  /** The range's radius for `count` rats. */
+  private rangeRadiusFor(count: number): number {
+    return rangeRadiusFor(count, this.rangeScale, this.bounds)
   }
 
-  /** The ground the level's starting lights see, for setting rats down out of it: rows as a step would take them, the torch's far off. */
+  /** The ground the plain's starting lights see, for setting rats down out of it: rows as a step would take them, the torch's far off. */
   private seeStartLights(): void {
     this.placeLights(this.startLights, 0)
     this.areas.update({ x: Infinity, z: Infinity }, this.startLights)
   }
 
   /**
-   * Set rat `i` down somewhere in the level's box that is dark: out of every
+   * Set rat `i` down somewhere in the plain's box that is dark: out of every
    * wall, in the spawn ring if there is one, and out of every starting light's lit area. A few tries, then anywhere out
    * of the walls.
    */
@@ -868,7 +868,7 @@ export class Swarm {
   /**
    * Rat `i`, sunk, set down again out of sight: by `onDied`; else, given the camera's view, as near the light as it
    * leaves out of sight, ahead of the way it last walked, or anywhere round it before it has; else anywhere in the
-   * level's box, or the arena; out of the walls, the torch's reach and the first `placed` lit lights. A few tries,
+   * plain's box, or the range; out of the walls, the torch's reach and the first `placed` lit lights. A few tries,
    * then anywhere out of the walls.
    */
   private died(i: number, light: Light, far: number, placed: number): void {
@@ -900,7 +900,7 @@ export class Swarm {
         z = b.minZ + this.random() * (b.maxZ - b.minZ)
       } else {
         const angle = this.random() * TAU
-        const radius = Math.sqrt(this.random()) * (this.arena - 1)
+        const radius = Math.sqrt(this.random()) * (this.rangeRadius - 1)
         x = Math.cos(angle) * radius
         z = Math.sin(angle) * radius
       }
@@ -913,13 +913,13 @@ export class Swarm {
 
   /** A point on the fixed loop the benchmark walks the light round, at `t` seconds. */
   loopPoint(t: number): { x: number; z: number } {
-    return loopPoint(this.arena, t)
+    return loopPoint(this.rangeRadius, t)
   }
 
   /**
    * One step of `dt`. Given `dark`, what the page cannot see, a walking
    * light brings rats left behind in it round ahead of it, still in it.
-   * `lights` are the lights the level places, beside the torch: a rat will
+   * `lights` are the lights the plain places, beside the torch: a rat will
    * step into none that is lit. `targets` pull the rats near them as the
    * holder does (`pullTargets`).
    */
@@ -1340,11 +1340,11 @@ export class Swarm {
       }
       let nx = x + nvx * h
       let nz = z + nvz * h
-      // The arena's edge.
+      // The range's edge.
       const rr = Math.sqrt(nx * nx + nz * nz)
-      if (rr > this.arena) {
-        nx *= this.arena / rr
-        nz *= this.arena / rr
+      if (rr > this.rangeRadius) {
+        nx *= this.rangeRadius / rr
+        nz *= this.rangeRadius / rr
       }
       // Water is a wall to a rat on its bank, caught in a light or not: it is set back on the shore where it
       // would go in, straight out from the water's middle, so it runs along the bank.
@@ -1445,7 +1445,7 @@ export class Swarm {
    * in the `dark` and behind its centre is set down in it again ahead,
    * running in for the light at its own speed, so the page never sees it
    * go or come; given the camera's view, a rat out of sight behind, set down
-   * as near the light as the view leaves out of sight, anywhere ahead. As many as the step has left owing, and only where the arena
+   * as near the light as the view leaves out of sight, anywhere ahead. As many as the step has left owing, and only where the range
    * has room for them. None is set down nearer the light than `keepOut`,
    * where the flame reaches: a tight dark may lie inside the flame's reach,
    * and a rat put there would only flinch straight back out; nor where the
@@ -1462,7 +1462,7 @@ export class Swarm {
     const depth = view ? VIEW_DEPTH : ROUND_DEPTH
     const keepOut2 = keepOut * keepOut
     const walk = Math.atan2(uz, ux)
-    const limit = this.arena - 1
+    const limit = this.rangeRadius - 1
     let i = this.roundFrom % count
     for (let seen = 0; seen < count && this.roundOwed >= 1; seen++, i = i + 1 === count ? 0 : i + 1) {
       const dx = x[i] - dark.x
@@ -1477,7 +1477,7 @@ export class Swarm {
       if (nx * nx + nz * nz > limit * limit) continue
       // Out of sight, where the view's centre is out of it and the ray from it comes into it after.
       if (view && inSight(dark, nx, nz)) continue
-      // Inside the level's box, where the rats belong.
+      // Inside the plain's box, where the rats belong.
       const b = this.bounds
       if (b !== undefined && (nx < b.minX || nx > b.maxX || nz < b.minZ || nz > b.maxZ)) continue
       // Out of the flame's reach, wherever the dark is centred, and out of every placed light's.
@@ -1633,9 +1633,9 @@ export class Swarm {
     this.gaitSince[i] = this.time
   }
 
-  /** Sort the rats into cells of `cellSize` over the arena, a cell's margin round it, so a rat's neighbours are the nine cells about it. */
+  /** Sort the rats into cells of `cellSize` over the range, a cell's margin round it, so a rat's neighbours are the nine cells about it. */
   private buildGrid(cellSize: number): void {
-    const n = Math.ceil((2 * this.arena) / cellSize) + 3
+    const n = Math.ceil((2 * this.rangeRadius) / cellSize) + 3
     if (n !== this.gridN || cellSize !== this.cellSize) {
       this.gridN = n
       this.cellSize = cellSize
@@ -1645,7 +1645,7 @@ export class Swarm {
     const { x: px, z: pz, cellOf, sorted, cellStart, cursor, count } = this
     cellStart.fill(0)
     const inv = 1 / cellSize
-    const off = this.arena + cellSize
+    const off = this.rangeRadius + cellSize
     const max = n - 1
     for (let i = 0; i < count; i++) {
       let cx = ((px[i] + off) * inv) | 0

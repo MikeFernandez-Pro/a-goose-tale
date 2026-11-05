@@ -1,5 +1,5 @@
-// The opening (gooseintro.ts), as the page plays it: its clock, his walk up the road and the goslings', and how it is skipped.
-import { INTRO, branchLanded, goslingAt, roadAheadOf, walkAt, walkOf } from './gooseintro'
+// The opening (openingscript.ts), as the page plays it: its clock, his walk up the road and the goslings', and how it is skipped.
+import { OPENING, branchLanded, goslingAt, roadAheadOf, walkAt, walkOf } from './openingscript'
 import { url } from './address'
 import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
@@ -8,27 +8,27 @@ import type { PlaySwarm } from '../swarm/play'
 export const SKIP_HOLD = 0.8
 
 /**
- * The opening: unless `?intro=0` or the page films; its own clock, s, on with the play's and held by
+ * The opening: unless `?opening=0` or the page films; its own clock, s, on with the play's and held by
  * its pause; the skip held SKIP_HOLD s (the space bar or the bottom face button) skips to its end. Standing him at his
  * walk's start, so what is made after it reads him there.
  */
 export function createOpening(goosePlay: GoosePlay<PlaySwarm>, burningTreeLight: number) {
-  const on = !url.has('film') && url.get('intro') !== '0'
+  const on = !url.has('film') && url.get('opening') !== '0'
   /** The road he walks up in the opening, to where he starts. */
   const walkUp = on ? walkOf(goosePlay.plain.start, goosePlay.plain.road) : []
   /** The way on up the road from where he starts, the goslings bolting along it. */
   const roadAhead = on ? roadAheadOf(goosePlay.plain.start, goosePlay.plain.road) : { x: 0, z: -1 }
   const opening = {
     on,
-    t: on ? 0 : INTRO.end,
-    running: () => opening.t < INTRO.end,
+    t: on ? 0 : OPENING.end,
+    running: () => opening.t < OPENING.end,
     /** How long the skip has been held, s: let go, it drains twice as fast. */
     skipHolding: 0,
     /** Whether the opening has put the goslings where they wait, its last word on them: then the play has them. */
     settled: false,
     /** The opening over at once: he where his walk ends, the rest the play's from the next frame. */
     skip() {
-      opening.t = INTRO.end
+      opening.t = OPENING.end
       opening.skipHolding = 0
       opening.walk()
     },

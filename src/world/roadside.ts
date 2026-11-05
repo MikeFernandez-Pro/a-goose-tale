@@ -27,7 +27,7 @@ import { defaultNoiseSeeThrough, noiseSeeThrough, seeThroughZone } from '../look
 import { uniform, renderGroup, positionWorld } from 'three/tsl'
 import { type Wall, nearestWalls } from '../swarm/walls'
 import type { Point } from './plain'
-import { walkOf } from '../game/gooseintro'
+import { walkOf } from '../game/openingscript'
 import { GHOST_HEARD } from '../sound/gooseheard'
 
 /** How far round an island bush the goslings keep, m, of its width. */
@@ -64,7 +64,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     const fire = goosePlay.plain.braziers[k]
     // The fire before it, not a ghost's gosling's brazier, which stands in the graveyard.
     const before = goosePlay.plain.braziers.slice(0, k).reverse().find((b) => b.follows === undefined)
-    return fire && before ? layGraveyard(defaultGraveLook(), fire, goosePlay.level.lights[k]?.reach ?? fire.reach, before) : undefined
+    return fire && before ? layGraveyard(defaultGraveLook(), fire, goosePlay.layout.lights[k]?.reach ?? fire.reach, before) : undefined
   })()
   const ghosts = graveyard && backend !== 'WebGPU'
     ? createPlainGhosts(groundAt, { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook().speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) }, fakeLamps)
@@ -101,7 +101,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   // swarm and the play, its stand and flame not drawn; its place still lays the graveyard.
   if (graveyard) {
     const k = goosePlay.plain.braziers.length - 1
-    const last = goosePlay.level.lights[k]
+    const last = goosePlay.layout.lights[k]
     if (last) last.on = false
     const drawn = lights.object.children[k]
     if (drawn) drawn.visible = false

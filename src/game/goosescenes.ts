@@ -35,7 +35,7 @@
 // where its light stands; its lamp over the bowl (`PIT_LIGHT`), its flame the
 // torch's, the page's, on the logs (`PIT_BOWL`).
 // The burning tree: on the spawn's brazier (`spawnTree`), struck as the game
-// opens (gooseintro.ts), one of the plain's dead trees in leaf, drawn by them
+// opens (openingscript.ts), one of the plain's dead trees in leaf, drawn by them
 // (deadtrees.ts), justASimpleTree's spooky tree seed 1759 (`BURNING_MODEL`):
 // a flame, the page's, on each of BURNING_FLAMES clusters of its leaves,
 // swaying with its branch (`burningFlames`); its lamp in its crown
@@ -1308,7 +1308,7 @@ export async function createGooseScenes(
       return parts.flatMap((part, index): EditPiece[] => {
         const scene = now.scenes[index]!
         const k = scene.brazier
-        const light = now.level.lights[k]!
+        const light = now.layout.lights[k]!
         const brazier = now.plain.braziers[k]!
         // The scene's own place, its waiting gosling with it, and its group drawn there.
         const moveScene = (dx: number, dz: number) => {
@@ -1350,7 +1350,7 @@ export async function createGooseScenes(
           ]
         }
         if (scene.kind === 'tree' && part.kind === 'tree') {
-          const fireLight = now.level.lights[scene.fireLight]!
+          const fireLight = now.layout.lights[scene.fireLight]!
           return [
             {
               name: 'dead tree',
@@ -1455,7 +1455,7 @@ export async function createGooseScenes(
     update(now, dt, bone) {
       time += dt
       now.wellFires.forEach(({ light }, w) => {
-        const at = now.level.lights[light]!
+        const at = now.layout.lights[light]!
         wellPits[w]!.position.set(at.x, groundAt(at.x, at.z), at.z)
       })
       parts.forEach((part, index) => {
@@ -1487,7 +1487,7 @@ export async function createGooseScenes(
           part.turned.rotation.y = (cage.turn * Math.PI) / 180
           part.campfire.scale.setScalar(SET_SCALE * cage.campfire)
           // Its campfire where the play has its light now, on the ground there.
-          const fire = now.level.lights[scene.brazier]!
+          const fire = now.layout.lights[scene.brazier]!
           part.campfire.position.set(fire.x, groundAt(fire.x, fire.z), fire.z)
           const down = dropLock(part, scene.open ? now.t - scene.unlockedAt : Number.NaN)
           const wanted = scene.open && down ? -DOOR_OPEN : 0

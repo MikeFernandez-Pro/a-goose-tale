@@ -19,7 +19,7 @@ import { leaveUnshaded } from '../look/post'
 import { createBranch, branchColours, branchPose, carriedPose, lyingPose } from './branch'
 import { createEmbers } from './embers'
 import { createLightning } from '../world/lightning'
-import { litShare, flameGrown, INTRO, afterglow, branchAt, branchFlare } from '../game/gooseintro'
+import { litShare, flameGrown, OPENING, afterglow, branchAt, branchFlare } from '../game/openingscript'
 import { flashAt } from '../world/weather'
 import { calm } from '../game/address'
 import type { FixedLight } from '../swarm/swarm'
@@ -215,7 +215,7 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
       own.fire.place(sceneFireFoot)
     })
     if (footFire) {
-      const at = goosePlay.level.lights[burningTreeLight]!
+      const at = goosePlay.layout.lights[burningTreeLight]!
       const { start } = goosePlay.plain
       const d = Math.hypot(start.x - at.x, start.z - at.z) || 1
       const x = at.x + ((start.x - at.x) / d) * FOOT_FIRE
@@ -229,9 +229,9 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
       }
     }
     if (strike) {
-      const struck = opening.t >= INTRO.strike ? INTRO.strike : Number.NaN
-      strike.update(opening.t, [{ at: tree, due: INTRO.strike, time: struck }], goosePlay.holder, standAt)
-      const flash = Math.max(flashAt(opening.t - INTRO.strike), afterglow(opening.t)) * strike.look.flash * (calm ? 0.2 : 1)
+      const struck = opening.t >= OPENING.strike ? OPENING.strike : Number.NaN
+      strike.update(opening.t, [{ at: tree, due: OPENING.strike, time: struck }], goosePlay.holder, standAt)
+      const flash = Math.max(flashAt(opening.t - OPENING.strike), afterglow(opening.t)) * strike.look.flash * (calm ? 0.2 : 1)
       if (flash > 0 || strikeFlashing) flashFrame(flash)
       strikeFlashing = flash > 0
     }
@@ -265,7 +265,7 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
       return
     }
     // Where it lies, and where it falls from: over the tree's trunk, on the side toward where it lands.
-    const tree = burningTreeLight >= 0 ? goosePlay.level.lights[burningTreeLight]! : branch
+    const tree = burningTreeLight >= 0 ? goosePlay.layout.lights[burningTreeLight]! : branch
     const away = Math.atan2(branch.z - tree.z, branch.x - tree.x)
     branchTo.set(branch.x, standAt(branch.x, branch.z) + BRANCH_LIFT, branch.z)
     branchFrom.set(tree.x + Math.cos(away) * BRANCH_FROM_OUT, groundAt(tree.x, tree.z) + BRANCH_FROM_UP, tree.z + Math.sin(away) * BRANCH_FROM_OUT)
@@ -305,7 +305,7 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
       sceneFires.forEach(({ owner, light, fire }, i) => {
         const own = fireLooks[owner.kind]
         lights.setLamp(light, fireLook.lamp, own.intensity)
-        const at = goosePlay.level.lights[light]!
+        const at = goosePlay.layout.lights[light]!
         fire.object.visible = look.flame.enabled && at.on
         if (!fire.object.visible) return
         // Raised and sized with its brazier as the edit mode draws it.
@@ -316,7 +316,7 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
       })
       pitFires.forEach(({ brazier, light, fire }, p) => {
         lights.setLamp(light, fireLook.lamp, pitFireLook.intensity)
-        const at = goosePlay.level.lights[light]!
+        const at = goosePlay.layout.lights[light]!
         fire.object.visible = look.flame.enabled && at.on
         if (!fire.object.visible) return
         const { height, width, foot } = pitFireLook

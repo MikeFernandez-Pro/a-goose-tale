@@ -328,12 +328,12 @@ describe('a walking light', () => {
     expect(farAtFront() / all).toBeGreaterThan(0.1)
   })
 
-  it('stays inside the arena, wherever it is sent', () => {
+  it('stays inside the range, wherever it is sent', () => {
     const swarm = new Swarm(100, SEED)
     swarm.reset(100)
     const light = lightAt()
     for (let t = 0; t < 30; t += DT) swarm.walkLight(light, { x: 100, z: -100 }, DT)
-    expect(Math.hypot(light.x, light.z)).toBeLessThan(swarm.arena)
+    expect(Math.hypot(light.x, light.z)).toBeLessThan(swarm.rangeRadius)
   })
 
   it('walks at walking pace', () => {
@@ -754,7 +754,7 @@ describe('the pull', () => {
 
 describe('several lights', () => {
   /**
-   * The torch at half strength, a metre and a half, and two lights the level
+   * The torch at half strength, a metre and a half, and two lights the plain
    * places in the packed mass round it: each holds rats off as the torch does.
    */
   function lit(count = 3000, first = true) {
@@ -988,7 +988,7 @@ describe('a rat with no way out of the light', () => {
   })
 })
 
-describe('the arena', () => {
+describe('the range', () => {
   it('lets no rat leave it, through a long walk and the light going out', () => {
     const swarm = new Swarm(2000, SEED)
     swarm.reset(2000)
@@ -1001,20 +1001,20 @@ describe('the arena', () => {
       swarm.step(DT, light, tuning)
       for (let i = 0; i < swarm.count; i++) farthest = Math.max(farthest, Math.hypot(swarm.x[i], swarm.z[i]))
     }
-    expect(farthest).toBeLessThanOrEqual(swarm.arena + 1e-4)
+    expect(farthest).toBeLessThanOrEqual(swarm.rangeRadius + 1e-4)
   })
 
   it('is sized to the count', () => {
     const swarm = new Swarm(16384, SEED)
     swarm.reset(2000)
-    expect(swarm.arena).toBeCloseTo(15.1, 1)
+    expect(swarm.rangeRadius).toBeCloseTo(15.1, 1)
     swarm.setCount(16384)
-    expect(swarm.arena).toBeCloseTo(30.1, 1)
+    expect(swarm.rangeRadius).toBeCloseTo(30.1, 1)
   })
 })
 
 describe('the count', () => {
-  it('grows at the arena edge and leaves every rat already there where it was', () => {
+  it("grows at the range's edge and leaves every rat already there where it was", () => {
     const swarm = new Swarm(2000, SEED)
     swarm.reset(1000)
     run(swarm, 2, lightAt(), defaultTuning())
@@ -1026,7 +1026,7 @@ describe('the count', () => {
     expect(swarm.x.slice(0, 1000)).toEqual(x)
     expect(swarm.z.slice(0, 1000)).toEqual(z)
     for (let i = 1000; i < 2000; i++) {
-      expect(Math.hypot(swarm.x[i], swarm.z[i])).toBeGreaterThan(swarm.arena * 0.85)
+      expect(Math.hypot(swarm.x[i], swarm.z[i])).toBeGreaterThan(swarm.rangeRadius * 0.85)
     }
     // And the swarm steps on, the newcomers with it, every one of them somewhere.
     run(swarm, 1, lightAt(), defaultTuning())

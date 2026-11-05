@@ -8,7 +8,7 @@ import { type PerspectiveCamera, type WebGPURenderer, type Scene, Vector3 } from
 import { type FakeLamps, FakeLamp } from '../light/fakelamps'
 import { createPadButton, promptedOf } from './holdhint'
 import type { Commands } from './goosecontrols'
-import { INTRO } from '../game/gooseintro'
+import { OPENING } from '../game/openingscript'
 
 /** How the opening is shown, on what the page has made. */
 export function createOpeningShow({ opening, goosePlay, goose, camera, renderer, gooseSounds, hisAt, fakeLamps, scene, standAt }: {
@@ -49,7 +49,7 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
   const SKIP_OVER_BUTTON = 102
   function skipHintFrame(commands: Commands) {
     if (!skipHint) return
-    const shown = opening.running() && opening.t > 0.8 && opening.t < INTRO.end - 0.6
+    const shown = opening.running() && opening.t > 0.8 && opening.t < OPENING.end - 0.6
     skipHint.style.opacity = shown ? '0.8' : '0'
     const share = Math.min(1, opening.skipHolding / SKIP_HOLD)
     const prompted = promptedOf(commands)
@@ -59,10 +59,10 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
     skipHint.style.bottom = prompted === 'touch' ? `${SKIP_OVER_BUTTON}px` : '24px'
     skipFill.style.width = `${Math.round(share * 100)}%`
   }
-  /** His shouts after his goslings as they bolt: HONK! over his head, one at each of INTRO.shouts, popping up and rising off it, SHOUT_SHOWS s each. */
+  /** His shouts after his goslings as they bolt: HONK! over his head, one at each of OPENING.shouts, popping up and rising off it, SHOUT_SHOWS s each. */
   const SHOUT_SHOWS = 0.9
   const shouts = opening.on
-    ? INTRO.shouts.map(() => {
+    ? OPENING.shouts.map(() => {
         const word = document.createElement('div')
         word.textContent = 'HONK!'
         word.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;opacity:0;white-space:nowrap;font-family:Gaegu,cursive;font-weight:700;font-size:46px;line-height:1;color:#f6ead0;text-shadow:0 2px 4px #000c'
@@ -75,7 +75,7 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
   let shoutsHeard = -1
   function shoutFrame() {
     shouts.forEach((word, k) => {
-      const age = opening.t - INTRO.shouts[k]!
+      const age = opening.t - OPENING.shouts[k]!
       const shown = opening.running() && age >= 0 && age < SHOUT_SHOWS
       if (shown && k > shoutsHeard) {
         shoutsHeard = k
@@ -105,7 +105,7 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
   function openingLightFrame() {
     if (!openingLight) return
     const { show, color, intensity, reach, height, fadeIn, fadeOut } = openingLightLook
-    const share = Math.min(1, opening.t / Math.max(fadeIn, 1e-3), (INTRO.end - opening.t) / Math.max(fadeOut, 1e-3))
+    const share = Math.min(1, opening.t / Math.max(fadeIn, 1e-3), (OPENING.end - opening.t) / Math.max(fadeOut, 1e-3))
     openingLight.intensity = show && opening.running() ? intensity * Math.max(0, share) : 0
     if (!(openingLight.intensity > 0)) return
     openingLight.color.setHex(color)

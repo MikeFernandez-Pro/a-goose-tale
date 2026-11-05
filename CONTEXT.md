@@ -64,6 +64,10 @@ _Avoid_: game loop, controller, engine
 **A Goose Tale**'s ground, laid by hand: where the goose starts at its south end, a route of braziers heading north, wandering sideways, and the pond a little past the last. Its only **walls** are the **road**'s. Its ground rolls in low swells, flat round its start, its fires, its scenes and the pond; the play stays on the flat x and z, and only the drawing stands things on the swells.
 _Avoid_: map, level
 
+**Range**:
+The disc the rats are kept in, about the **plain**'s origin, sized to how many rats there are and reaching a metre past the corners of the plain's box: no rat leaves it, and the goose stays a metre inside it. Only the far limit of where rats may be, never where they gather; that is the **front**.
+_Avoid_: arena, circle (that is the goslings'), swarm's edge (that is the sound of the **front**)
+
 **Road**:
 The old road up the **plain**, its braziers standing along it as its beacons: stone slabs, whole by each fire, thinning out in the dark between to the odd slab sunk in the dirt, running on back past where he starts and ending at the pond. Laid by hand, through points of its own; or else from the fires, passing each a little to one side, at a **scene** on the side away from its body. It says which way to go; the **call** and the **badge** say where a **gosling** is.
 _Avoid_: path, track, trail

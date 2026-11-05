@@ -906,7 +906,7 @@ const PLAIN_SHEET: readonly (readonly [number, number])[] = [[0.001, 0.86], [0.1
 
 /**
  * The ghosts where there is no compute to step their cloth, on WebGL 2: the same walk, the same lamps and the same lights,
- * for the graveyard has no other light and no way through without them (a Xiaomi Mi 9 could not finish the level, 2026-11-03);
+ * for the graveyard has no other light and no way through without them (a Xiaomi Mi 9 could not finish the game, 2026-11-03);
  * each drawn as a plain sheet with its eyes, as a look of its own.
  */
 export function createPlainGhosts(groundAt: (x: number, z: number) => number, walk: Walk, lamps?: FakeLamps): Ghosts {

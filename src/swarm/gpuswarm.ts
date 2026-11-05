@@ -22,7 +22,7 @@
 // The page keeps the clock, a fixed STEP a step, as many a frame as it owes,
 // MOST_STEPS at most; it keeps what a step reads that is one number for the
 // whole swarm (the light's walk, the quota owed, the step's keys); it hands the
-// step the lights the level places, lit ones only, as a uniform array (the
+// step the lights the plain places, lit ones only, as a uniform array (the
 // step's kernel binds all the storage buffers WebGPU allows a stage), and the
 // targets that pull the rats as the holder does, picked as the CPU step picks them, another; and it
 // spawns the rats, by the swarm's own rule, uploading the new ones only. What
@@ -383,9 +383,9 @@ function slideOffWalls(
 type Shared = StorageBufferNode<'uint'>
 
 export class GpuSwarm implements PlaySwarm {
-  /** Rats alive, and the arena's radius. */
+  /** Rats alive, and the range's radius. */
   count: number
-  arena: number
+  rangeRadius: number
   /** What each rat's feet play, as last read back: a step or two late. */
   readonly gait: Uint8Array
   /** Where each rat stands, as last read back once the play moves the swarm on, a frame or two late; a rat spawned or set down stands where it was put. */
@@ -402,7 +402,7 @@ export class GpuSwarm implements PlaySwarm {
   readonly inside = 0
   /** The rats the last step read back found at the holder: a step or two late. */
   reached = 0
-  /** The lit lights the level places, as the step reads them, (x, z, reach, how far off it can matter) each; and how many. */
+  /** The lit lights the plain places, as the step reads them, (x, z, reach, how far off it can matter) each; and how many. */
   readonly lights = Array.from({ length: MAX_LIGHTS }, () => new Vector4())
   lit = 0
   /** The lights as a uniform array: read anew by the first step of each frame. */
@@ -411,7 +411,7 @@ export class GpuSwarm implements PlaySwarm {
   readonly targets = Array.from({ length: MAX_TARGETS }, () => new Vector4())
   pulled = 0
   private readonly targetsNode = uniformArray(this.targets, 'vec4') as unknown as { element(i: Node<'int'>): Node<'vec4'> }
-  /** The level's walls, as the step reads them, (from x, from z, to x, to z) each, MAX_WALLS at most; and how many. */
+  /** The plain's walls, as the step reads them, (from x, from z, to x, to z) each, MAX_WALLS at most; and how many. */
   readonly walls = Array.from({ length: MAX_WALLS }, () => new Vector4())
   private readonly wallsNode = uniformArray(this.walls, 'vec4') as unknown as { element(i: Node<'int'>): Node<'vec4'> }
   /** How far apart the states are made, s: always a step. */
@@ -453,7 +453,7 @@ export class GpuSwarm implements PlaySwarm {
   /** What a step reads that is one number for the whole swarm. */
   private readonly u = {
     count: uniform(0, 'int'),
-    arena: uniform(0),
+    rangeRadius: uniform(0),
     grid: uniform(1, 'int'),
     cellSize: uniform(1),
     blocks: uniform(1, 'int'),
@@ -515,7 +515,7 @@ export class GpuSwarm implements PlaySwarm {
     flowOn: uniform(0, 'int'),
     flowX: uniform(0),
     flowZ: uniform(0),
-    /** The level's box rats are brought round into, (min x, min z, max x, max z): the arena's square with none. */
+    /** The plain's box rats are brought round into, (min x, min z, max x, max z): the range's square with none. */
     bounds: uniform(new Vector4(-1e30, -1e30, 1e30, 1e30)),
     round: uniform(0, 'uint'),
     clearAt: uniform(0, 'uint'),
@@ -567,10 +567,10 @@ export class GpuSwarm implements PlaySwarm {
     readonly capacity: number,
     seed: number,
     count: number,
-    arenaScale = 1,
+    rangeScale = 1,
     /** The page's clock, ms. */
     private readonly now: () => number = () => performance.now(),
-    /** The level's walls, the box rats start in and the lights they start out of. */
+    /** The plain's walls, the box rats start in and the lights they start out of. */
     ground: Ground = { walls: [] },
     /**
      * The lit areas, as the page keeps them for the drawing too (litareas.ts):
@@ -594,12 +594,12 @@ export class GpuSwarm implements PlaySwarm {
     this.lists = new StorageBufferAttribute(new Uint32Array(2 * (capacity + 1) + 1), 1)
     this.listed = new StorageBufferAttribute(new Uint32Array(capacity * 2), 1)
     this.seedKey = pcg(seed >>> 0)
-    this.spawner = new Swarm(capacity, seed, arenaScale, ground)
+    this.spawner = new Swarm(capacity, seed, rangeScale, ground)
     this.spawner.reset(count)
     this.setWalls(ground.walls)
     if (ground.bounds !== undefined) this.u.bounds.value.set(ground.bounds.minX, ground.bounds.minZ, ground.bounds.maxX, ground.bounds.maxZ)
     this.count = count
-    this.arena = this.spawner.arena
+    this.rangeRadius = this.spawner.rangeRadius
     this.spawned(0, count)
     this.lastFrame = now()
     this.passes = [this.build(0, 1), this.build(1, 0)]
@@ -663,9 +663,9 @@ export class GpuSwarm implements PlaySwarm {
     return this.u.walls.value
   }
 
-  /** The level's walls as they now stand, the nearest picked again as the goose walks: the step reads them, MAX_WALLS at most, and the rats placed again keep out of them. */
+  /** The plain's walls as they now stand, the nearest picked again as the goose walks: the step reads them, MAX_WALLS at most, and the rats placed again keep out of them. */
   setWalls(walls: readonly Wall[], bounds?: Bounds): void {
-    if (walls.length > MAX_WALLS) throw new Error(`The GPU step reads ${MAX_WALLS} walls at most; the level has ${walls.length}.`)
+    if (walls.length > MAX_WALLS) throw new Error(`The GPU step reads ${MAX_WALLS} walls at most; the plain has ${walls.length}.`)
     walls.forEach(({ from, to }, k) => this.walls[k]!.set(from.x, from.z, to.x, to.z))
     this.u.walls.value = walls.length
     this.flow.setWalls(walls)
@@ -797,12 +797,12 @@ export class GpuSwarm implements PlaySwarm {
     this.u.pulled.value = targets.length
   }
 
-  /** Grow or shrink to `count`: newcomers spawned at the arena's edge by the swarm's rule, and uploaded. */
+  /** Grow or shrink to `count`: newcomers spawned at the range's edge by the swarm's rule, and uploaded. */
   setCount(count: number): void {
     const was = this.spawner.count
     this.spawner.setCount(count)
     this.count = count
-    this.arena = this.spawner.arena
+    this.rangeRadius = this.spawner.rangeRadius
     if (count > was) this.spawned(was, count)
   }
 
@@ -873,7 +873,7 @@ export class GpuSwarm implements PlaySwarm {
     const inner = hardRadius(light, tuning)
     const zone = Math.max(tuning.gap, r)
     u.count.value = count
-    u.arena.value = this.arena
+    u.rangeRadius.value = this.rangeRadius
     u.now.value = this.time
     u.lightX.value = light.x
     u.lightZ.value = light.z
@@ -920,8 +920,8 @@ export class GpuSwarm implements PlaySwarm {
     u.round.value = this.round
     // The grid, a feel's width a cell, as the CPU's; but never more than GRID_MAX a side.
     const feel = 2 * r * FEEL
-    const cellSize = Math.max(feel, (2 * this.arena) / (GRID_MAX - 4))
-    const n = Math.ceil((2 * this.arena) / cellSize) + 3
+    const cellSize = Math.max(feel, (2 * this.rangeRadius) / (GRID_MAX - 4))
+    const n = Math.ceil((2 * this.rangeRadius) / cellSize) + 3
     const cells = n * n + 1
     u.grid.value = n
     u.cellSize.value = cellSize
@@ -1144,7 +1144,7 @@ export class GpuSwarm implements PlaySwarm {
 
     /** The cell the point (x, z) is in, clamped into the grid. */
     const cellOf = (x: Node<'float'>, z: Node<'float'>) => {
-      const off = u.arena.add(u.cellSize)
+      const off = u.rangeRadius.add(u.cellSize)
       const top = u.grid.sub(1)
       const cx = imin(imax(int(x.add(off).div(u.cellSize)), int(0)), top)
       const cz = imin(imax(int(z.add(off).div(u.cellSize)), int(0)), top)
@@ -1653,11 +1653,11 @@ export class GpuSwarm implements PlaySwarm {
       const pitchWant = atan(ny.sub(y0), max(mv, WALK_IN).mul(dt)).clamp(-PITCH_MAX, PITCH_MAX)
       const pitch = b.x.add(pitchWant.sub(b.x).mul(Math.min(1, STEP / PITCH_SMOOTHING))).toVar()
 
-      // The arena's edge.
+      // The range's edge.
       const rr = sqrt(px.mul(px).add(pz.mul(pz))).toVar()
-      If(rr.greaterThan(u.arena), () => {
-        px.mulAssign(u.arena.div(rr))
-        pz.mulAssign(u.arena.div(rr))
+      If(rr.greaterThan(u.rangeRadius), () => {
+        px.mulAssign(u.rangeRadius.div(rr))
+        pz.mulAssign(u.rangeRadius.div(rr))
       })
       const unwalledX = px.toVar()
       const unwalledZ = pz.toVar()
@@ -1746,7 +1746,7 @@ export class GpuSwarm implements PlaySwarm {
   /**
    * Bring-round, after the step: a rat in the dark and behind its centre is
    * set down in it again ahead of the walking light, running in, out of the
-   * flame's reach and every placed light's, and inside the arena; given the
+   * flame's reach and every placed light's, and inside the range; given the
    * camera's view, as near the light as it leaves out of sight, anywhere ahead. Each rat that would be takes a ticket
    * by an atomic add, the swarm walked from a new place each step; only the
    * tickets under the quota move. A moved rat is marked, placed and never slid.
@@ -1787,7 +1787,7 @@ export class GpuSwarm implements PlaySwarm {
         const nz = u.darkZ.add(cz.mul(off)).toVar()
         // Out of sight, where the view's centre is out of it and the ray from it comes into it after.
         const unseen = inSight(nx, nz, nx.sub(u.darkX), nz.sub(u.darkZ)).not().or(u.viewed.equal(0))
-        const limit = u.arena.sub(1)
+        const limit = u.rangeRadius.sub(1)
         const tx = u.lightX.sub(nx).toVar()
         const tz = u.lightZ.sub(nz).toVar()
         const tl2 = tx.mul(tx).add(tz.mul(tz)).toVar()
@@ -1814,7 +1814,7 @@ export class GpuSwarm implements PlaySwarm {
             unlit.assign(0)
           })
         })
-        // Inside the arena and the level's box, and out of the flame's reach wherever the dark is centred.
+        // Inside the range and the plain's box, and out of the flame's reach wherever the dark is centred.
         const box = u.bounds
         const inBox = nx.greaterThanEqual(box.x).and(nx.lessThanEqual(box.z)).and(nz.greaterThanEqual(box.y)).and(nz.lessThanEqual(box.w))
         If(nx.mul(nx).add(nz.mul(nz)).lessThanEqual(limit.mul(limit)).and(inBox).and(unseen).and(tl2.greaterThanEqual(keepOut.mul(keepOut))).and(unlit.greaterThan(0.5)), () => {

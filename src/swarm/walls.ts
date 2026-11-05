@@ -45,8 +45,8 @@ export function within(outline: readonly { x: number; z: number }[], x: number, 
 }
 
 /**
- * The MAX_WALLS walls of `walls` nearest (x, z), in the level's order: what
- * the swarm and the lit areas are handed of a level with more walls than the
+ * The MAX_WALLS walls of `walls` nearest (x, z), in the plain's order: what
+ * the swarm and the lit areas are handed of a plain with more walls than the
  * GPU step reads (#181), swapped as the holder moves.
  */
 export function nearestWalls(walls: readonly Wall[], x: number, z: number): Wall[] {
@@ -63,7 +63,7 @@ const CELL = 2
 const CELL_REACH = 1
 const HALF = WALL_THICKNESS / 2
 
-/** The level's walls, as bodies and light read them: each one's line and box worked out once, and a grid to find the near ones by. */
+/** The plain's walls, as bodies and light read them: each one's line and box worked out once, and a grid to find the near ones by. */
 export class Walls {
   /** How many walls. */
   readonly count: number

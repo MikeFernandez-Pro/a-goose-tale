@@ -403,7 +403,7 @@ export class Rats {
     speed: number,
     /** WebGPU's renderer, to cull and draw the rats on the GPU; none, and they are the batch. */
     private readonly gpu?: WebGPURenderer,
-    /** The level's ground, each rat stood on it; none, and the ground is flat. */
+    /** The plain's ground, each rat stood on it; none, and the ground is flat. */
     private readonly ground?: HeightGrid,
   ) {
     const clip = (name: string) => {

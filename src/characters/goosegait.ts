@@ -1,6 +1,6 @@
 // The goose's gait: how much of his idle, his walk and his run his pose shows, by how fast he goes, and how fast
 // each clip plays so his feet keep pace with the ground.
-import { LIGHT_SPEED } from '../game/gameplay'
+import { GOOSE_PACE } from '../game/gameplay'
 
 /** The panel's gait settings: the pace he runs past, m/s, and how wide the blend of his walk into his run across it is, m/s. */
 export interface GaitSettings {
@@ -19,7 +19,7 @@ export interface Gait {
 
 /** The pace his walk plays at as authored, m/s; and his run's, the keys' full pace, so on the keys he runs as he did. */
 const WALK_STRIDE = 0.6
-const RUN_STRIDE = LIGHT_SPEED
+const RUN_STRIDE = GOOSE_PACE
 /** The pace at which he is all moving, m/s, his idle given way to his walk by then: the opening's calm one. */
 const MOVING = 0.25
 

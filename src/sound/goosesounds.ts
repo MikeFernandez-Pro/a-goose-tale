@@ -89,7 +89,7 @@ const SOUNDS = {
   // The ending's music, once from its start as the ending starts, the track above faded out under it: Clavier
   // Clavier's "Childhood Memories" (Pixabay 304560, https://pixabay.com/users/clavier-music-16027823/), a 64 s piece,
   // ~5 dB louder than the track, so lower here.
-  outro: { type: 'mp3', gain: 0.15, steady: true, late: true },
+  ending: { type: 'mp3', gain: 0.15, steady: true, late: true },
 } satisfies Record<string, Sound>
 export type GooseSound = keyof typeof SOUNDS
 export const GOOSE_SOUNDS = Object.keys(SOUNDS) as GooseSound[]

@@ -11,7 +11,7 @@ import { splitTriangles, tiledNoise } from './groundzones'
 import { ShellToonMaterial } from '../look/shell'
 import { loadMap, NO_COLOUR } from '../look/texturesets'
 
-/** How far the plane runs from the centre: past the largest arena, into the fog. */
+/** How far the plane runs from the centre: past the largest range, into the fog. */
 const EXTENT = 60
 
 /** A hand-painted set's colour and normal map, in public/textures/floors/`set`/. */

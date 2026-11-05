@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AnimationAction } from 'three/webgpu'
-import { ACT_BLEND, HEART_SHOWS, OUTRO, SHAKE, actOf, againOf, blendAct, byOf, heartsOf, aimOf, dawnOf, morningOf, ganderAt, goslingOf, layOutro, legTimes, motherAt, outroDue, peepsOf, planAt, type ActBlend, type Cast, type Island } from './gooseoutro'
+import { ACT_BLEND, HEART_SHOWS, ENDING, SHAKE, actOf, againOf, blendAct, byOf, heartsOf, aimOf, dawnOf, morningOf, ganderAt, goslingOf, layEnding, legTimes, motherAt, endingDue, peepsOf, planAt, type ActBlend, type Cast, type Island } from './endingscript'
 import type { Point } from '../world/plain'
 
 /** A round island 4 m across its middle at the origin. */
@@ -28,8 +28,8 @@ const gap = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.z - b.z)
 
 describe('the ending', () => {
   it('starts once he swims within reach of the island', () => {
-    expect(outroDue(ISLAND, { x: 0, z: 4 + OUTRO.near - 0.1 })).toBe(true)
-    expect(outroDue(ISLAND, { x: 0, z: 4 + OUTRO.near + 0.1 })).toBe(false)
+    expect(endingDue(ISLAND, { x: 0, z: 4 + ENDING.near - 0.1 })).toBe(true)
+    expect(endingDue(ISLAND, { x: 0, z: 4 + ENDING.near + 0.1 })).toBe(false)
   })
 
   it('walks a plan leg by leg, waiting for each to leave', () => {
@@ -45,19 +45,19 @@ describe('the ending', () => {
   })
 
   it('brings him onto the island from the side he comes, and her out of her door straight at him, face to face', () => {
-    const stage = layOutro(ISLAND, CAST)
+    const stage = layEnding(ISLAND, CAST)
     expect(stage.way.z).toBeCloseTo(1)
     expect(ganderAt(stage, 0).at).toEqual(CAST.gander)
-    const there = ganderAt(stage, OUTRO.landed + 1)
+    const there = ganderAt(stage, ENDING.landed + 1)
     expect(inland(there.at)).toBe(true)
-    const her = motherAt(stage, OUTRO.met + 1)
+    const her = motherAt(stage, ENDING.met + 1)
     expect(inland(her.at)).toBe(true)
     expect(gap(her.at, there.at)).toBeGreaterThan(0.7)
     // Through the door on her way.
-    const passes = Array.from({ length: 100 }, (_, k) => motherAt(stage, (k / 100) * OUTRO.met).at)
+    const passes = Array.from({ length: 100 }, (_, k) => motherAt(stage, (k / 100) * ENDING.met).at)
     expect(Math.min(...passes.map((p) => gap(p, CAST.door!)))).toBeLessThan(0.05)
     // From the door, running straight at him.
-    const running = motherAt(stage, OUTRO.met - 0.2)
+    const running = motherAt(stage, ENDING.met - 0.2)
     expect(running.running).toBe(true)
     const toHim = Math.atan2(there.at.x - running.at.x, there.at.z - running.at.z)
     expect(Math.abs(Math.atan2(Math.sin(running.yaw - toHim), Math.cos(running.yaw - toHim)))).toBeLessThan(0.02)
@@ -70,9 +70,9 @@ describe('the ending', () => {
   it('keeps every bird off every other once they stand: waiting for him round where they meet, and in the ring', () => {
     for (const door of [CAST.door, undefined]) {
       for (const gander of [{ x: 0, z: 7 }, { x: 7, z: 0 }, { x: -5, z: 5 }]) {
-        const stage = layOutro(ISLAND, { ...CAST, door, gander, island: [...CAST.island, { x: 0, z: 0 }], brood: [...CAST.brood, ...CAST.brood, { x: gander.x, z: gander.z + 0.4 }] })
+        const stage = layEnding(ISLAND, { ...CAST, door, gander, island: [...CAST.island, { x: 0, z: 0 }], brood: [...CAST.brood, ...CAST.brood, { x: gander.x, z: gander.z + 0.4 }] })
         // The island's waiting for him as he lands; all of them in the ring.
-        for (const [t, plans] of [[OUTRO.landed, stage.island], [30, [...stage.brood, ...stage.island]]] as const) {
+        for (const [t, plans] of [[ENDING.landed, stage.island], [30, [...stage.brood, ...stage.island]]] as const) {
           const adults = [ganderAt(stage, t).at, motherAt(stage, t).at]
           const young = plans.map((plan) => planAt(plan, t).at)
           for (const p of young) for (const a of adults) expect(gap(p, a)).toBeGreaterThan(0.5)
@@ -83,9 +83,9 @@ describe('the ending', () => {
   })
 
   it('has every gosling running round the two of them as they meet, all one way, on the island, none on another', () => {
-    const stage = layOutro(ISLAND, CAST)
+    const stage = layEnding(ISLAND, CAST)
     const all = [...stage.brood, ...stage.island]
-    for (let t = OUTRO.settle - 1; t < OUTRO.settle - 0.01; t += 0.1) {
+    for (let t = ENDING.settle - 1; t < ENDING.settle - 0.01; t += 0.1) {
       const adults = [ganderAt(stage, t).at, motherAt(stage, t).at]
       const young = all.map((plan) => planAt(plan, t))
       for (const { at, going } of young) {
@@ -100,46 +100,46 @@ describe('the ending', () => {
       for (let a = 0; a < young.length; a++) for (let b = a + 1; b < young.length; b++) expect(gap(young[a]!.at, young[b]!.at)).toBeGreaterThan(0.25)
     }
     // The island's run from soon after the two of them meet.
-    stage.island.forEach((plan) => expect(planAt(plan, OUTRO.met + OUTRO.stagger + JOIN_TIME).going).toBeDefined())
+    stage.island.forEach((plan) => expect(planAt(plan, ENDING.met + ENDING.stagger + JOIN_TIME).going).toBeDefined())
   })
 
   it("has the island's goslings running round the two of them from soon after they meet, even from across the island", () => {
-    const stage = layOutro(ISLAND, { ...CAST, island: [{ x: -2, z: -3 }, { x: 1, z: -3.5 }, { x: 3, z: -1.5 }] })
+    const stage = layEnding(ISLAND, { ...CAST, island: [{ x: -2, z: -3 }, { x: 1, z: -3.5 }, { x: 3, z: -1.5 }] })
     for (const plan of stage.island) {
-      for (let t = OUTRO.met + OUTRO.stagger + JOIN_TIME; t < OUTRO.settle; t += 0.1) expect(planAt(plan, t).going).toBeDefined()
+      for (let t = ENDING.met + ENDING.stagger + JOIN_TIME; t < ENDING.settle; t += 0.1) expect(planAt(plan, t).going).toBeDefined()
     }
   })
 
   it('has every gosling go round the two of them once he is ashore, never through them', () => {
     for (const gander of [{ x: 0, z: 7 }, { x: 7, z: 0 }, { x: -5, z: 5 }, { x: 0, z: -7 }]) {
-      const stage = layOutro(ISLAND, { ...CAST, gander, island: [...CAST.island, { x: -gander.x * 0.4, z: -gander.z * 0.4 }, { x: gander.z * 0.4, z: -gander.x * 0.4 }] })
-      for (let t = OUTRO.landed; t < 20; t += 0.05) {
-        const adults = [ganderAt(stage, t).at, ...(t >= OUTRO.met ? [motherAt(stage, t).at] : [])]
+      const stage = layEnding(ISLAND, { ...CAST, gander, island: [...CAST.island, { x: -gander.x * 0.4, z: -gander.z * 0.4 }, { x: gander.z * 0.4, z: -gander.x * 0.4 }] })
+      for (let t = ENDING.landed; t < 20; t += 0.05) {
+        const adults = [ganderAt(stage, t).at, ...(t >= ENDING.met ? [motherAt(stage, t).at] : [])]
         for (const plan of [...stage.brood, ...stage.island]) for (const a of adults) expect(gap(planAt(plan, t).at, a)).toBeGreaterThan(0.45)
       }
     }
   })
 
   it('turns the goslings to the two of them in the ring, each a little off', () => {
-    const stage = layOutro(ISLAND, CAST)
+    const stage = layEnding(ISLAND, CAST)
     const { at, face } = goslingOf(stage, false, 0, 30)
     const off = face! - Math.atan2(stage.pair.x - at.x, stage.pair.z - at.z)
     expect(Math.abs(Math.atan2(Math.sin(off), Math.cos(off)))).toBeLessThanOrEqual(0.5)
   })
 
   it('gets her up off the nest before she runs, and there before the goslings gather', () => {
-    const stage = layOutro(ISLAND, CAST)
+    const stage = layEnding(ISLAND, CAST)
     expect(motherAt(stage, 0)).toMatchObject({ at: CAST.mother, up: 0, running: false })
-    expect(motherAt(stage, OUTRO.risen - 0.01).running).toBe(false)
-    expect(motherAt(stage, (OUTRO.risen + OUTRO.met) / 2)).toMatchObject({ up: 1, running: true })
-    expect(motherAt(stage, OUTRO.met).at.z).toBeCloseTo(stage.mother.to.z)
+    expect(motherAt(stage, ENDING.risen - 0.01).running).toBe(false)
+    expect(motherAt(stage, (ENDING.risen + ENDING.met) / 2)).toMatchObject({ up: 1, running: true })
+    expect(motherAt(stage, ENDING.met).at.z).toBeCloseTo(stage.mother.to.z)
   })
 
   it('brings his goslings ashore after him, each shaking dry before the little one goes to the ring', () => {
-    const stage = layOutro(ISLAND, CAST)
+    const stage = layEnding(ISLAND, CAST)
     stage.brood.forEach((plan, k) => {
       const ashore = stage.shakes[k]!
-      expect(ashore).toBeGreaterThan(OUTRO.landed - 0.5)
+      expect(ashore).toBeGreaterThan(ENDING.landed - 0.5)
       expect(inland(planAt(plan, ashore).at)).toBe(true)
       expect(actOf(stage, true, k, ashore + SHAKE / 2)?.clip).toBe('shake')
       expect(legTimes(plan)[2]!.start).toBeGreaterThanOrEqual(ashore + SHAKE)
@@ -147,7 +147,7 @@ describe('the ending', () => {
   })
 
   it('gathers every gosling, his and hers, in a ring round the two of them, none on another', () => {
-    const stage = layOutro(ISLAND, CAST)
+    const stage = layEnding(ISLAND, CAST)
     const late = 30
     const ring = [...stage.brood, ...stage.island].map((plan) => planAt(plan, late).at)
     const him = ganderAt(stage, late).at
@@ -165,7 +165,7 @@ describe('the ending', () => {
     ["only the island's, playing bunched on one side", { ...CAST, brood: [], island: [{ x: -1.5, z: 1 }, { x: -1.7, z: 1.3 }, { x: -1.3, z: 1.4 }, { x: -1.9, z: 0.9 }] }],
     ['a crowd, his seven and her four', { ...CAST, brood: Array.from({ length: 7 }, (_, k) => ({ x: -0.9 + k * 0.3, z: 7.4 })), island: [{ x: -1, z: 1 }, { x: 1, z: 1.5 }, { x: 2, z: -2 }, { x: -2, z: -1 }] }],
   ] as [string, Cast][])('the ring of %s', (_, cast) => {
-    const stage = layOutro(ISLAND, cast)
+    const stage = layEnding(ISLAND, cast)
     const ring = [...stage.brood, ...stage.island].map((plan) => planAt(plan, 30).at)
     const round = ring.map((p) => Math.atan2(p.z - stage.pair.z, p.x - stage.pair.x)).sort((a, b) => a - b)
     const gaps = round.map((a, k) => (round[k + 1] ?? round[0]! + Math.PI * 2) - a)
@@ -177,7 +177,7 @@ describe('the ending', () => {
     })
 
     it('has them fanned out as they run round the two of them, before they step in', () => {
-      const running = [...stage.brood, ...stage.island].map((plan) => planAt(plan, OUTRO.settle - 0.05).at)
+      const running = [...stage.brood, ...stage.island].map((plan) => planAt(plan, ENDING.settle - 0.05).at)
       const angles = running.map((p) => Math.atan2(p.z - stage.pair.z, p.x - stage.pair.x)).sort((a, b) => a - b)
       const spaces = angles.map((a, k) => (angles[k + 1] ?? angles[0]! + Math.PI * 2) - a)
       expect(Math.max(...spaces)).toBeLessThan(even * 2.5)
@@ -200,20 +200,20 @@ describe('the ending', () => {
   })
 
   it('has every gosling hop in the ring, off the ground mid-hop', () => {
-    const stage = layOutro(ISLAND, CAST)
-    const hops = Array.from({ length: 200 }, (_, k) => actOf(stage, false, 0, OUTRO.settle + k * 0.05)).filter((act) => act?.clip === 'jump')
+    const stage = layEnding(ISLAND, CAST)
+    const hops = Array.from({ length: 200 }, (_, k) => actOf(stage, false, 0, ENDING.settle + k * 0.05)).filter((act) => act?.clip === 'jump')
     expect(hops.length).toBeGreaterThan(0)
     expect(Math.max(...hops.map((act) => act!.lift))).toBeGreaterThan(0.05)
   })
 
   it('has every gosling peep a short run in the ring, each starting at his own time, before the night fades out', () => {
-    const stage = layOutro(ISLAND, CAST)
+    const stage = layEnding(ISLAND, CAST)
     const runs = [...CAST.brood.map((_, k) => peepsOf(stage, true, k)), ...CAST.island.map((_, j) => peepsOf(stage, false, j))]
     for (const peeps of runs) {
       expect(peeps.length).toBeGreaterThanOrEqual(2)
       expect(peeps.length).toBeLessThanOrEqual(3)
       for (let p = 1; p < peeps.length; p++) expect(peeps[p]! - peeps[p - 1]!).toBeGreaterThan(0.1)
-      expect(Math.max(...peeps)).toBeLessThan(OUTRO.fade[0])
+      expect(Math.max(...peeps)).toBeLessThan(ENDING.fade[0])
     }
     const starts = runs.map((peeps) => peeps[0]!).sort((a, b) => a - b)
     for (let s = 1; s < starts.length; s++) expect(starts[s]! - starts[s - 1]!).toBeGreaterThan(0.02)
@@ -222,19 +222,19 @@ describe('the ending', () => {
   it('sends hearts up over the two of them from the moment they meet, side to side, all gone before the night fades', () => {
     const hearts = heartsOf()
     expect(hearts.length).toBeGreaterThan(6)
-    expect(hearts[0]!.at).toBe(OUTRO.met)
+    expect(hearts[0]!.at).toBe(ENDING.met)
     for (let h = 1; h < hearts.length; h++) {
       expect(hearts[h]!.at - hearts[h - 1]!.at).toBeGreaterThan(0.3)
       expect(Math.sign(hearts[h]!.side)).toBe(-Math.sign(hearts[h - 1]!.side))
     }
-    expect(hearts[hearts.length - 1]!.at + HEART_SHOWS).toBeLessThanOrEqual(OUTRO.fade[0])
+    expect(hearts[hearts.length - 1]!.at + HEART_SHOWS).toBeLessThanOrEqual(ENDING.fade[0])
   })
 
   it('looks to the pair, brings the dawn up, and holds both at the end', () => {
     expect(aimOf(0)).toBe(0)
-    expect(aimOf(OUTRO.landed)).toBe(1)
-    expect(dawnOf(OUTRO.dawn[0])).toBe(0)
-    expect(dawnOf(OUTRO.end)).toBe(1)
+    expect(aimOf(ENDING.landed)).toBe(1)
+    expect(dawnOf(ENDING.dawn[0])).toBe(0)
+    expect(dawnOf(ENDING.end)).toBe(1)
   })
 
   it("brings the morning's colours up in the first three seconds, from the moment he is no longer played", () => {
@@ -272,13 +272,13 @@ describe('the ending', () => {
   })
 
   it('offers to play again only once the title has held a while, and has it up by the end', () => {
-    expect(againOf(OUTRO.title[1] + 2.4)).toBe(0)
-    expect(againOf(OUTRO.end)).toBe(1)
+    expect(againOf(ENDING.title[1] + 2.4)).toBe(0)
+    expect(againOf(ENDING.end)).toBe(1)
   })
 
   it('says who made it a second after the title is all in, before the offer to play again', () => {
-    expect(byOf(OUTRO.title[1] + 1)).toBe(0)
-    expect(byOf(OUTRO.title[1] + 1.1)).toBeGreaterThan(0)
-    expect(byOf(OUTRO.again[0])).toBe(1)
+    expect(byOf(ENDING.title[1] + 1)).toBe(0)
+    expect(byOf(ENDING.title[1] + 1.1)).toBeGreaterThan(0)
+    expect(byOf(ENDING.again[0])).toBe(1)
   })
 })

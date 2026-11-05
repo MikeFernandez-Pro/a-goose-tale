@@ -4,7 +4,7 @@
 // fourteen times a second as he walks, at 2 ms a time on a fast machine and
 // 10 on a slow one. The CPU step works its own out in the swarm's worker.
 //
-// The page sends the level's walls when they change and the holder when he
+// The page sends the plain's walls when they change and the holder when he
 // has moved half a cell, one holder at a time: while the field is being
 // worked out, he is sent again only once it has come back. So the field the
 // step reads lags him by a frame or two, which is nothing to walls that stand
@@ -75,7 +75,7 @@ export class RemoteFlowField {
   version = 0
 
   private walled = false
-  /** Whether a field has come back since the level last had no walls. */
+  /** Whether a field has come back since the plain last had no walls. */
   private got = false
   /** Whether a holder is out, its field not yet back. */
   private out = false
@@ -91,7 +91,7 @@ export class RemoteFlowField {
     return this.walled && this.got
   }
 
-  /** The level's walls as they now stand: the field round the holder is asked for again at the next update. */
+  /** The plain's walls as they now stand: the field round the holder is asked for again at the next update. */
   setWalls(walls: readonly Wall[]): void {
     this.walled = walls.length > 0
     if (!this.walled) this.got = false

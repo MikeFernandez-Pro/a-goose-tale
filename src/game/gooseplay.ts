@@ -36,7 +36,7 @@
 //   steady pace. A torch burnt out is lit again the same way.
 // - Starting by a burning branch (plain.ts), the goose carries nothing: the
 //   branch the opening snaps off the burning tree's crown lies burning on the
-//   ground, a light of its own, BRANCH_REACH m round, last of the level's
+//   ground, a light of its own, BRANCH_REACH m round, last of the plain's
 //   lights, until he picks it up, a fresh press of the interact key within
 //   BRANCH_ZONE m of it. It is his torch from then on, lit and full; before,
 //   no fire lights anything, there being nothing to light. Burnt out or put
@@ -99,11 +99,11 @@
 //   scene comes first: the key works it, and fills no torch.
 //
 // Nothing is drawn at random: the same route, seed and inputs give the same run.
-import { LIGHT_SPEED, NOTICE, RESTART_ROOM, gameTuning } from './gameplay'
+import { GOOSE_PACE, NOTICE, RESTART_ROOM, gameTuning } from './gameplay'
 import { SteppedSwarm, type PlayDrive, type PlaySwarm } from '../swarm/play'
 import { HOLDER_RADIUS, within } from '../swarm/walls'
 import { BRAZIER_REACH, ROUTE, WADE, laid, type Plain, type Point, type Route, type Scene } from '../world/plain'
-import { defaultRunTuning, Run, type Level } from './run'
+import { defaultRunTuning, Run, type PlainLayout } from './run'
 import { FLICKER, shoreLight, type Dark, type FixedLight, type Ground, type Light, type StepReport, type Target, type Tuning } from '../swarm/swarm'
 
 /** How far from his start the rats start, m: the plain's margin, so none is set down off it. */
@@ -249,7 +249,7 @@ export interface Well extends Point {
 
 /**
  * The dead tree, where it stands, in its brazier's stead, by its index; where
- * the brazier by it stands, and its light's index in the level's lights; when
+ * the brazier by it stands, and its light's index in the plain's lights; when
  * he called its gosling down, s of the play, NaN not yet; how far the call is
  * held, 0 to 1; and whether he is at it, near enough to call, his torch lit,
  * its gosling up it.
@@ -312,7 +312,7 @@ const LONG_AGO = -1e3
 /**
  * The burning branch he starts by, where it lies, its broken end burning: whether it is down yet, false while the
  * opening has it falling from the burning tree's crown; whether he carries it, his torch; when he picked it up, s of
- * the play, NaN not yet; and its light, by its index in the level's lights, the last of them.
+ * the play, NaN not yet; and its light, by its index in the plain's lights, the last of them.
  */
 export interface Branch extends Point {
   landed: boolean
@@ -749,7 +749,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
   readonly runTuning = gooseRunTuning()
   readonly plain: Plain
   /** The plain as the run reads it: the braziers its flames, no walls. */
-  readonly level: Level
+  readonly layout: PlainLayout
   readonly tuning: Tuning
   readonly swarm: S
   readonly run: Run
@@ -870,7 +870,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
 
   constructor(settings: Partial<GooseSettings> = {}, drive: PlayDrive<S> = {}) {
     // The dead tree's zone and its gosling's jump: set from the panel on 2026-10-22; the well's, the burning branch's, the burning tree's, the dead tree's again and its brazier's on 2026-11-01.
-    this.settings = { hisBite: 0.141, healAfter: 2, heal: 0.25, fall: { lasts: FALL, dims: FALL_DIM }, spawnReach: SPAWN_REACH, spawnFear: 1, wellFireReach: BRAZIER_REACH, rats: 2000, pace: LIGHT_SPEED, seed: SEED, torch: TORCH, sight: 7, wellHold: 4, treeHold: 2, treeJump: 1.8, refillHold: 1.4, lightLetGo: 0.7, winchZone: { x: 0, z: 0, scaleX: 1.3, scaleY: 1.35 }, treeZone: { x: 0, z: 0, scaleX: 1.7, scaleY: 1.7 }, treeLanding: { x: -0.3, z: 1 }, treeFire: { x: 0, z: 0 }, wellFire: { x: 0, z: 0 }, cageZone: { ...STILL_ZONE }, cageHold: 1.5, cageFire: { x: 0, z: 0 }, keyZone: { ...STILL_ZONE }, keyBeside: { ...KEY_BESIDE }, fireZones: { tree: { x: 0, z: 0, scaleX: 1.5, scaleY: 1.5 }, cage: { ...CAMPFIRE_ZONE } }, branchZone: { x: 0, z: 0, scaleX: 1.1, scaleY: 1.1 }, spawnZone: { x: 0, z: 0, scaleX: 1.1, scaleY: 1.1 }, pitZone: { ...STILL_ZONE }, brazierZone: { ...STILL_ZONE }, fireReach: { tree: 2, cage: BRAZIER_REACH }, wellAhead: null, treeAhead: null, route: ROUTE, lastGuides: false, ...settings }
+    this.settings = { hisBite: 0.141, healAfter: 2, heal: 0.25, fall: { lasts: FALL, dims: FALL_DIM }, spawnReach: SPAWN_REACH, spawnFear: 1, wellFireReach: BRAZIER_REACH, rats: 2000, pace: GOOSE_PACE, seed: SEED, torch: TORCH, sight: 7, wellHold: 4, treeHold: 2, treeJump: 1.8, refillHold: 1.4, lightLetGo: 0.7, winchZone: { x: 0, z: 0, scaleX: 1.3, scaleY: 1.35 }, treeZone: { x: 0, z: 0, scaleX: 1.7, scaleY: 1.7 }, treeLanding: { x: -0.3, z: 1 }, treeFire: { x: 0, z: 0 }, wellFire: { x: 0, z: 0 }, cageZone: { ...STILL_ZONE }, cageHold: 1.5, cageFire: { x: 0, z: 0 }, keyZone: { ...STILL_ZONE }, keyBeside: { ...KEY_BESIDE }, fireZones: { tree: { x: 0, z: 0, scaleX: 1.5, scaleY: 1.5 }, cage: { ...CAMPFIRE_ZONE } }, branchZone: { x: 0, z: 0, scaleX: 1.1, scaleY: 1.1 }, spawnZone: { x: 0, z: 0, scaleX: 1.1, scaleY: 1.1 }, pitZone: { ...STILL_ZONE }, brazierZone: { ...STILL_ZONE }, fireReach: { tree: 2, cage: BRAZIER_REACH }, wellAhead: null, treeAhead: null, route: ROUTE, lastGuides: false, ...settings }
     this.runTuning.burnRate = 1 / this.settings.torch
     this.plain = laid(this.settings.route)
     const { start, braziers, bounds } = this.plain
@@ -901,7 +901,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
       return [{ k, place: { x: at.x + (away.x / d) * WELL_FIRE, z: at.z + (away.z / d) * WELL_FIRE } }]
     })
     this.wellFires = wellFires.map(({ k, place }, w) => ({ brazier: k, place, light: braziers.length + fires.length + w }))
-    this.level = {
+    this.layout = {
       start: { ...start },
       // The dead tree's place holds a light that never burns, so every brazier's light keeps its index. The well's
       // brazier's place holds one too, its lantern gone: its fire pit lights it.
@@ -923,10 +923,10 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
     // The burning branch's light after every other, so none moves: lying there, burning, until he picks it up.
     const lies = start.branch
     if (lies) {
-      this.branch = { x: lies.x, z: lies.z, landed: true, carried: false, takenAt: Number.NaN, light: this.level.lights.length }
-      this.level.lights.push({ x: lies.x, z: lies.z, reach: BRANCH_REACH, flame: true, on: true })
+      this.branch = { x: lies.x, z: lies.z, landed: true, carried: false, takenAt: Number.NaN, light: this.layout.lights.length }
+      this.layout.lights.push({ x: lies.x, z: lies.z, reach: BRANCH_REACH, flame: true, on: true })
     }
-    this.run = new Run(this.level, this.runTuning)
+    this.run = new Run(this.layout, this.runTuning)
     // Starting by a branch, he has no torch to burn until he picks it up.
     if (this.plain.start.unlit || this.branch) this.run.fuel = 0
     this.restAt = { x: start.x, z: start.z }
@@ -1001,7 +1001,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
    * skull; and the arches' stones.
    */
   private bodies(): Body[] {
-    const { lights } = this.level
+    const { lights } = this.layout
     const pits = this.wellFires.map(({ light }) => lights[light]!)
     const sets = this.scenes.flatMap((scene): Body[] => {
       const turn = (outline: readonly Point[], by: number) => outline.map((p) => turned(p, by))
@@ -1114,7 +1114,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
   landBranch(landed: boolean): void {
     if (!this.branch || this.branch.carried) return
     this.branch.landed = landed
-    this.level.lights[this.branch.light]!.on = landed
+    this.layout.lights[this.branch.light]!.on = landed
   }
 
   /** Where he picks the burning branch up: round its burning end, where its light is, as the settings set it now. */
@@ -1176,7 +1176,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
     if (saved.armed && this.branch && !this.branch.carried) {
       this.branch.carried = true
       this.branch.takenAt = LONG_AGO
-      this.level.lights[this.branch.light]!.on = false
+      this.layout.lights[this.branch.light]!.on = false
     }
     this.restAt.x = saved.restAt.x
     this.restAt.z = saved.restAt.z
@@ -1261,7 +1261,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
     this.burnDown()
     // Nothing fills the torch by itself: he holds the interact key at a fire for it (`work`). The run burns it only
     // from his first step.
-    run.step({ dt, toward, speed, arena: this.swarm.arena })
+    run.step({ dt, toward, speed, rangeRadius: this.swarm.rangeRadius })
     if (dt > 0) {
       this.moving.x = (holder.x - fromX) / dt
       this.moving.z = (holder.z - fromZ) / dt
@@ -1376,7 +1376,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
     this.plain.braziers.forEach((b, k) => {
       const g = this.goslings[k]
       if (b.scene !== undefined || !g) return
-      const light = this.level.lights[k]!
+      const light = this.layout.lights[k]!
       if (b.searching) {
         if (Math.hypot(holder.x - g.x, holder.z - g.z) <= SEARCH_SEES) this.join(k)
         return
@@ -1430,7 +1430,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
 
   /** Where on searching gosling `k`'s arc a point `along` m round his light's edge from where he waits lies, and its angle round the light, radians from +x. */
   private edgeOf(k: number, along: number): Point & { angle: number } {
-    const light = this.level.lights[k]!
+    const light = this.layout.lights[k]!
     const home = this.waitsAt[k]!
     const radius = Math.max(Math.hypot(home.x - light.x, home.z - light.z), 1e-6)
     const angle = Math.atan2(home.z - light.z, home.x - light.x) + along / radius
@@ -1465,7 +1465,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
       if (Number.isNaN(this.dyingAt[k]!) && Math.hypot(holder.x - b.x, holder.z - b.z) <= trigger) this.dyingAt[k] = this.t
       const since = this.t - this.dyingAt[k]! - after
       const share = Number.isNaN(since) || since <= 0 ? 1 : Math.max(0, 1 - since / Math.max(lasts, 1e-6))
-      const light = this.level.lights[k]!
+      const light = this.layout.lights[k]!
       light.reach = b.reach * share
       light.on = share > 0
     })
@@ -1531,7 +1531,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
       const branch = this.branch!
       branch.carried = true
       branch.takenAt = this.t
-      this.level.lights[branch.light]!.on = false
+      this.layout.lights[branch.light]!.on = false
       this.run.fuel = 1
       this.kindled = 0
       this.caughtAt = this.t
@@ -1541,7 +1541,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
     // the burn held off the while; unheld, nothing fills it.
     const atWinch = (well: Point) => inZone(this.winchZoneOf(well), holder)
     const working = this.scenes.some((scene) => this.workable(scene))
-    const fire = this.level.lights.some((light, k) => light.flame && light.on && inZone(this.dipZoneOf(k), holder))
+    const fire = this.layout.lights.some((light, k) => light.flame && light.on && inZone(this.dipZoneOf(k), holder))
     // With no torch yet, there is nothing to fill.
     const refill = fire && !working && this.armed
     // Filling at a fire, he will wake there.
@@ -1676,20 +1676,20 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
 
   /** Where he fills his torch at `scene`'s fire, as the settings set it now: the dip of the dead tree's brazier or the cage's campfire. */
   fireZoneOf(scene: Tree | Cage): Zone {
-    const light = this.level.lights[this.fireLightOf(scene)]!
+    const light = this.layout.lights[this.fireLightOf(scene)]!
     const { x, z, scaleX, scaleY } = this.settings.fireZones[scene.kind]
     return { x: light.x + x, z: light.z + z, rx: DIP * scaleX, rz: DIP * scaleY }
   }
 
   /**
-   * Where he fills his torch at the level's `k`th light, a flame, as the settings set it now: a scene's fire's own zone,
+   * Where he fills his torch at the plain's `k`th light, a flame, as the settings set it now: a scene's fire's own zone,
    * the burning branch's, or the dip of the burning tree's foot, a well's fire pit or a brazier on the plain.
    */
   dipZoneOf(k: number): Zone {
     const scene = this.scenes.find((s) => s.kind !== 'well' && this.fireLightOf(s) === k)
     if (scene && scene.kind !== 'well') return this.fireZoneOf(scene)
     if (this.branch?.light === k) return this.branchZoneOf(this.branch)
-    const light = this.level.lights[k]!
+    const light = this.layout.lights[k]!
     const { spawnZone, pitZone, brazierZone } = this.settings
     const spawn = k === 0 && this.plain.braziers[0]?.scene === undefined
     const { x, z, scaleX, scaleY } = spawn ? spawnZone : this.wellFires.some((pit) => pit.light === k) ? pitZone : brazierZone
@@ -1697,7 +1697,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
     return { x: light.x + x, z: light.z + z, rx: reach * scaleX, rz: reach * scaleY }
   }
 
-  /** `scene`'s fire's light, by its index in the level's lights: the dead tree's brazier's, after the braziers'; the cage's, in its brazier's place's. */
+  /** `scene`'s fire's light, by its index in the plain's lights: the dead tree's brazier's, after the braziers'; the cage's, in its brazier's place's. */
   fireLightOf(scene: Tree | Cage): number {
     return scene.kind === 'tree' ? scene.fireLight : scene.brazier
   }
@@ -1761,25 +1761,25 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
   private placeScenes(): void {
     const { treeFire, wellFire, wellFireReach, spawnReach, cageFire, keyBeside, fireReach } = this.settings
     for (const { place, light } of this.wellFires) {
-      this.level.lights[light]!.x = place.x + wellFire.x
-      this.level.lights[light]!.z = place.z + wellFire.z
-      this.level.lights[light]!.reach = wellFireReach
+      this.layout.lights[light]!.x = place.x + wellFire.x
+      this.layout.lights[light]!.z = place.z + wellFire.z
+      this.layout.lights[light]!.reach = wellFireReach
     }
-    if (this.plain.braziers[0] && this.plain.braziers[0].scene === undefined) this.level.lights[0]!.reach = spawnReach
+    if (this.plain.braziers[0] && this.plain.braziers[0].scene === undefined) this.layout.lights[0]!.reach = spawnReach
     for (const scene of this.scenes) {
       if (scene.kind === 'well') continue
-      this.level.lights[this.fireLightOf(scene)]!.reach = fireReach[scene.kind]
+      this.layout.lights[this.fireLightOf(scene)]!.reach = fireReach[scene.kind]
       if (scene.kind === 'cage') {
         const beside = turned(keyBeside, scene.turn)
         scene.key.x = scene.skull.x + beside.x
         scene.key.z = scene.skull.z + beside.z
         const place = this.plain.braziers[scene.brazier]!
-        const light = this.level.lights[scene.brazier]!
+        const light = this.layout.lights[scene.brazier]!
         light.x = place.x + cageFire.x
         light.z = place.z + cageFire.z
       }
       if (scene.kind !== 'tree') continue
-      const light = this.level.lights[scene.fireLight]!
+      const light = this.layout.lights[scene.fireLight]!
       light.x = scene.fire.x = scene.place.x + treeFire.x
       light.z = scene.fire.z = scene.place.z + treeFire.z
     }

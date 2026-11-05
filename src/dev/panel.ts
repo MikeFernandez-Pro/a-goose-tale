@@ -21,7 +21,7 @@ import type { TrailLook } from '../swarm/rats'
 import type { ToonLook } from '../look/toon'
 import type { NoiseSeeThrough } from '../look/seethrough'
 import { FLEE_REACTION, FLEE_TURN, type Tuning } from '../swarm/swarm'
-import type { Level, RunTuning } from '../game/run'
+import type { PlainLayout, RunTuning } from '../game/run'
 import type { FireScene, GooseSettings, ZoneSetting } from '../game/gooseplay'
 import type { CageLook, KeyInWing, SceneFireLook, TreeLook } from '../game/goosescenes'
 import type { GoslingSpeeds } from '../characters/goslings'
@@ -72,15 +72,15 @@ export interface Panel {
   refresh(): void
 }
 
-/** What the run folder edits: the run's tuning and the level's lights, both read live. */
+/** What the run folder edits: the run's tuning and the plain's lights, both read live. */
 export interface RunPanel {
   tuning: RunTuning
-  level: Level
+  layout: PlainLayout
   /**
    * The game's knobs: its holds, read live, and the rats' seed, set again by `reseed`; and
    * its pond's look, laid again by `changed`.
    */
-  goose: { settings: GooseSettings; reseed(seed: number): void; refillZones?: { show: boolean }; dark?: DarkLook; feel?: GooseFeel; introLight?: { show: boolean; color: number; intensity: number; reach: number; height: number; fadeIn: number; fadeOut: number }; goslings?: GoslingSpeeds; goslingSize?: { height: number }; road?: { shape: RoadShape; shapeChanged(): void; look: RoadLook; changed(): void; arches?: { look: ArchLook; countChanged(): void } }; doors?: { stone: ArchStone; stoneChanged(): void; shell: ArchShell; shellChanged(): void }; walls?: { look: RoadWallLook; changed(): void; stone: ArchStone & { offsetX: number; offsetY: number }; stoneChanged(): void; shell: ArchShell; shellChanged(): void }; trees?: { look: { show: boolean; wood: number; saturation: number; y: number; trunk: number; rings: number }; shape: DeadTreeShape; changed(): void; woodChanged(): void; yChanged(): void; trunkChanged(): void; bark: BarkLook; barkChanged(): void; grass: GrassLook; grassChanged(): void; leaves?: LeafLook; leavesChanged(): void; wind: TreeWindLook; windChanged(): void; shine: ShineLook; shineChanged(): void }; bushes?: { look: { show: boolean; y: number }; shape: DeadTreeShape; changed(): void; leaves: LeafLook; leavesChanged(): void; yChanged(): void }; well?: { colours: Record<string, number>; glows: Record<string, number>; changed(): void; bucket?: { x: number; y: number; z: number }; ground?: { look: WellGroundLook; changed(): void }; fire?: { x: number; z: number }; reach?: { wellFireReach: number }; shine?: { look: ShineLook; changed(): void }; pit?: { look: { colour: number }; changed(): void; shine: ShineLook; shineChanged(): void } }; spawn?: { spawnReach: number; spawnFear: number }; branch?: { colours: BranchColours; changed(): void }; fires?: FiresPanel; tree?: { look: TreeLook; landing?: { x: number; z: number }; jump?: { treeJump: number }; fire?: SceneFirePanel & { at: { x: number; z: number } } }; cage?: { hold: { cageHold: number }; key: { beside: { x: number; z: number }; inWing?: KeyInWing; bones: readonly string[] }; fire: SceneFirePanel & { at: { x: number; z: number }; lamp: { intensity: number } }; look?: CageLook; colours?: { colours: Record<string, number>; glows?: Record<string, number>; changed(): void }; shine?: { cart: ShineLook; skull: ShineLook; changed(): void }; wood?: { look: CartWoodLook; changed(): void } }; pond?: { look: PondLook; changed(): void; water: WaterLook; waterChanged(): void; bed: BedLook; bedChanged(): void; nest?: { look: NestLook; changed(): void; needles: NeedleLook; needlesChanged(): void; leaves: LeafLook; leavesChanged(): void }; tree?: { look: IslandTreeLook; changed(): void; woodChanged(): void; leavesChanged(): void; windChanged(): void; fallChanged(): void; barkChanged(): void; grassChanged(): void }; tent?: { look: TentLook; changed(): void; recolour(): void; shineChanged(): void }; picnic?: { look: PicnicLook; changed(): void; shineChanged(): void }; bonfire?: { look: { show: boolean; x: number; z: number; y: number; turn: number; size: number; flame: number; intensity: number; reach: number }; changed(): void }; geese?: IslandGeeseLook }; ground?: { look: RollingLook; changed(): void; arches?: { look: ArchLook; changed(): void } }; seeThrough?: { look: NoiseSeeThrough; changed(): void }; camera?: GooseCameraPanel }
+  goose: { settings: GooseSettings; reseed(seed: number): void; refillZones?: { show: boolean }; dark?: DarkLook; feel?: GooseFeel; openingLight?: { show: boolean; color: number; intensity: number; reach: number; height: number; fadeIn: number; fadeOut: number }; goslings?: GoslingSpeeds; goslingSize?: { height: number }; road?: { shape: RoadShape; shapeChanged(): void; look: RoadLook; changed(): void; arches?: { look: ArchLook; countChanged(): void } }; doors?: { stone: ArchStone; stoneChanged(): void; shell: ArchShell; shellChanged(): void }; walls?: { look: RoadWallLook; changed(): void; stone: ArchStone & { offsetX: number; offsetY: number }; stoneChanged(): void; shell: ArchShell; shellChanged(): void }; trees?: { look: { show: boolean; wood: number; saturation: number; y: number; trunk: number; rings: number }; shape: DeadTreeShape; changed(): void; woodChanged(): void; yChanged(): void; trunkChanged(): void; bark: BarkLook; barkChanged(): void; grass: GrassLook; grassChanged(): void; leaves?: LeafLook; leavesChanged(): void; wind: TreeWindLook; windChanged(): void; shine: ShineLook; shineChanged(): void }; bushes?: { look: { show: boolean; y: number }; shape: DeadTreeShape; changed(): void; leaves: LeafLook; leavesChanged(): void; yChanged(): void }; well?: { colours: Record<string, number>; glows: Record<string, number>; changed(): void; bucket?: { x: number; y: number; z: number }; ground?: { look: WellGroundLook; changed(): void }; fire?: { x: number; z: number }; reach?: { wellFireReach: number }; shine?: { look: ShineLook; changed(): void }; pit?: { look: { colour: number }; changed(): void; shine: ShineLook; shineChanged(): void } }; spawn?: { spawnReach: number; spawnFear: number }; branch?: { colours: BranchColours; changed(): void }; fires?: FiresPanel; tree?: { look: TreeLook; landing?: { x: number; z: number }; jump?: { treeJump: number }; fire?: SceneFirePanel & { at: { x: number; z: number } } }; cage?: { hold: { cageHold: number }; key: { beside: { x: number; z: number }; inWing?: KeyInWing; bones: readonly string[] }; fire: SceneFirePanel & { at: { x: number; z: number }; lamp: { intensity: number } }; look?: CageLook; colours?: { colours: Record<string, number>; glows?: Record<string, number>; changed(): void }; shine?: { cart: ShineLook; skull: ShineLook; changed(): void }; wood?: { look: CartWoodLook; changed(): void } }; pond?: { look: PondLook; changed(): void; water: WaterLook; waterChanged(): void; bed: BedLook; bedChanged(): void; nest?: { look: NestLook; changed(): void; needles: NeedleLook; needlesChanged(): void; leaves: LeafLook; leavesChanged(): void }; tree?: { look: IslandTreeLook; changed(): void; woodChanged(): void; leavesChanged(): void; windChanged(): void; fallChanged(): void; barkChanged(): void; grassChanged(): void }; tent?: { look: TentLook; changed(): void; recolour(): void; shineChanged(): void }; picnic?: { look: PicnicLook; changed(): void; shineChanged(): void }; bonfire?: { look: { show: boolean; x: number; z: number; y: number; turn: number; size: number; flame: number; intensity: number; reach: number }; changed(): void }; geese?: IslandGeeseLook }; ground?: { look: RollingLook; changed(): void; arches?: { look: ArchLook; changed(): void } }; seeThrough?: { look: NoiseSeeThrough; changed(): void }; camera?: GooseCameraPanel }
 }
 
 /**
@@ -283,7 +283,7 @@ export function createPanel(settings: Settings, crowd: CrowdTuning, look: Look, 
     },
   }
   const strength = gui.add(lightStrength, 'strength', 0, 1, 0.01).name('light strength (Q / E)')
-  gui.add(settings, 'lightSpeed', 0.2, 12, 0.1).name('light speed m/s')
+  gui.add(settings, 'goosePace', 0.2, 12, 0.1).name('goose pace m/s')
   gui.add(settings, 'bringRound').name('rats come round ahead')
   if (settings.roundPast !== undefined) gui.add(settings as Required<Pick<Settings, 'roundPast'>>, 'roundPast', 5, 80, 1).name('come round off camera or past m')
   gui.add(settings, 'character').name('show character').onChange(changed.look)
@@ -303,15 +303,15 @@ export function createPanel(settings: Settings, crowd: CrowdTuning, look: Look, 
   if (run.goose?.goslingSize) gui.addFolder('goslings').add(run.goose.goslingSize, 'height', 0.05, 1, 0.01).name('scale (height m)')
   if (run.goose?.goslings) addGoslingSpeeds(gui, run.goose.goslings)
   // The soft light over the geese in the opening, read live.
-  if (run.goose?.introLight) {
+  if (run.goose?.openingLight) {
     const light = gui.addFolder('opening light')
-    light.add(run.goose.introLight, 'show')
-    light.addColor(run.goose.introLight, 'color')
-    light.add(run.goose.introLight, 'intensity', 0, 10, 0.05)
-    light.add(run.goose.introLight, 'reach', 0.5, 12, 0.1).name('reach m')
-    light.add(run.goose.introLight, 'height', 0.5, 8, 0.05).name('over him m')
-    light.add(run.goose.introLight, 'fadeIn', 0, 5, 0.1).name('fade in s')
-    light.add(run.goose.introLight, 'fadeOut', 0, 5, 0.1).name('fade out s')
+    light.add(run.goose.openingLight, 'show')
+    light.addColor(run.goose.openingLight, 'color')
+    light.add(run.goose.openingLight, 'intensity', 0, 10, 0.05)
+    light.add(run.goose.openingLight, 'reach', 0.5, 12, 0.1).name('reach m')
+    light.add(run.goose.openingLight, 'height', 0.5, 8, 0.05).name('over him m')
+    light.add(run.goose.openingLight, 'fadeIn', 0, 5, 0.1).name('fade in s')
+    light.add(run.goose.openingLight, 'fadeOut', 0, 5, 0.1).name('fade out s')
   }
   if (run.goose?.road) addRoad(gui, run.goose.road)
   if (run.goose?.doors) addDoors(gui, run.goose.doors)
@@ -389,7 +389,7 @@ function addRun(gui: GUI, settings: Settings, run: RunPanel): { folder: GUI; rea
   folder.add(run.tuning, 'burnRate', 0, 0.2, 0.001).name('burns a second (of a full torch)')
   folder.add(run.tuning, 'fade', 0, 1, 0.01).name('reach shrinks over the last (of the fuel)')
   const reach = folder.add(run.tuning, 'torchReach', 0, 3, 0.01).name('torch reach m (Q / E)')
-  run.level.lights.forEach((light, i) => {
+  run.layout.lights.forEach((light, i) => {
     const name = `${light.flame ? 'brazier' : 'light'} ${i + 1}`
     folder.add(light, 'reach', 0, 6, 0.05).name(`${name} reach m`)
     folder.add(light, 'on').name(`${name} lit`)

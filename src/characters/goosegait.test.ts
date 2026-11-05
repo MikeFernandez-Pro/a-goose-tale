@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LIGHT_SPEED } from '../game/gameplay'
+import { GOOSE_PACE } from '../game/gameplay'
 import { gaitAt } from './goosegait'
 
 const SETTINGS = { threshold: 1.2, blend: 0.4 }
@@ -49,8 +49,8 @@ describe("the goose's gait", () => {
   })
 
   it("plays his run as authored at the keyboard's full pace, as it played before, and faster or slower as he goes", () => {
-    expect(LIGHT_SPEED).toBe(2)
-    expect(gaitAt(LIGHT_SPEED, SETTINGS)).toMatchObject({ run: 1, runSpeed: 1 })
+    expect(GOOSE_PACE).toBe(2)
+    expect(gaitAt(GOOSE_PACE, SETTINGS)).toMatchObject({ run: 1, runSpeed: 1 })
     expect(gaitAt(1.5, SETTINGS).runSpeed).toBeCloseTo(0.75)
     expect(gaitAt(3, SETTINGS).runSpeed).toBeCloseTo(1.5)
   })

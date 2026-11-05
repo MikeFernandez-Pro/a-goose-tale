@@ -15,7 +15,7 @@
 import type { Point } from '../world/plain'
 
 /** When each beat comes, s into the opening. */
-export const INTRO = {
+export const OPENING = {
   /** The lightning strikes the tree, stopping him where he starts, walking up the road till then. */
   strike: 9,
   /** How long the fire takes to climb from the tree's foot to its crown's top, s. */
@@ -78,8 +78,8 @@ const STRUCK_LIGHT = 0.75
  * lighting the scene and the fire keeping it lit, the rest growing as the fire climbs.
  */
 export function litShare(t: number): number {
-  if (t < INTRO.strike) return 0
-  return STRUCK_LIGHT + (1 - STRUCK_LIGHT) * Math.min(1, (t - INTRO.strike) / INTRO.spread)
+  if (t < OPENING.strike) return 0
+  return STRUCK_LIGHT + (1 - STRUCK_LIGHT) * Math.min(1, (t - OPENING.strike) / OPENING.spread)
 }
 
 /**
@@ -88,7 +88,7 @@ export function litShare(t: number): number {
  */
 const FLAME_GROWS = 0.35
 export function flameGrown(t: number, up: number): number {
-  const caught = INTRO.strike + INTRO.spread * up
+  const caught = OPENING.strike + OPENING.spread * up
   return Math.min(1, Math.max(0, (t - caught) / FLAME_GROWS))
 }
 
@@ -97,31 +97,31 @@ const AFTERGLOW = { strength: 0.3, fade: 1.6 }
 
 /** The night's afterglow `t` s into the opening, 0 to 1 of a flash: none before the strike, then easing back to dark over AFTERGLOW.fade. */
 export function afterglow(t: number): number {
-  const share = (t - INTRO.strike) / AFTERGLOW.fade
+  const share = (t - OPENING.strike) / AFTERGLOW.fade
   if (!(share >= 0 && share < 1)) return 0
   return AFTERGLOW.strength * (1 - share) ** 2
 }
 
 /** Whether the rats are about yet: from their rush. */
-export const ratsOut = (t: number): boolean => t >= INTRO.rush
+export const ratsOut = (t: number): boolean => t >= OPENING.rush
 
 /** How far through his jump of fright at the strike he is, 0 to 1; none before it or once it is over, over STARTLE s. */
 const STARTLE = 1.33
 export function startled(t: number): number | undefined {
-  const share = (t - INTRO.strike) / STARTLE
+  const share = (t - OPENING.strike) / STARTLE
   return share >= 0 && share < 1 ? share : undefined
 }
 
 /** Whether the goslings cower, from the strike until they bolt. */
-export const cowering = (t: number): boolean => t >= INTRO.strike && t < INTRO.bolt
+export const cowering = (t: number): boolean => t >= OPENING.strike && t < OPENING.bolt
 
 /**
  * The road he walks in the opening: back from where he starts, `start`, along the old road's points `road`, laid in
- * the order it runs up the plain, WALK_PACE * INTRO.strike m of it; or straight back down the plain, +z, with no road.
+ * the order it runs up the plain, WALK_PACE * OPENING.strike m of it; or straight back down the plain, +z, with no road.
  * From its far end to `start`.
  */
 export function walkOf(start: Point, road: readonly Point[] = []): Point[] {
-  const length = WALK_PACE * INTRO.strike
+  const length = WALK_PACE * OPENING.strike
   // The road's point nearest where he starts, and the way back down it from there.
   const nearest = nearestOf(start, road)
   const back: Point[] = [start]
@@ -199,7 +199,7 @@ function pointAlong(walk: readonly Point[], along: number): Point {
  * its end by the strike; facing from TURN_OVER m behind him on it to TURN_OVER m ahead, so he turns round its bends.
  */
 export function walkAt(walk: readonly Point[], t: number): { at: Point; facing: Point } {
-  const along = Math.min(t, INTRO.strike) * WALK_PACE
+  const along = Math.min(t, OPENING.strike) * WALK_PACE
   const behind = pointAlong(walk, along - TURN_OVER)
   const ahead = pointAlong(walk, along + TURN_OVER)
   const d = Math.hypot(ahead.x - behind.x, ahead.z - behind.z)
@@ -222,7 +222,7 @@ export function goslingAt(t: number, k: number, index: number, count: number, at
   const share = count > 1 ? index / (count - 1) - 0.5 : 0
   const round = Math.atan2(-facing.z, -facing.x) + share * 2 * ARC
   const walking = { x: at.x + BEHIND * Math.cos(round), z: at.z + BEHIND * Math.sin(round) }
-  const leaves = INTRO.bolt + INTRO.stagger * draw(k, 1)
+  const leaves = OPENING.bolt + OPENING.stagger * draw(k, 1)
   if (t < leaves) return walking
   const ran = (t - leaves) * BOLT_PACE
   if (freezes) {
@@ -242,11 +242,11 @@ export function goslingAt(t: number, k: number, index: number, count: number, at
 const SHAKE = 0.16
 const SHAKE_RATE = 17
 
-/** How far the strike throws the camera `t` s into the opening, m, along x, y and z: hard the moment it hits, dying away over INTRO.shaking. */
+/** How far the strike throws the camera `t` s into the opening, m, along x, y and z: hard the moment it hits, dying away over OPENING.shaking. */
 export function shakeAt(t: number): { x: number; y: number; z: number } {
-  const since = t - INTRO.strike
-  if (!(since >= 0 && since < INTRO.shaking)) return { x: 0, y: 0, z: 0 }
-  return shaken(since, SHAKE * (1 - since / INTRO.shaking) ** 2)
+  const since = t - OPENING.strike
+  if (!(since >= 0 && since < OPENING.shaking)) return { x: 0, y: 0, z: 0 }
+  return shaken(since, SHAKE * (1 - since / OPENING.shaking) ** 2)
 }
 
 /** How long a rumble's shake takes to come on, s: the ground gathering, no blow. */
@@ -295,26 +295,26 @@ export interface BranchFall {
 }
 
 /** Whether the burning branch is down on the ground `t` s into the opening: from the end of its fall. */
-export const branchLanded = (t: number): boolean => t >= INTRO.branch + INTRO.branchFalls
+export const branchLanded = (t: number): boolean => t >= OPENING.branch + OPENING.branchFalls
 
 /**
- * Where the burning branch is `t` s into the opening, snapping off the crown at `from` at INTRO.branch and falling to
- * lie at `to`: hidden in the crown till then; hanging at its break for INTRO.branchSags, sagging down, then let go,
+ * Where the burning branch is `t` s into the opening, snapping off the crown at `from` at OPENING.branch and falling to
+ * lie at `to`: hidden in the crown till then; hanging at its break for OPENING.branchSags, sagging down, then let go,
  * dropping as anything dropped does, from still, faster and faster, drifting the little way out to where it lands,
- * turning slowly the while to land lying, over the rest of INTRO.branchFalls; then a small bounce or two and a rock,
+ * turning slowly the while to land lying, over the rest of OPENING.branchFalls; then a small bounce or two and a rock,
  * settling still.
  */
 export function branchAt(t: number, from: Place, to: Place): BranchFall {
-  const since = t - INTRO.branch
+  const since = t - OPENING.branch
   if (since < 0) return { at: { ...from }, tumble: BRANCH_HUNG, shown: false, landed: false }
   if (!branchLanded(t)) {
-    const sags = INTRO.branchSags
+    const sags = OPENING.branchSags
     if (since < sags) {
       const k = since / sags
       const eased = k * k * (3 - 2 * k)
       return { at: { x: from.x, y: from.y - BRANCH_SAG * k * k, z: from.z }, tumble: BRANCH_HUNG + (BRANCH_SAGGED - BRANCH_HUNG) * eased, shown: true, landed: false }
     }
-    const k = (since - sags) / Math.max(INTRO.branchFalls - sags, 1e-3)
+    const k = (since - sags) / Math.max(OPENING.branchFalls - sags, 1e-3)
     const top = from.y - BRANCH_SAG
     const turned = k * k * (3 - 2 * k)
     return {
@@ -324,7 +324,7 @@ export function branchAt(t: number, from: Place, to: Place): BranchFall {
       landed: false,
     }
   }
-  const settled = Math.min(1, (t - INTRO.branch - INTRO.branchFalls) / BRANCH_SETTLES)
+  const settled = Math.min(1, (t - OPENING.branch - OPENING.branchFalls) / BRANCH_SETTLES)
   const left = (1 - settled) ** 2
   const bounce = BRANCH_BOUNCE * left * Math.abs(Math.sin(2 * Math.PI * settled))
   return { at: { x: to.x, y: to.y + bounce, z: to.z }, tumble: BRANCH_ROCK * left * Math.sin(3 * Math.PI * settled), shown: true, landed: true }
@@ -340,7 +340,7 @@ const BRANCH_FLARE_LASTS = 0.8
  */
 export function branchFlare(t: number): number {
   if (!branchLanded(t)) return 1
-  const since = Math.max(0, t - INTRO.branch - INTRO.branchFalls) / BRANCH_FLARE_LASTS
+  const since = Math.max(0, t - OPENING.branch - OPENING.branchFalls) / BRANCH_FLARE_LASTS
   if (since >= 1) return 1
   return 1 + BRANCH_FLARE * (1 - since) ** 2
 }

@@ -1,5 +1,5 @@
 // A lightning strike and the flash it throws over the scene: the opening's
-// strike at the tree's foot (gooseintro.ts), its bolt drawn by lightning.ts.
+// strike at the tree's foot (openingscript.ts), its bolt drawn by lightning.ts.
 import type { Point } from './plain'
 
 /** How long a strike's flash lasts, s. */

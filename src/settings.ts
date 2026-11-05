@@ -32,8 +32,8 @@ export interface Settings {
   shadows: boolean
   /** How fast every rat's Run plays: 1 the clip as authored, a 0.5 m bound every half second. */
   runAnimation: number
-  /** How fast the light walks, m/s. */
-  lightSpeed: number
+  /** How fast the goose walks, m/s. */
+  goosePace: number
   /** Paused: the swarm, the run and the light's walk all hold; the camera still moves. */
   paused: boolean
   /** Rats left behind in the fog are brought round ahead of a walking light, in the fog still: the crowd it walks into never thins. */

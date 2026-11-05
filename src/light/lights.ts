@@ -1,4 +1,4 @@
-// The lights the level places, drawn as grey boxes (#173): a brazier is a
+// The lights the plain places, drawn as grey boxes (#173): a brazier is a
 // grey stand with a flame on it, a window a grey wall-piece with a lit pane,
 // turned to face where the holder starts.
 //
@@ -11,7 +11,7 @@
 // by `litMask`.
 //
 // The flame and the pane are unlit and unfogged, with a soft halo round them
-// drawn over the fog, so a light reads through the dark from across the level
+// drawn over the fog, so a light reads through the dark from across the plain
 // as a point to head for; the depth of whatever stands before it hides it, so
 // a wall between it and the eye hides it.
 //
@@ -97,7 +97,7 @@ export interface LightLook {
   height?: number
 }
 
-/** How the lights are drawn past the plain stands: each light's own look, by the level's index; and the ground's height where each stands. */
+/** How the lights are drawn past the plain stands: each light's own look, by the plain's index; and the ground's height where each stands. */
 export interface LightsOptions {
   looks?: readonly (LightLook | undefined)[]
   groundAt?: (x: number, z: number) => number
@@ -112,14 +112,14 @@ export interface LightsOptions {
 
 export interface Lights {
   object: Group
-  /** Each light as it stands: where it is, lit or out, reaching as far as it does. In the order the level places them. */
+  /** Each light as it stands: where it is, lit or out, reaching as far as it does. In the order the plain places them. */
   update(lights: readonly FixedLight[]): void
   /** Light `k`'s lamp in `color`, as bright as `intensity` while lit. */
   setLamp(k: number, color: number, intensity: number): void
 }
 
 /**
- * The level's lights, drawn: in `placed`'s order, as `update` reads them, each
+ * The plain's lights, drawn: in `placed`'s order, as `update` reads them, each
  * lamp cut to its lit area in `seen`, its flame leaning at the swarm's `time`.
  * A window faces `facing`.
  */

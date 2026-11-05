@@ -14,8 +14,8 @@
 // pass copies each rat into it as the pair has it when its beat turns, so the
 // step can go on writing the pair between beats.
 //
-// On a level with height (#183) the cull stands each rat on the ground under
-// it, read off the level's height grid between its points: the swarm's own
+// On ground with height (#183) the cull stands each rat on the ground under
+// it, read off the plain's height grid between its points: the swarm's own
 // height, a pile's, goes on top. The trails, laid from the cull's transforms,
 // follow.
 //
@@ -209,7 +209,7 @@ export class GpuCull {
   private readonly planes = Array.from({ length: 6 }, () => uniform(new Vector4()))
   private reading = false
   private readAt = Number.NEGATIVE_INFINITY
-  /** The ground's heights, on a level with height. */
+  /** The ground's heights, on ground with height. */
   private readonly ground: StorageBufferAttribute | undefined
 
   constructor(
@@ -218,7 +218,7 @@ export class GpuCull {
     indexCount: number,
     /** How far past the view a rat is still drawn, m. */
     margin: number,
-    /** The level's ground, each rat stood on it; none, and the ground is flat. */
+    /** The plain's ground, each rat stood on it; none, and the ground is flat. */
     ground?: HeightGrid,
     /** The levels of detail drawn, each at `indexCount` until `lod.indexCounts` says otherwise. */
     levels = 1,

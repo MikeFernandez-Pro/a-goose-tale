@@ -37,7 +37,7 @@ export function createPlainPieces(goosePlay: GoosePlay<PlaySwarm>, gooseScenes: 
   function plainBraziers(play: GoosePlay<PlaySwarm>): EditPiece[] {
     return play.plain.braziers.flatMap((b, k): EditPiece[] => {
       if (b.scene || b.follows !== undefined) return []
-      const light = play.level.lights[k]!
+      const light = play.layout.lights[k]!
       const stand = (k === burningTreeLight ? gooseScenes.pit : undefined) ?? lights.object.children[k]
       const g = play.goslings[k]
       const bird = goslings.object.children[k]

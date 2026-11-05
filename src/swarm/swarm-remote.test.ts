@@ -26,7 +26,7 @@ function stateAt(time: number, count: number, edit: (state: State) => void): Sta
     type: 'state',
     time,
     count,
-    arena: 10,
+    rangeRadius: 10,
     x: floats(),
     z: floats(),
     y: floats(),
@@ -133,7 +133,7 @@ describe('the remote swarm, between two states', () => {
 })
 
 describe('the remote swarm, told and telling', () => {
-  it("sends the level's lights with the torch, water's shore too, copies the step reads and the page may change", () => {
+  it("sends the plain's lights with the torch, water's shore too, copies the step reads and the page may change", () => {
     const port = new FakePort()
     const swarm = new RemoteSwarm(8, 1, 2, 1, { walls: [] }, port)
     const light: Light = { x: 1, z: 2, strength: 0.5, on: true }

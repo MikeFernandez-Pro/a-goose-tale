@@ -15,9 +15,9 @@ import type { Ending } from '../game/ending'
 import { type PerspectiveCamera, type WebGPURenderer, Vector3 } from 'three/webgpu'
 import { url, noPanel, filming } from '../game/address'
 import { createGooseMusic } from './goosemusic'
-import { createPeepWords } from '../ui/callhint'
-import { OUTRO, goslingOf, peepsOf } from '../game/gooseoutro'
-import { INTRO, CHAT, litShare } from '../game/gooseintro'
+import { createPeepWords } from '../ui/goslingcall'
+import { ENDING, goslingOf, peepsOf } from '../game/endingscript'
+import { OPENING, CHAT, litShare } from '../game/openingscript'
 import type { PlayerInput } from '../ui/gooseinput'
 
 /** How near he comes for a gosling waiting to see him, m. */
@@ -65,7 +65,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
   /**
    * The track silent through the opening, its strike and its quake; once the game is his, coming up from its start over
    * MUSIC_FADE s, slow at first, only while it can be heard (not paused, loaded, the page clicked); going down over
-   * MUSIC_FADE_OUT s as the ending starts, its own music (`outro`) played once in its place. `musicIn` how far up.
+   * MUSIC_FADE_OUT s as the ending starts, its own music (`ending`) played once in its place. `musicIn` how far up.
    */
   const MUSIC_FADE = 8
   const MUSIC_FADE_OUT = 3
@@ -133,7 +133,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
     const stage = ending.stage
     let close = 1
     if (stage) {
-      if (ending.t >= OUTRO.settle) return
+      if (ending.t >= ENDING.settle) return
     } else {
       const { holder } = goosePlay
       const { middle } = ending.island
@@ -144,7 +144,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
         islandCallWait = 0
         return
       }
-      close = Math.min(1, Math.max(0, (ISLAND_SEES - off) / (ISLAND_SEES - OUTRO.near)))
+      close = Math.min(1, Math.max(0, (ISLAND_SEES - off) / (ISLAND_SEES - ENDING.near)))
     }
     islandCallWait -= dt
     if (islandCallWait > 0) return
@@ -237,7 +237,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
    * His honks after his shouts, heard only, s into the opening and how loud: he goes on calling after his goslings
    * once they are out of sight, a little quieter.
    */
-  const CALLS_AFTER = [{ at: INTRO.rush + 1, gain: 0.85 }] as const
+  const CALLS_AFTER = [{ at: OPENING.rush + 1, gain: 0.85 }] as const
   /**
    * The opening's chatter as they walk (CHAT): a gosling's happy peep, written over him, or the goose's soft answer, heard and
    * written over his head as small as a peep, HIS_WORD; how loud the goslings are, and how far over him the word goes, m.
@@ -249,7 +249,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
   function chatFrame() {
     for (let line = CHAT[chatHeard]; line && opening.t >= line.at; line = CHAT[++chatHeard]) {
       // Skipped past, or come to the strike: unsaid.
-      if (!opening.running() || opening.t >= INTRO.strike) continue
+      if (!opening.running() || opening.t >= OPENING.strike) continue
       if (typeof line.who === 'number') {
         const found = opening.brood()
         if (found.length) happyPeep(found[line.who % found.length]!, CHAT_GAIN)
@@ -311,9 +311,9 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
     chatFrame()
     if (opening.on && !openingSkipped) {
       openingClock += dt
-      if (!opening.running() && openingClock < INTRO.end - 0.1) openingSkipped = true
+      if (!opening.running() && openingClock < OPENING.end - 0.1) openingSkipped = true
     }
-    if (opening.running() && !frightHeard && opening.t >= INTRO.strike) {
+    if (opening.running() && !frightHeard && opening.t >= OPENING.strike) {
       frightHeard = true
       gooseSounds.play('fright', at)
       const tree = run.lights()[burningTreeLight]
@@ -327,7 +327,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
     goosePlay.goslings.forEach((g, k) => {
       const was = goslingWas[k]
       goslingWas[k] = g && { x: g.x, z: g.z }
-      if (!g || !was || dt <= 0 || !opening.running() || opening.t < INTRO.bolt || goosePlay.plain.braziers[k]!.follows !== undefined) return
+      if (!g || !was || dt <= 0 || !opening.running() || opening.t < OPENING.bolt || goosePlay.plain.braziers[k]!.follows !== undefined) return
       const pace = Math.hypot(g.x - was.x, g.z - was.z) / dt
       if (pace < PANIC_PACE[0] || pace > PANIC_PACE[1]) return
       panicWait[k] = (panicWait[k] ?? Math.random() * PANIC_PEEPS[0]) - dt

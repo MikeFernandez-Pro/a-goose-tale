@@ -80,7 +80,7 @@ each('honk', 'honk', lambda k: trimmed(f'honk_{k}'), -14)
 each('wings', 'wings', lambda k: trimmed(f'wings_{k}'), -18)
 each('hiss', 'hiss', lambda k: trimmed(f'hiss_{k}', fade_out=0.15), -20)
 
-# The intro's fright: his big honk, his wings bursting open just after it, from the takes liked best still kept.
+# The opening's fright: his big honk, his wings bursting open just after it, from the takes liked best still kept.
 honk, wings = kept('honk', (3, 4, 1, 2)), kept('wings', (3, 2, 4, 1))
 if honk and wings:
     h = level([trimmed(f'honk_{honk[0]}')], -14)[0]

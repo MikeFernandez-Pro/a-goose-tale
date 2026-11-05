@@ -16,7 +16,7 @@ const MOST_STEPS = 3
 export interface PlaySwarm {
   readonly capacity: number
   readonly count: number
-  readonly arena: number
+  readonly rangeRadius: number
   /** Where each rat is, as last known: a rat set down is there at once. */
   readonly x: ArrayLike<number>
   readonly z: ArrayLike<number>

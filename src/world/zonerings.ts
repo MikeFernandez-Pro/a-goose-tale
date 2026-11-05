@@ -7,7 +7,7 @@ import type { FixedLight } from '../swarm/swarm'
 
 /** The rings on `scene`, off till the zones are asked for. */
 export function createZoneRings(scene: Scene, goosePlay: GoosePlay<PlaySwarm>, standAt: (x: number, z: number) => number) {
-  const { level } = goosePlay
+  const { layout } = goosePlay
   /**
    * DEBUG: where things are done, as rings on the ground: orange, a flame's dip, or a scene's fire's zone, Interact
    * held to fill the torch; red, where Interact works a scene, the well's
@@ -24,7 +24,7 @@ export function createZoneRings(scene: Scene, goosePlay: GoosePlay<PlaySwarm>, s
     refillRings.add(ring)
     return ring
   }
-  const dipRings = level.lights.map(() => refillRing(1, dipRing))
+  const dipRings = layout.lights.map(() => refillRing(1, dipRing))
   const workRing = new MeshBasicNodeMaterial({ color: 0xff2a2a, fog: false, depthWrite: false })
   const workRings = goosePlay.scenes.map(() => refillRing(1, workRing))
   const keyRings = goosePlay.scenes.flatMap((s) => (s.kind === 'cage' ? [refillRing(1, workRing)] : []))
@@ -34,7 +34,7 @@ export function createZoneRings(scene: Scene, goosePlay: GoosePlay<PlaySwarm>, s
     if (!refillZones.show) return
     placed.forEach((light, k) => {
       const ring = dipRings[k]!
-      const own = level.lights[k]!
+      const own = layout.lights[k]!
       ring.visible = own.flame && light.on
       if (!ring.visible) return
       const zone = goosePlay.dipZoneOf(k)

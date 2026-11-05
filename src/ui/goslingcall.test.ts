@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { callAt, callWord } from './callhint'
+import { callAt, callWord } from './goslingcall'
 
 const box = { left: 0, top: 0, width: 800, height: 600 }
 
