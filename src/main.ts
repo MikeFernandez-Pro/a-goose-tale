@@ -8,20 +8,6 @@
 // holds the torch: it burns down and a fire refills it. The swarm is handed the torch and the lights as the run
 // has them. Each light's lit area is worked out on the page for the drawing and the GPU step, and in the worker
 // for its own (ADR-0054).
-//
-// The URL sets the start: `?webgl` draws through WebGPURenderer's WebGL 2
-// backend, `?batch` draws the rats as the page-culled batch on WebGPU too, for
-// measuring against the GPU's cull, `?cpustep` steps the swarm in the worker
-// on WebGPU too, for measuring against the GPU's step, `?timestamps` reads the
-// GPU's step time into the readouts, `?rats=8192` starts with that many rats,
-// `?shadows` with the lamp's shadows on. `?film` is for recording:
-// no panel, no readouts, no cursor. `#_debug` is the developer's page, with the
-// panels, the readouts, the debug keys, the other cameras and the edit mode.
-// The fog round the light is on again since 2026-10-11; `?fog=0` takes it away.
-//
-// The look steps down where a device cannot keep up (quality.ts): `?step=N`
-// starts on step N, and `?adapt=0`, or any of the measuring switches
-// (`?ao=0`, `?dof=0`, `?dpr=N`, `?post=0`), holds it where it starts.
 import {
   Color,
   DirectionalLight,
@@ -46,7 +32,6 @@ import {
   Spherical,
   Timer,
   Vector2,
-  SRGBColorSpace,
   Vector3,
   Vector4,
   WebGPURenderer,
@@ -54,9 +39,11 @@ import {
 import { Fn, Loop, cameraPosition, float, fog, getViewPosition, int, mix, mx_noise_float, normalWorldGeometry, pointShadow, positionWorld, renderGroup, screenUV, shadow, smoothstep, uniform, uniformArray, vec3, vec4 } from 'three/tsl'
 import { loadVAT } from 'three-vat'
 import { getMaxTextureSize, type VATTimeUniform } from 'three-vat/tsl'
-import { createPost, defaultAO, defaultDark, leaveUnshaded } from './look/post'
+import { benchOn, calm, debugOn, featureOn, filming, noPanel, phone, post0, touchOn, url } from './game/address'
+import { FLOOR_LOOKS, GOOSE_EYES, copyInto, measuringSwitches, startingLook } from './look/startinglook'
+import { createPost, defaultDark, leaveUnshaded } from './look/post'
 import { DEATH_DOWN } from './characters/goosedeath'
-import { defaultBedLook, defaultRoadLook, defaultWellGroundLook, floor, type FloorName } from './world/ground'
+import { defaultBedLook, defaultRoadLook, defaultWellGroundLook, floor } from './world/ground'
 import { defaultRoadShape, leadIn, roadField, roadLine } from './world/road'
 import { archesOf, archStones, createArches, defaultArchLook, defaultArchWet, type ArchShell, type ArchStone } from './world/arches'
 import { createDeadTrees, deadTrees, defaultBarkLook, defaultGrassLook, offWay, defaultDeadTreeShape, defaultLeafLook, treeVariantOf, trunkRadius, type DeadTree, type DeadTreeShape } from './world/deadtrees'
@@ -64,7 +51,7 @@ import { bushes, createBushes, defaultBushLeafLook, defaultBushShape } from './w
 import { createRoadWalls, defaultRoadWallLook, ROAD_WALL_STYLES, roadWallLines, roadWallsOf, roadWallStones, type RoadWallLook, type StoneBlock } from './world/roadwalls'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { ShineLook } from './look/shell'
-import type { GooseFeel, Look, Settings } from './settings'
+import type { GooseFeel, Settings } from './settings'
 import { lightAndPause } from './ui/lightandpause'
 import type { PlaySwarm } from './swarm/play'
 import { PipelineSlices } from './look/pipelineslices'
@@ -95,9 +82,9 @@ import { defaultNoiseSeeThrough, noiseSeeThrough, seeThroughZone } from './look/
 import { LitAreas } from './swarm/litareas'
 import { seenTexture } from './swarm/seen'
 import { Walls, nearestWalls, type Wall } from './swarm/walls'
-import { LEVELS, RAT, Rats } from './swarm/rats'
-import { createGoose, defaultGoose } from './characters/goose'
-import { createFlame, createFlames, defaultFlame, type Flame } from './light/flame'
+import { RAT, Rats } from './swarm/rats'
+import { createGoose } from './characters/goose'
+import { createFlame, createFlames, type Flame } from './light/flame'
 import { createEmbers } from './light/embers'
 import { branchColours, branchPose, carriedPose, createBranch, lyingPose } from './light/branch'
 import { createFeathers } from './characters/feathers'
@@ -111,8 +98,6 @@ import { createGhosts, createPlainGhosts, mountGhostControls } from './character
 import { defaultGraveLook, ghostAt, inGraveyard, layGraveyard } from './world/graveyard'
 import { createGraves, mountGraveControls, scatterGravePumpkins, type GraveGround } from './world/graves'
 import { createGraveCandles, mountCandleControls } from './world/gravecandles'
-import { gooseThemeOf, layInto } from './look/goosethemes'
-import { RemoteSwarm } from './swarm/swarm-remote'
 import { GpuSwarm, MOST_FRAME } from './swarm/gpuswarm'
 import { nextAfterFailure, watchForDrawFailure } from './ui/cannotdraw'
 import type { BenchCost, BenchPlace, PhoneBench } from './dev/phonebench'
@@ -122,36 +107,15 @@ import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './game/gameplay'
 import { createLightning } from './world/lightning'
 import { flashAt } from './world/weather'
 import { CHAT, INTRO, afterglow, branchAt, branchFlare, branchLanded, roadAheadOf, cowering, flameGrown, goslingAt, litShare, ratsOut, rumbleAt, shakeAt, startled, walkAt, walkOf } from './game/gooseintro'
+import { RemoteSwarm } from './swarm/swarm-remote'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
 /** The count's top, where the device's textures allow it: a playback row a rat. */
 const MAX_RATS = 16384
 const SEED = 7
-const url = new URLSearchParams(location.search)
-/**
- * The developer's page, `#_debug` on the address: the panels, the readouts, the debug keys, the other cameras and the
- * edit mode. Without it the page is the game as played. Written or taken off the address, the page loads again on it.
- */
-const debugOn = location.hash === '#_debug'
-addEventListener('hashchange', () => {
-  if ((location.hash === '#_debug') !== debugOn) location.reload()
-})
 /** The developer's page's tools, fetched on that page alone. */
 const dev = debugOn ? await import('./dev/devtools') : undefined
-/** Whether the player's system asks for less motion: no thrown camera, and the strike's flash a fifth as bright. */
-const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
-/** Whether the pointer is a finger: a phone, or a tablet. */
-const phone = matchMedia('(pointer: coarse)').matches
-/** The touch stick and button (#198): on a phone, or with `?touch` to try them elsewhere. */
-const touchOn = phone || url.has('touch')
-/** No panel but on the developer's page, nor there with `?nopanel` or on a phone: the whole screen is the game and the thumbs. */
-const noPanel = !debugOn || url.has('nopanel') || phone
-/**
- * A feature, on by default in the goose game since 2026-10-30 (the tilt, the graveyard, the marker, the cheap bloom),
- * `?key=0` turning it off.
- */
-const featureOn = (key: string) => url.get(key) !== '0'
 /** The light's height above the ground where its holder carries it, when it is not in the torch. */
 const LIGHT_HEIGHT = 1.1
 /**
@@ -230,205 +194,7 @@ const FLOOR_PAST = 20
 /** How far past the fog's far edge the swarm may set a rat down, m, before the walk's own margin: a rat's length at the panel's usual scale, and the placing step's run. */
 const DARK_MARGIN = 0.5
 
-/**
- * A stylized floor's look to start: as painted, a tile two and a half metres
- * wide, unturned, its normal map as authored; no highlight; the earth's
- * strokes; three steps; and over that, `own`.
- */
-const stylizedFloor = (texture: FloorName, own: Partial<Look['floor']> = {}): Look['floor'] => ({
-  texture,
-  lightness: 1,
-  saturation: 1,
-  hue: 0,
-  scale: 2.5,
-  relief: 1,
-  rotation: 0,
-  shell: { sheen: 0, specular: 0, shininess: 53, softness: 0, specularColor: 0xffffff, rim: false, rimStrength: 0.25, rimWidth: 0, rimSoftness: 0, rimColor: 0xe7febe },
-  paint: { strength: 4, density: 0.7, size: 3.35, rounding: 0.01 },
-  toon: { steps: 3, three: [0.3, 0.51, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
-  ...own,
-})
-/**
- * Each floor's look, as last saved from the panel: picking a floor in the
- * floor folder lays its look with it, since a hue, a tile size or a relief
- * set for one painting is wrong for the other.
- */
-const FLOOR_LOOKS: Record<FloorName, Look['floor']> = {
-  // The goose game's stylized sets, each set from the panel on 2026-10-21: the grass dark and turned to a warmer green,
-  // in deep relief; the sand dark, a little warmer, flat; the stones grey, on smaller tiles, in deep relief.
-  // Paler and yellower, on bigger tiles: set from the panel on 2026-10-25, the goose game's floor.
-  stylized_grass_01: stylizedFloor('stylized_grass_01', { lightness: 0.25, saturation: 0.6, hue: 32, scale: 4.6, relief: 3 }),
-  stylized_sand_01: stylizedFloor('stylized_sand_01', { lightness: 0.32, saturation: 0.63, hue: 14, relief: 0 }),
-  stylized_stones_02: stylizedFloor('stylized_stones_02', { lightness: 0.52, saturation: 0, hue: 1, scale: 1.5, relief: 2.57 }),
-}
-/** `source` copied into `target` in place, nested objects and arrays included, so the panel's controls stay on them. */
-function copyInto<T extends object>(target: T, source: T): void {
-  for (const key of Object.keys(source) as (keyof T)[]) {
-    const value = source[key]
-    if (Array.isArray(value)) (target[key] as unknown[]).splice(0, Infinity, ...value)
-    else if (typeof value === 'object' && value !== null) copyInto(target[key] as object, value)
-    else target[key] = value
-  }
-}
-/**
- * How the scene looks to start; the panel's look folders edit it. Saved from
- * the panel on 2026-10-05, chosen by eye; turned to Halloween on 2026-10-08,
- * a purple night round a pumpkin-orange torch, the rats' eyes blood red; and
- * from Halloween to a forest at night on 2026-10-11: a cold, waning moon
- * low in the sky, a dark blue night, nothing purple.
- */
-const look: Look = {
-  // A hot lamp with no falloff, its intensity whatever the strength, its reach at full strength; at the strength
-  // the light starts at it ends well inside the light's hard radius, so the
-  // holder stands in a pool, and the front presses on from the dark.
-  // The lamp burns in the goose's torch, half a metre up, rather than hanging over it. The warm orange
-  // the torch had before Halloween (2026-10-11): the pumpkin orange clipped to flat red on the earth.
-  lamp: { color: 0xff8442, intensity: 13, reach: 6.9, falloff: 0, lag: 0.08, inFlame: true },
-  // The light and the fog as it was on 2026-10-08 (01304fa^), brought back on 2026-10-11, under the
-  // effects as they stood before the 3D game (4aa332e): the look of the
-  // goose's screenshots. A bright moon straight overhead, its shadows fairly sharp and not quite black, over the
-  // ambient occlusion that carries the mass's volume.
-  sun: { color: 0xb9c0bd, intensity: 3.2, x: 0, y: 23, z: 0, shadows: true, softness: 1.5, darkness: 0.9, shadowColor: 0x000000 },
-  // A green fill, and a green fog to match it: the dark has a colour.
-  fill: { sky: 0x268265, ground: 0x324d44, intensity: 0.7 },
-  // Round the light, not the camera: the dark closes in on the holder from every side, further out than the lamp
-  // reaches; on to start, a plain ring, its density 1 and no wisps (`?fog=0` or the folder's switch for none).
-  fog: { enabled: url.get('fog') !== '0', color: 0x141916, near: 1, far: 5.5, density: 1, wisp: 0, scale: 2.75, drift: 0.6, lit: 0, litColor: 0xff7a2e, litSpread: 1.5 },
-  // Matt rats in the creature's own colours, with a wide, soft, green-tinted
-  // highlight: the mass is one body that glints.
-  // Its parts' colours are the model's own, read once it is loaded. Set from
-  // the panel on 2026-10-05: a broad soft highlight, long light strokes,
-  // and three steps from a black shade to a dim half-light.
-  rats: {
-    color: RAT.color,
-    parts: [],
-    // Four kinds of rat, each a tint over the white fur and pale skin: the
-    // fur's own near black and a warm dark grey make up most of the swarm,
-    // with a few cool dark greys and a rare pale one among them. Set from
-    // the panel on 2026-10-07.
-    variants: [
-      { tint: 0x282426, share: 0.25 },
-      { tint: 0x313335, share: 0.05 },
-      { tint: 0x3a3135, share: 0.23 },
-      { tint: 0x7e7777, share: 0.02 },
-    ],
-    // The eyes glow twice their colour, points of light in the dark.
-    glow: 2,
-    sheen: 0,
-    specular: 0.27,
-    shininess: 30,
-    softness: 0.17,
-    specularColor: 0x1c401c,
-    rim: true,
-    // Faint, wide and very soft, pale green: set from the panel on 2026-10-05, it slides over the boil rather than flashing.
-    rimStrength: 0.17,
-    rimWidth: 0.24,
-    rimSoftness: 0.34,
-    rimColor: 0xbefecd,
-    toon: { steps: 3, three: [0, 0.38, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
-    paint: { strength: 1.3, density: 2.5, size: 1.75, rounding: 0 },
-    // Drawn simpler the fewer pixels long a rat stands, on WebGPU (ADR-0057); `?lod=0` starts with every rat whole.
-    levels: { on: url.get('lod') !== '0', show: false, split: 'none', blur: 1, levels: LEVELS.map((level) => ({ ...level })) },
-    // The far crowd's staggered steps (2026-10-16): off to start, `?stagger=4&staggerFrom=5` starts with them.
-    stagger: { n: url.has('stagger') ? Number(url.get('stagger')) || 4 : 1, from: Number(url.get('staggerFrom') ?? 5), show: false },
-  },
-  // The floor the page starts on, with its own look.
-  floor: structuredClone(FLOOR_LOOKS.stylized_grass_01),
-  // Ambient occlusion on, at half resolution, a deep green in the creases, reaching far and falling off hard: set from the panel on 2026-10-05.
-  ao: { ...defaultAO(), color: 0x174f3e, radius: 1.73, thickness: 4, distanceExponent: 3.95, distanceFallOff: 2 },
-  // Outlines off, set up pale and thin for when they are tried: from the panel on 2026-10-05.
-  outline: { enabled: false, color: 0xe5fff4, thickness: 0.5, depth: 0.05, normal: 0.6 },
-  // Hatching, faint ink in the deepest shade only, nine pixels apart at the grout's slant, crossed: set from the panel on 2026-10-05.
-  hatch: { enabled: true, color: 0x06110c, below: 0.02, cross: true, spacing: 9, angle: 45, width: 0.35, strength: 0.2 },
-  // The palette off, at nineteen levels for when it is tried.
-  palette: { enabled: false, levels: 19 },
-  // Paper in full, fine fibres; a faint grain that holds still: the strength set from the panel on 2026-10-10.
-  grain: { grain: true, grainStrength: 0.08, grainSize: 1, grainOnBeat: false, grainSpeed: 0, paper: true, paperStrength: 1, paperScale: 2.5 },
-  // A light vignette from near the centre: set from the panel on 2026-10-05.
-  vignette: { enabled: true, strength: 0.21, inner: 0.18, outer: 1.16, own: false, colour: 0x000000 },
-  // The frame as drawn, the screen folder washing it out or richer.
-  screen: { saturation: 1 },
-  // Stop motion on twos: the rats step twelve times a second, run and places
-  // alike; the camera and the light stay smooth. Between beats, the strokes
-  // and the paper move; the rest is off, set as the panel left it on 2026-10-05.
-  stopMotion: {
-    // On again (2026-10-11, the effects as they were before the 3D game): `?stop=0` for a smooth take.
-    enabled: true,
-    fps: 12,
-    run: true,
-    swarm: true,
-    light: true,
-    camera: false,
-    shadeWobble: false,
-    shadeAmount: 0.2,
-    lightFlicker: false,
-    lightAmount: 0.04,
-    strokeJitter: true,
-    strokeAmount: 0.01,
-    frameJitter: false,
-    frameAmount: 2.4,
-    paperOnBeat: true,
-    uneven: false,
-    unevenShare: 0,
-    stagger: false,
-    // The boil, half a centimetre over bumps six to the metre; poses blended, not snapped: set from the panel on 2026-10-05.
-    boil: true,
-    boilAmount: 0.005,
-    boilScale: 6,
-    snap: false,
-  },
-  // A tabletop's focus on the light, soft five metres past it: set from the panel on 2026-10-05.
-  dof: { enabled: true, onLight: true, focus: 7.8, focal: 5, bokeh: 1.7, glow: 0.6 },
-  // A halo round the eyes, at half the frame's resolution: on everywhere, it costs a fixed slice of the frame (benched 2026-10-10).
-  bloom: { enabled: true, strength: 1, radius: 0.1, resolution: 0.5, cheap: featureOn('cheapbloom'), blurGlow: 0.6 },
-  // The goose at the light, half a metre high, in its own colours, shaded as the rats start.
-  goose: defaultGoose(),
-  flame: defaultFlame(),
-  // The eyes' trails as the panel left them on 2026-10-07: short, a centimetre wide, needle-tapered, swaying hard, bright amber; no wiggle yet.
-  trails: { enabled: true, seconds: 0.11, width: 0.01, strength: 4, wave: 2, taper: 1.9, fade: 6, wiggle: 0, wiggleSpeed: 1.6, color: 0xffbe0a, eyeColour: false },
-}
-
-// The goose game plays smooth: no stop motion. Its lamp hangs over him, not in the flame at his beak, so his light is
-// centred on him and his goslings.
-look.stopMotion.enabled = false
-look.lamp.inFlame = false
-// Its night as the panel was set on 2026-10-24: a dimmer lamp, a blue moon low in the
-// west over a blue sky and brown ground, a teal fog ring, wide; the rats lit in teal-green, their eyes cyan
-// (set once their parts are read), their trails taking the eyes' colour.
-Object.assign(look.lamp, { intensity: 5, reach: 6.9, falloff: 0, lag: 0.08 })
-Object.assign(look.sun, { color: 0x67a8fe, intensity: 1.6, x: -30, y: 23, z: 0, shadows: true, softness: 1.5, darkness: 0.9 })
-Object.assign(look.fill, { sky: 0x67a8fe, ground: 0x633618, intensity: 0.75 })
-Object.assign(look.fog, { color: 0x0e6a7c, band: 15, near: 0, far: 15.75, density: 1, wisp: 0, scale: 0.5, drift: 0, lit: 0, litColor: 0xcc682e, litSpread: 0.8 })
-Object.assign(look.rats, { glow: 1.4, sheen: 0, specular: 0.27, shininess: 30, softness: 0.28, specularColor: 0x3acb9a, rim: true, rimStrength: 0.82, rimWidth: 0.24, rimSoftness: 0.34, rimColor: 0x58937f })
-Object.assign(look.trails, { enabled: true, seconds: 0.11, width: 0.01, taper: 1.9, wave: 2, strength: 4, fade: 6, wiggle: 0, wiggleSpeed: 1.6, eyeColour: true })
-/** The goose game's rats' eyes, as the panel was set on 2026-10-24. */
-const GOOSE_EYES = 0x0aefff
-/** How much paler the goose game's fog is toward the horizon, in lightness from 0 to 1. */
-const HORIZON_LIFT = 0.12
-/** `color` with its lightness raised by `lift`, as the eye sees it. */
-function paler(color: number, lift: number): number {
-  const hsl = new Color(color).getHSL({ h: 0, s: 0, l: 0 }, SRGBColorSpace)
-  return new Color().setHSL(hsl.h, hsl.s, Math.min(hsl.l + lift, 1), SRGBColorSpace).getHex()
-}
-// LOOK TRIALS: `#goose?theme=<name>` lays one of goosethemes.ts's moods over the look above; with none, the rainy
-// night under a street lamp, put back on 2026-10-25 after the Halloween round (`00-current` the look above alone).
-const GOOSE_THEME = '18-rainy-street-lamp'
-const gooseTheme = gooseThemeOf(url.get('theme') ?? GOOSE_THEME)
-if (gooseTheme) layInto(look, gooseTheme.look)
-// The goose game's rats matt, whatever the theme, since 2026-10-26: no highlight and no rim.
-Object.assign(look.rats, { specular: 0, rim: false })
-// Since 2026-10-26: no fog, a pale violet moon, a mauve fill, and the rats all one dusty
-// mauve; the lamp, the moon and the fill as set from the panel, the lamp's light reaching less far.
-look.fog.enabled = false
-Object.assign(look.lamp, { color: 0xf09a60, intensity: 7, reach: 4.7, falloff: 0, lag: 0.08, inFlame: false })
-Object.assign(look.sun, { color: 0xa094ff, intensity: 2.5, x: -23.5, y: 27, z: 25, shadows: true, softness: 1.5, darkness: 0.64, shadowColor: 0x241d3a })
-Object.assign(look.fill, { sky: 0x754b8b, ground: 0x221a28, intensity: 0.8 })
-look.rats.variants = [{ tint: 0x5c4d5a, share: 1 }]
-// The torch's smoke white and faint, whatever the theme, since 2026-11-01.
-Object.assign(look.flame.smoke, { color: 0xffffff, opacity: 0.1 })
-// The fog paler toward the horizon (2026-10-25), whatever the theme: a soft gradient down the frame, the top of which
-// looks out nearly level. Its own colour lifted, so the horizon stays in the fog's family.
-look.fog.horizon ??= paler(look.fog.color, HORIZON_LIFT)
+const { look, gooseTheme } = startingLook()
 
 // ---------------------------------------------------------------- renderer
 // A playback row a rat, and WebGPU's default limit is 8,192 rows: ask for what
@@ -453,7 +219,6 @@ const requiredLimits = adapter && !forceWebGL
     }
   : undefined
 const timestamps = url.has('timestamps')
-const benchOn = url.has('bench')
 /** The phone's bench's tools (phonebench.ts), fetched under `?bench` alone. */
 const benchTools = benchOn ? await import('./dev/phonebench') : undefined
 benchTools?.logPageTrouble()
@@ -623,9 +388,6 @@ const lookInverse = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(
 const lookWorld = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(() => camera.matrixWorld)
 const skyOnScreen = skyAt(lookWorld.mul(vec4(getViewPosition(screenUV, float(0.5), lookInverse), 0)).xyz.normalize())
 scene.fogNode = fog(skyHere.add((fogLitColor as unknown as Node<'vec3'>).mul(fogGlow)) as unknown as typeof fogColor, fogAmount)
-// The goose (goose.ts) burns its torch at the cup's top: the flame sunk into it, as the panel set it on 2026-10-08;
-// and as bright as the plain's fires (`fireLook`), since 2026-10-29.
-Object.assign(look.flame, { lift: -0.09, offsetX: -0.009, offsetZ: 0.022, glow: 2.8 })
 /** Where the fog goes solid, m from the light, as the panel has it: the ring the swarm brings rats round past, fog or no fog. */
 let fogEdge = 1
 
@@ -2212,27 +1974,7 @@ function shadowsChanged() {
   shadowed.dirty = true
 }
 
-// ?stop=0 plays the full look smooth, for filming: no stop motion, and nothing else changed; ?stop=1 holds it on the beat.
-if (url.has('stop')) look.stopMotion.enabled = url.get('stop') !== '0'
-// On WebGL 2 the motion is smooth to start (2026-10-16); `?stop=1` asks for stop motion there.
-else if (backend !== 'WebGPU') look.stopMotion.enabled = false
-
-// Switches for measuring on a phone, where the panel covers the readouts:
-// ?nopanel, ?dpr=1, ?ao=0, ?dof=0, ?bloom=0, and ?post=0 for every effect after the scene.
-const post0 = url.get('post') === '0'
-if (post0 || url.get('ao') === '0') look.ao.enabled = false
-if (post0 || url.get('dof') === '0') look.dof.enabled = false
-if (post0 || lean || url.get('bloom') === '0') look.bloom.enabled = false
-// On a phone the rats stand small, with no bloom round them: a wider, stronger rim to find them by in the dark.
-// `?rim=strength,width` to try others.
-if (lean) {
-  const askedRim = (url.get('rim') ?? '').split(',').map(Number)
-  Object.assign(look.rats, { rim: true, rimStrength: askedRim[0] || 1.4, rimWidth: askedRim[1] || 0.12, rimSoftness: 0.12, rimColor: 0xb48cff })
-}
-if (post0) {
-  look.outline.enabled = look.hatch.enabled = look.palette.enabled = look.vignette.enabled = false
-  look.grain.grain = look.grain.paper = false
-}
+measuringSwitches(look, backend, lean)
 
 // The quality: a phone starts without depth of field or AO, anything else with
 // the whole look, and the step moves as the frames come. A measuring switch
@@ -2256,12 +1998,6 @@ function qualityChanged() {
   if (renderer.getPixelRatio() !== quality.step.dpr) renderer.setPixelRatio(quality.step.dpr)
   lookChanged()
 }
-
-// Filming: a take shows the scene alone. No panel, no readouts, and no cursor
-// anywhere on the page, since the keys do everything a take needs.
-const filming = url.has('film')
-// The page's stylesheet hides the cursor everywhere under this class, over anything the orbit controls set on the canvas.
-if (filming) document.documentElement.classList.add('film')
 
 // In the goose game F, a debug key, gives the torch a light that never burns down, held full each frame; and puts it out
 // again for real, its fuel gone, so nothing holds the rats off his circle until a fire fills it. Taken here first, before the panel's own F, which only hides the light from the rats. 0 to 5 on the
