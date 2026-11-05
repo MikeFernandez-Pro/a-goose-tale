@@ -23,14 +23,15 @@
     <meta name="twitter:description" content="Guide a brave little gander through a night-time tale. Armed with only his torch, escape the swarm of rats and bring his family back together." />
     <meta name="twitter:image" content="https://agoosetale.com/og-image.jpg" />
     <meta name="twitter:image:alt" content="A white goose holding a burning branch in its bill, ringed by glowing-eyed rats in a graveyard." />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&display=swap" />
+    <link rel="preload" href="/fonts/gaegu-700-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <style>
+      /* Gaegu, the hints' hand: the page's own copy, so the title waits on no one else's server. */
+      @font-face { font-family: Gaegu; font-weight: 700; font-display: swap; src: url('/fonts/gaegu-700-latin.woff2') format('woff2'); }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1011; }
       canvas { display: block; cursor: crosshair; }
       /* ?film: no cursor anywhere on the page, whatever the orbit controls set on the canvas. */

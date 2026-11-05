@@ -72,7 +72,7 @@ import { createGoslingBadge, mountBadgeControls } from './goslingbadge'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './goslings'
 import { BURNING_LIGHT, BURNING_MODEL, CAGE_FIRE_LIGHT, PIT_BOWL, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_BOWL, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece, type SceneFireLook } from './goosescenes'
 import { createEditMode, layPieces } from './gooseedit'
-import { besideOf, createHoldHint, createPadButton, loadHintFont, promptedOf, type PadButton } from './holdhint'
+import { besideOf, createHoldHint, createPadButton, promptedOf, type PadButton } from './holdhint'
 import { createThumbs } from './goosethumbs'
 import { BUTTON_RADIUS, STICK_REACH, touchLayout } from './goosetouch'
 import { GooseControls, SPACE, WALK_KEYS, type Commands, type ControlsState, type Walk } from './goosecontrols'
@@ -4846,7 +4846,6 @@ function standAtShots(): boolean {
 const pauseVeil = filming ? undefined : document.createElement('div')
 let resumePad: PadButton | undefined
 if (pauseVeil) {
-  loadHintFont()
   pauseVeil.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#0009;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:25;font-family:Gaegu,cursive;font-weight:700;color:#f6ead0;text-shadow:0 2px 4px #000c'
   const word = document.createElement('div')
   word.textContent = 'paused'

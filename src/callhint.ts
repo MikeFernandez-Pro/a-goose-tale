@@ -10,7 +10,6 @@
 // then slows, drifts and wobbles a little, and fades; no two alike. Out of
 // view, a honk rises toward its gosling instead, its letters leaning that way,
 // as if shouted from out there.
-import { loadHintFont } from './holdhint'
 
 /** The pause between bursts, s, drawn between these: as the goose comes toward him, as he walks away; the first burst this soon after there is a gosling to call. */
 const PAUSE_CALM = [3.5, 6.5] as const
@@ -105,7 +104,6 @@ const PEEP_TILT = 12
 const PEEP_SIZE = 15
 
 export function createPeepWords(): PeepWords {
-  loadHintFont()
   const peeps: { box: HTMLDivElement; at: { x: number; y: number; z: number }; age: number; shows: number; rise: number; drift: number; tilt: number }[] = []
   return {
     peep(at, after = 0, word = '*peep*') {
@@ -163,7 +161,6 @@ interface Honk {
 
 /** The calls, on the page, none showing; `called` told of each honk as it pops up, how far off its gosling is (0 to 1); `word` what a gosling that far off calls. */
 export function createCallHint(called?: (far: number) => void, word: (far: number) => string = callWord): CallHint {
-  loadHintFont()
   const honks: Honk[] = []
   /** Time to the next honk, s, and how many honks of the burst are still to come after it. */
   let wait = within(FIRST)

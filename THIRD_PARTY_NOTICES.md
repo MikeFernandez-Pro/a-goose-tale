@@ -39,3 +39,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Gaegu
+
+The game's hand-drawn font, `public/fonts/gaegu-700-latin.woff2`: Gaegu Bold's latin
+subset, as Google Fonts serves it. Copyright 2018 The Gaegu Project Authors, under the
+SIL Open Font License 1.1, in full at `public/fonts/OFL.txt`.

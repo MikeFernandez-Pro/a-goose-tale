@@ -13,8 +13,6 @@
 
 import type { Commands } from './goosecontrols'
 
-/** The font, from Google Fonts: Gaegu, bold. */
-const FONT = 'https://fonts.googleapis.com/css2?family=Gaegu:wght@700&display=swap'
 /** Its ink, the key's fill, how fast it shows and hides, s, and how wide the key is, px, whatever the word over it. */
 export const INK = '#f6ead0'
 export const FILL = '#e9a23b'
@@ -92,18 +90,8 @@ const arrowDrawn = `<svg viewBox="-12 -12 24 24" width="${ARROW}" height="${ARRO
 <path d="${ARROW_PATH}" stroke="${INK}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>`
 
-/** Gaegu, asked for once on the page. */
-export function loadHintFont(): void {
-  if (document.querySelector(`link[href="${FONT}"]`)) return
-  const link = document.createElement('link')
-  link.rel = 'stylesheet'
-  link.href = FONT
-  document.head.append(link)
-}
-
-/** The indicator, on the page, hidden; the font asked for once. */
+/** The indicator, on the page, hidden. */
 export function createHoldHint(): HoldHint {
-  loadHintFont()
   const box = document.createElement('div')
   box.style.cssText = `position:fixed;left:0;top:0;transform:translate(-50%,-100%);pointer-events:none;opacity:0;transition:opacity ${FADE}s;text-align:center;font-family:Gaegu,cursive;font-weight:700;color:${INK};text-shadow:0 2px 4px #000c`
   const word = document.createElement('div')
