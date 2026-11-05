@@ -2,7 +2,7 @@
 import type { Look } from '../settings'
 import { Color, Scene, PerspectiveCamera, Vector2, Vector4, Matrix4, type Node } from 'three/webgpu'
 import { uniform, renderGroup, vec3, positionWorld, mx_noise_float, smoothstep, uniformArray, Fn, float, Loop, mix, cameraPosition, normalWorldGeometry, vec4, getViewPosition, screenUV, fog } from 'three/tsl'
-import { type FixedLight } from '../swarm/swarm'
+import type { FixedLight } from '../swarm/swarm'
 
 /** How many lights light the fog, the torch among them: the nearest him. */
 const FOG_LIGHTS = 8

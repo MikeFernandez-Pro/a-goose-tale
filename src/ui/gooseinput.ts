@@ -2,9 +2,9 @@
 // them into walk, interact, skip and confirm by where the game is; the thumbs are heard and drawn by goosethumbs.ts. The
 // walk sends the holder as the camera sees the ground: up the screen is -z. Q and E, debug keys, turn the torch's reach
 // up and down while held, as its slider does.
-import { type Settings } from '../settings'
+import type { Settings } from '../settings'
 import { type Opening, SKIP_HOLD } from '../game/opening'
-import { type Ending } from '../game/ending'
+import type { Ending } from '../game/ending'
 import { GooseControls, type ControlsState, type Commands, SPACE, WALK_KEYS } from './goosecontrols'
 import { phone, filming, touchOn } from '../game/address'
 import { createThumbs } from './goosethumbs'

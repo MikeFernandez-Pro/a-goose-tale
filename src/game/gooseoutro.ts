@@ -10,7 +10,7 @@
 // where he stands, peeping. The dawn comes up, the rats draining off out of its light, the camera
 // draws back, and the night fades out to the game's title, then a key to play again.
 // What happens when and where each bird is, as the ending's time has it; the
-// page draws it (main.ts).
+// page draws it (ending.ts).
 import type { AnimationAction } from 'three/webgpu'
 import type { Point } from '../world/plain'
 

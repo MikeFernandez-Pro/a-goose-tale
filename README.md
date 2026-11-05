@@ -42,7 +42,7 @@ the wheel turns it, and Save writes the route.
 
 ## Where things live
 
-`src/main.ts` is the page: it builds the scene and runs each frame. `src/settings.ts` holds
+`src/main.ts` is the page: it makes the game's parts and runs each frame. `src/settings.ts` holds
 what it tunes and reads. The rest of `src/` goes by what each file is in the game, with each
 test beside its source:
 

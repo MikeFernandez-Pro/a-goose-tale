@@ -1,7 +1,7 @@
 // Leaves falling round the goose, always on, the falling
 // alone: no litter on the ground, so a leaf lies a while where it lands and
 // shrinks away. Its colours are the litter's as they were, unless the game
-// gives it the dead trees' (main.ts).
+// gives it the dead trees' (roadside.ts).
 import { BufferGeometry, Color, DataTexture, DataUtils, DoubleSide, Float32BufferAttribute, HalfFloatType, LinearFilter, Mesh, MeshLambertNodeMaterial, RedFormat, Uint16BufferAttribute, Vector2, type Node } from 'three/webgpu'
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { abs, attribute, cos, float, floor, fract, Fn, int, max, mix, normalLocal, select, sin, smoothstep, step, texture, uniform, vec2, vec3, vec4 } from 'three/tsl'

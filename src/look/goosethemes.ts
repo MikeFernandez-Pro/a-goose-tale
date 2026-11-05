@@ -1,7 +1,7 @@
 // LOOK TRIALS (2026-10-25): ten moods for the goose game's night, to film side
 // by side and pick from (tools/look-trials/). `#goose?theme=<name>` lays one
 // over the page's own look as it starts; without it, the page's default theme
-// (GOOSE_THEME in main.ts), and `00-current` the look before themes.
+// (GOOSE_THEME in startinglook.ts), and `00-current` the look before themes.
 // Each theme lists only what it changes: the lamp, the moon, the fill, the fog,
 // the rats' fur, highlight, rim and eyes, the flame, the floor's tint, the ink
 // in the creases. The goose and his goslings keep their own colours: only his

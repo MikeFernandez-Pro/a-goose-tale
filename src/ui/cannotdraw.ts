@@ -3,7 +3,7 @@
 // phones would know which. Three reports each refusal as a console error and draws
 // on without what was refused, so that is where it is heard. From WebGPU it tries
 // WebGL 2, on its own; from there the phone is told. A lost GPU is no refusal: a phone
-// switching apps loses it, and the page comes back (main.ts).
+// switching apps loses it, and the page comes back (drawing.ts).
 
 /** The errors three logs for what it could not build or draw. A missing file or a warning is no reason to stop. */
 const FAILURES = /pipeline creation failed|Program link failed|Shader Error|GPUValidationError/i

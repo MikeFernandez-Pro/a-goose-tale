@@ -1,13 +1,17 @@
-// A Goose Tale: a swarm of rats held off by a light (ADR-0044). The goose, the torch in his beak, crosses the night
-// plain one way on the route
-// saved in gooseroute.json (plain.ts), from brazier to brazier to the pond, played by the goose play
-// (gooseplay.ts), which the page feeds the keys and draws: his goslings waiting at the braziers and in his circle,
-// as the goose in miniature (goslings.ts), and the pond, a hollow in the floor inside a noisy shore (pond.ts).
-// The swarm steps at a fixed rate, on the GPU on WebGPU and in a worker on WebGL 2 (ADR-0053); each frame the
-// crowd stands every rat where the swarm had it a step ago, between two steps. The run (run.ts), the play's own,
-// holds the torch: it burns down and a fire refills it. The swarm is handed the torch and the lights as the run
-// has them. Each light's lit area is worked out on the page for the drawing and the GPU step, and in the worker
-// for its own (ADR-0054).
+// A Goose Tale: a swarm of rats held off by a light (ADR-0044). The goose, the torch in his beak, crosses the night plain one
+// way on the route saved in gooseroute.json (plain.ts), from brazier to brazier to the pond, played by the goose play
+// (gooseplay.ts), which the page feeds the keys and draws. The swarm steps at a fixed rate, on the GPU on WebGPU and in a
+// worker on WebGL 2 (ADR-0053); each frame the crowd stands every rat where the swarm had it a step ago, between two
+// steps. The run (run.ts), the play's own, holds the torch: it burns down and a fire refills it. The swarm is handed the
+// torch and the lights as the run has them. Each light's lit area is worked out on the page for the drawing and the GPU
+// step, and in the worker for its own (ADR-0054).
+//
+// This file makes the page's parts, in the order they need each other, and plays them a frame at a time. Each part keeps
+// its own state and is handed what it reads: the address (address.ts), the look (startinglook.ts), the renderer
+// (drawing.ts), the sky and the night's lights (skyfog.ts, nightlights.ts), what stands along the road and at the pond
+// (roadside.ts, pondworld.ts), the fires (plainfires.ts), the opening and the ending (opening.ts, openingshow.ts,
+// ending.ts), the camera (gooseview.ts), the input (gooseinput.ts), what is heard, written and felt (gooseheard.ts,
+// goosehints.ts, goosefelt.ts), and the loading (loadingscreen.ts). What only the developer has is in src/dev.
 import {
   Mesh,
   type Node,
@@ -27,16 +31,15 @@ import { createPost, defaultDark, leaveUnshaded } from './look/post'
 import { DEATH_DOWN } from './characters/goosedeath'
 import { defaultBedLook, defaultRoadLook, defaultWellGroundLook, floor } from './world/ground'
 import { defaultRoadShape } from './world/road'
-import type { GooseFeel, Settings } from './settings'
 import { lightAndPause } from './ui/lightandpause'
 import { GoosePlay } from './game/gooseplay'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './characters/goslings'
 import { layPieces, BURNING_LIGHT, CAGE_FIRE_LIGHT, PIT_LIGHT, spawnTree, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes } from './game/goosescenes'
 import { besideOf } from './ui/holdhint'
 import { createGooseSounds } from './sound/goosesounds'
-import { FURTHEST, defaultPondLook, islandMiddle, islandShoreAt, shoreAt, standingIn, swimmingIn, widestShore, type PondLook } from './world/pond'
+import { FURTHEST, islandMiddle, islandShoreAt, shoreAt, standingIn, swimmingIn, widestShore, type PondLook } from './world/pond'
 import { OUTRO, outroDue } from './game/gooseoutro'
-import { ROUTE, WADE, laid, type Plain } from './world/plain'
+import { ROUTE, laid } from './world/plain'
 import { defaultRollingLook, rollingGround } from './world/rolling'
 import { createLights, litMask, type LightLook } from './light/lights'
 import { LitAreas } from './swarm/litareas'
@@ -48,13 +51,12 @@ import { createFlame } from './light/flame'
 import { createEmbers } from './light/embers'
 import { createFeathers } from './characters/feathers'
 import { createSmoke } from './light/smoke'
-import { defaultTuning, shoreLight, type Dark, type Ground, type Light } from './swarm/swarm'
+import { shoreLight, type Dark, type Ground, type Light } from './swarm/swarm'
 import { createTiltShift } from './look/tiltshift'
 import { createFallingLeaves, defaultFallLook, mountFallControls } from './world/fallingleaves'
 import { createFakeLamps, shown as drawnInScene } from './light/fakelamps'
 import { createFireShadow, defaultFireShadowLook } from './light/fireshadow'
 import type { PhoneBench } from './dev/phonebench'
-import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './game/gameplay'
 import { INTRO, cowering, litShare, ratsOut, startled } from './game/gooseintro'
 import { RemoteSwarm } from './swarm/swarm-remote'
 import { createDrawing } from './look/drawing'
@@ -69,7 +71,7 @@ import { createPauseVeil } from './ui/pauseveil'
 import { CAMERA_FOV, fitToPage, createGooseView } from './game/gooseview'
 import { createRoadside } from './world/roadside'
 import { createPlainFires } from './light/plainfires'
-import { createPondWorld } from './world/pondworld'
+import { createPondWorld, pondPastHome } from './world/pondworld'
 import { MOST_FRAME, GpuSwarm } from './swarm/gpuswarm'
 import { createGooseHeard } from './sound/gooseheard'
 import { createGooseHints } from './ui/goosehints'
@@ -81,9 +83,8 @@ import { createRunKeeper } from './game/runkeeper'
 import { createBeats } from './game/beats'
 import { createDebugKeys } from './game/debugkeys'
 import { createPlainPieces } from './game/plainpieces'
+import { startingSettings, gooseTuning, startingFeel } from './game/gooserules'
 
-/** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
-const FILM_LIGHT_SPEED = 2
 /** The count's top, where the device's textures allow it: a playback row a rat. */
 const MAX_RATS = 16384
 const SEED = 7
@@ -104,7 +105,6 @@ const DARK_MARGIN = 0.5
 const { look, gooseTheme } = startingLook()
 const beats = createBeats(look.stopMotion)
 
-// ---------------------------------------------------------------- renderer
 const { renderer, backend, lean, moon, maxDpr, timestamps, benchTools, gpuQueue, allBuilt } = await createDrawing()
 const camera = new PerspectiveCamera(CAMERA_FOV, innerWidth / innerHeight, 0.1, 100)
 const scene = new Scene()
@@ -173,89 +173,13 @@ const tilt = featureOn('tilt') ? createTiltShift() : undefined
 if (tilt) look.dof.enabled = false
 const post = createPost(renderer, scene, camera, { color: skyFog.onScreen, amount: skyFog.amount }, tilt, lean)
 
-// ---------------------------------------------------------------- swarm
-const tuning = defaultTuning()
-// The game's crowd (gameplay.ts).
-Object.assign(tuning, CROWD)
-/** How far off the goose game's rats notice him, m: short of every theme's fog, so the rats further off are seen wandering.
- * 6 since 2026-10-29 (4.5 from 2026-10-27), set from the rats' pull folder. */
-const GOOSE_NOTICE = 6
-// The goose game's rats notice him within GOOSE_NOTICE m, his goslings drawing them from as far as he does, each running
-// at the nearest of them; the rats further off ignore him and run about at their own pace, bending back his way only as they
-// roam more than 16 m past that (2026-10-26).
-Object.assign(tuning, { notice: GOOSE_NOTICE, wander: 1, roam: 16 })
-// The goose game's rats pile up a fifth of a rat's height since 2026-11-02 (a whole one from 2026-10-29); and since
-// 2026-10-25 they lunge and weave, softly, a harder lunge reading too
-// aggressive here; a little more since 2026-10-26: about once in 3.5 s each, at 2.1 times its pace
-// for 0.13 s, swerving up to 0.4 rad.
-Object.assign(tuning, { pull: tuning.notice, pile: 0.2, dashRate: 1 / 3.5, dashSpeed: 2.1, dashTime: 0.13, weave: 0.4 })
-// The goose game's rats quick to answer since 2026-10-29, the calmer answer of 2026-10-25 read
-// as too tame; but still no bolt at once, from the light or into a lunge.
-Object.assign(tuning, { reaction: 0.25, turnRate: 10, fleeReaction: 0.3, fleeTurn: 1.5 })
-/** The collision disc at the usual size: the rat scale and the spacing multiply it. */
-const RAT_RADIUS = tuning.ratRadius
 const maxTextureSize = getMaxTextureSize(renderer)
 /** The count's top: 16,384, or what this device's textures hold. */
 const capacity = Math.min(MAX_RATS, maxTextureSize)
-/** The goose game's rats to start, 100 since 2026-11-02, more coming with each gosling found: ?rats=N asks for others. */
-const GOOSE_RATS = 100
-// The goose game's rats as set from the panel on 2026-10-26: quicker to come on, and quicker still from the light, bigger; bigger again, 2.2, since 2026-10-29, and spaced 1.2 the same day (1.8 read as too tame).
-const GOOSE_SPEEDS = { minSpeed: 3, maxSpeed: 4, fleeMinSpeed: 4, fleeMaxSpeed: 4.5 }
-const GOOSE_RAT_SIZE = 2.2
-const GOOSE_SPACING = 1.2
-/** How far off the goose game's rats out of view come round from, m, with no fog to hide them nearer, set on 2026-10-26. */
-const GOOSE_ROUND_PAST = 30
-/** The count the address asks for, ?rats=N: zero included. */
-const askedRats = Math.round(Number(url.get('rats') ?? GOOSE_RATS))
-// The start, saved from the panel on 2026-10-05: the game's rats, their size and speeds (gameplay.ts), each as
-// big as it is fast, a dim light that walks as fast as they run, and the run played at the rat's own pace.
-const settings: Settings = {
-  rats: Math.min(Math.max(Number.isNaN(askedRats) ? GOOSE_RATS : askedRats, 0), capacity),
-  ...RAT_SPEEDS,
-  ...GOOSE_SPEEDS,
-  size: GOOSE_RAT_SIZE,
-  sizeBySpeed: SIZE_BY_SPEED,
-  spacing: GOOSE_SPACING,
-  on: true,
-  // The debug keys on the developer's page, and in a take, which the keys run.
-  debug: debugOn || url.has('film'),
-  shadows: url.has('shadows'),
-  runAnimation: 1.7,
-  lightSpeed: url.has('film') ? FILM_LIGHT_SPEED : LIGHT_SPEED,
-  paused: false,
-  bringRound: true,
-  // The goose game's rats come round from out of the camera's view or past GOOSE_ROUND_PAST m, the fog nearer where it is on.
-  roundPast: GOOSE_ROUND_PAST,
-  // ?nocharacter starts with the character hidden, its torch, flame, embers and smoke with it, as the panel's toggle does.
-  character: !url.has('nocharacter'),
-}
-/**
- * How he feels to play (the panel's feel folder, GooseFeel): his walk all but at the keys' pace, or stopped, in
- * `inertia` s, `?inertia=` to start at another; and a rat's bite on him, the pained honk, `?bite=hiss` to start with
- * the hiss. Pushed past real, as the game is drawn: a long red flash, the camera snapped and springing back, the
- * edges closing in dark red.
- */
-const askedInertia = Number(url.get('inertia'))
-const feel: GooseFeel = {
-  inertia: url.has('inertia') && askedInertia >= 0 ? askedInertia : 0.15,
-  bite: { sound: url.get('bite') === 'hiss' ? 'hiss' : 'honk', gap: 0.7, lasts: 0.22, squash: 0.12, flash: 1.2, flashColour: 0xfe9590, flashLasts: 0.45, edge: 0.55, edgeColour: 0x5d0909, knock: 0.16, knockLasts: 0.4 },
-  feathers: { look: feathers.look, changed: () => feathers.set() },
-  // His death (goosedeath.ts) as made; the dark's timing follows it.
-  death: { speed: 1, changed: () => deathTimed() },
-  // Its flight into his wing is the scenes', handed over once they are made.
-  key: { taken: undefined, peep: 0.8, peepAfter: 0.3 },
-  lean: { from: 5, near: 1.5, pull: 0.35, most: 0.9, ease: 0.8, low: true },
-  torch: { low: 0.3, gutter: 1.5, dips: 0.6, thin: 0.5, rise: 0.4, flare: 0.9, reach: 0.25, flareLasts: 0.7, pop: 0.45, popLasts: 0.45, sparks: 16, sparkSpeed: 2.4, knock: 0.05, knockLasts: 0.35 },
-  // Small, a fifth of the opening's strike; over as its sound all but is, the rumble played an octave down.
-  rumble: { shake: 0.03, lasts: 4 },
-}
-tuning.minSpeed = settings.minSpeed
-tuning.maxSpeed = settings.maxSpeed
-tuning.fleeMinSpeed = settings.fleeMinSpeed
-tuning.fleeMaxSpeed = settings.fleeMaxSpeed
-tuning.ratRadius = RAT_RADIUS * settings.size * settings.spacing
+const settings = startingSettings(capacity)
+const { tuning, RAT_RADIUS } = gooseTuning(settings)
+const feel = startingFeel(feathers, () => deathTimed())
 
-// ---------------------------------------------------------------- run
 // The ground each light sees against the walls: worked out here for the drawing, and on WebGPU read by the
 // swarm's step from the same texture. The worker works out its own the same way. Its walls are the level's,
 // once there is one.
@@ -265,23 +189,9 @@ const vat = await loadVAT(RAT.url)
 const time: VATTimeUniform = uniform(0)
 /** The goose game's plain as its play lays it, known before the play is, so the rats can be made on its ground. */
 const goosePlain = laid(ROUTE)
-/** How far the pond was moved by hand from where it falls past home, m (the pond folder's, 2026-10-29; z 2026-10-30). */
-const POND_MOVED = { x: 3.37, z: -0.7 }
 // The goose game's pond, as the pond folder edits it: past the last brazier, at the end of the route, the water the
 // rats are held off.
 const pondLook = pondPastHome(goosePlain)
-/**
- * The pond drawn where the plain has it, past the last brazier: on along the last leg, its shore toward him WADE short
- * of home, so he is home as he wades in. The drawn pond is wider than the play's, so it lies further on.
- */
-function pondPastHome(p: Plain): PondLook {
-  const look = defaultPondLook(p.pond)
-  const way = Math.atan2(p.pond.z - p.home.z, p.pond.x - p.home.x)
-  const reach = shoreAt(look, way + Math.PI) - WADE
-  // Its island's shore turned across his way.
-  const island = { ...look.island, turn: (way * 180) / Math.PI + 90 }
-  return { ...look, x: p.home.x + Math.cos(way) * reach + POND_MOVED.x, z: p.home.z + Math.sin(way) * reach + POND_MOVED.z, island }
-}
 /** The box the goose game's floor is laid over: the plain's, and round the drawn pond at its widest shore, which lies on past the play's, FLOOR_PAST more. */
 const gooseFloorBox = (() => {
   const b = goosePlain.bounds
@@ -478,7 +388,6 @@ function layFireShadows(): void {
 look.rats.parts = rats.parts.map((part) => ({ ...part }))
 for (const part of look.rats.parts) if (part.name === 'eyes') part.color = gooseTheme?.eyes ?? GOOSE_EYES
 
-// ---------------------------------------------------------------- panel
 
 /**
  * What the shadows were last drawn from: the swarm's places and its state,

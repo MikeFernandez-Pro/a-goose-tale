@@ -199,7 +199,7 @@ export interface GooseSettings {
   healAfter: number
   /** How fast life comes back, of a full life a second. Read live. */
   heal: number
-  /** How his fall goes, read as he falls: the page's death's (main.ts DEATHS). */
+  /** How his fall goes, read as he falls: the page's death's (main.ts deathTimed). */
   fall: Fall
 }
 
@@ -447,7 +447,7 @@ export const MOST_BITERS = 6
 export const FALL = 1.6
 const FALL_DIM = 1.2
 /**
- * How long his run carries him on as he falls, s, slowing to a stop: no dead stop from a run. As main.ts plays his
+ * How long his run carries him on as he falls, s, slowing to a stop: no dead stop from a run. As the page plays his
  * death clip, he keeps most of his pace through its sway, slows through its stagger and is still as it collapses.
  */
 export const FALL_CARRY = 1

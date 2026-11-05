@@ -1,16 +1,16 @@
 // The pond at the road's end and all on its island: the water, the nest, the bonfire, the tent, the picnic, the oak, and the
 // geese there.
 import { Scene, Vector3 } from 'three/webgpu'
-import { type NightLights } from '../light/nightlights'
-import { type GroundFloor } from './ground'
-import { type PondLook, createPond, islandMiddle, groundOf } from './pond'
+import type { NightLights } from '../light/nightlights'
+import type { GroundFloor } from './ground'
+import { type PondLook, createPond, islandMiddle, groundOf, defaultPondLook, shoreAt } from './pond'
 import { rollingGround } from './rolling'
 import { createGooseScenes, CAGE_FIRE_LIGHT } from '../game/goosescenes'
-import { type PlainFires } from '../light/plainfires'
+import type { PlainFires } from '../light/plainfires'
 import { FakeLamps, FakeLamp } from '../light/fakelamps'
-import { type Goose } from '../characters/goose'
+import type { Goose } from '../characters/goose'
 import { type Roadside, ISLAND_BUSH_KEEP } from './roadside'
-import { type Look } from '../settings'
+import type { Look } from '../settings'
 import { defaultWaterLook, WATER_LOOKS, createWater } from './water'
 import { url } from '../game/address'
 import { defaultNestLook, defaultNestLeafLook, defaultNeedleLook, createNest } from './nest'
@@ -19,6 +19,22 @@ import { createPicnic } from './picnic'
 import { createIslandTree } from './islandtree'
 import { createIslandGeese } from '../characters/islandgeese'
 import { createBeats } from '../game/beats'
+import { type Plain, WADE } from './plain'
+
+/** How far the pond was moved by hand from where it falls past home, m (the pond folder's, 2026-10-29; z 2026-10-30). */
+const POND_MOVED = { x: 3.37, z: -0.7 }
+/**
+ * The pond drawn where the plain has it, past the last brazier: on along the last leg, its shore toward him WADE short
+ * of home, so he is home as he wades in. The drawn pond is wider than the play's, so it lies further on.
+ */
+export function pondPastHome(p: Plain): PondLook {
+  const look = defaultPondLook(p.pond)
+  const way = Math.atan2(p.pond.z - p.home.z, p.pond.x - p.home.x)
+  const reach = shoreAt(look, way + Math.PI) - WADE
+  // Its island's shore turned across his way.
+  const island = { ...look.island, turn: (way * 180) / Math.PI + 90 }
+  return { ...look, x: p.home.x + Math.cos(way) * reach + POND_MOVED.x, z: p.home.z + Math.sin(way) * reach + POND_MOVED.z, island }
+}
 
 /** The pond's world on what the page has made. */
 export async function createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look }: {

@@ -98,7 +98,7 @@ export interface Goslings {
   calm: boolean
   /** Whether they cower: standing, each his frightened idle. */
   scared: boolean
-  /** Whether gosling `k` cowers now, scared or not: one with him, as a rat bites him (main.ts biteFrame). */
+  /** Whether gosling `k` cowers now, scared or not: one with him, as a rat bites him (goosefelt.ts biteFrame). */
   cowering?: (k: number) => boolean
   /**
    * Where given, whether a gosling standing at (x, y, z), his feet, may be seen: one that may not is neither drawn nor

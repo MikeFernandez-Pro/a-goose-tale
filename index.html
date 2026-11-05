@@ -44,7 +44,7 @@
         text-shadow: 0 1px 2px #000; pointer-events: none;
       }
       /* The loading screen, as the ending's title card (gooseoutro.ts): the game's title on black in Gaegu, the hints'
-         hand, and under it the share of the scene's pipelines built behind it (main.ts), then its Enter key; at the
+         hand, and under it the share of the scene's pipelines built behind it (loadingscreen.ts), then its Enter key; at the
          end it fades into the game. Under the ?errors box, which a phone needs to see. */
       #loading {
         position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -58,7 +58,7 @@
       #loading .slot { height: 64px; margin-top: 12px; display: flex; align-items: flex-start; justify-content: center; }
       #loading .share { font-size: 26px; opacity: 0.6; font-variant-numeric: tabular-nums; }
       /* The key as the hints draw theirs, a rounded box in a thick line sitting on its own shadow: the loading screen's
-         Enter, and the ending's play again under its title (main.ts). */
+         Enter, and the ending's play again under its title (loadingscreen.ts, ending.ts). */
       .enter {
         padding: 2px 22px; font: 700 30px/1.2 Gaegu, cursive; color: #fff6e4; cursor: pointer;
         background: #0007; border: 3px solid #f6ead0; border-radius: 11px; box-shadow: 0 3px 0 #f6ead099;

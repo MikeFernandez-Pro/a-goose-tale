@@ -1,7 +1,7 @@
 // The game paused, as the player sees it.
 import type { PlayerInput } from './gooseinput'
-import { type Settings } from '../settings'
-import { type GooseSounds } from '../sound/goosesounds'
+import type { Settings } from '../settings'
+import type { GooseSounds } from '../sound/goosesounds'
 import { filming } from '../game/address'
 import { type PadButton, padBeside, besideOf } from './holdhint'
 /**

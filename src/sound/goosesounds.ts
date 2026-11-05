@@ -42,7 +42,7 @@ const SOUNDS = {
   wings: { type: 'mp3', gain: 0.9 },
   fright: { type: 'mp3', gain: 1 },
   hiss: { type: 'mp3', gain: 0.9 },
-  // A rat's bite, two to choose between by playing (main.ts BITE_SOUNDS): the start of his hiss, quicker; or a short
+  // A rat's bite, two to choose between by playing (goosefelt.ts biteFrame): the start of his hiss, quicker; or a short
   // pained honk, his honk higher and clipped.
   bite_hiss: { type: 'mp3', file: 'hiss', gain: 0.6, rate: 1.25, cut: 0.45 },
   bite_honk: { type: 'mp3', file: 'honk', gain: 0.55, rate: 1.35, cut: 0.3 },

@@ -1,4 +1,4 @@
-// Feathers knocked off the goose by a rat's bite (main.ts biteFrame): a few
+// Feathers knocked off the goose by a rat's bite (goosefelt.ts biteFrame): a few
 // puff out of him away from the bite, up and out fast, slow at once in the
 // air, then flutter down, swaying and turning, lie a while where they land,
 // and shrink away. A small pool, a flat quill-shaped quad each, always drawn

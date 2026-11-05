@@ -6,7 +6,7 @@ import { defaultIslandTreeLook } from './islandtree'
 import { defaultTentLook } from './tent'
 import { defaultNestLook } from './nest'
 
-/** The route's pond with its island's shore turned across his way, as main.ts lays it; the island's ground goes with its middle. */
+/** The route's pond with its island's shore turned across his way, as pondworld.ts lays it; the island's ground goes with its middle. */
 const plain = laid(ROUTE)
 const own = defaultPondLook(plain.pond)
 const way = Math.atan2(plain.pond.z - plain.home.z, plain.pond.x - plain.home.x)

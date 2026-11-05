@@ -1,8 +1,8 @@
 // How the scene looks as the page opens: the look the panel's folders edit, each floor's own, and a theme laid over it.
 import { Color, SRGBColorSpace } from 'three/webgpu'
 import { featureOn, post0, url } from '../game/address'
-import { type FloorName } from '../world/ground'
-import { type Look } from '../settings'
+import type { FloorName } from '../world/ground'
+import type { Look } from '../settings'
 import { RAT, LEVELS } from '../swarm/rats'
 import { defaultAO } from './post'
 import { defaultGoose } from '../characters/goose'

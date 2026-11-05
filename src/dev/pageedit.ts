@@ -2,9 +2,9 @@
 import { PerspectiveCamera, WebGPURenderer, Scene } from 'three/webgpu'
 import { createGooseScenes, type EditPiece } from '../game/goosescenes'
 import { GoosePlay } from '../game/gooseplay'
-import { type PlaySwarm } from '../swarm/play'
-import { type Settings } from '../settings'
-import { type GooseCamera, type GooseView } from '../game/gooseview'
+import type { PlaySwarm } from '../swarm/play'
+import type { Settings } from '../settings'
+import type { GooseCamera, GooseView } from '../game/gooseview'
 import { createEditMode } from './gooseedit'
 import { type Route, toSave } from '../world/plain'
 /**

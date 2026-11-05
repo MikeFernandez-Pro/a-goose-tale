@@ -220,7 +220,7 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   readonly parts: ShellUniforms['specularColor'][]
   /** The glowing part's index, -1 none, and how bright it glows: its colour times this, added as emission. */
   readonly glow = { part: uniform(-1), strength: uniform(0) }
-  /** A flash over the whole body, its colour times this, added as emission, lit or in the dark: a bite on him (main.ts biteFrame). */
+  /** A flash over the whole body, its colour times this, added as emission, lit or in the dark: a bite on him (goosefelt.ts biteFrame). */
   readonly flash = { color: uniform(new Color(0xffffff)), strength: uniform(0) }
   /** Its toon steps, at the default to start. */
   readonly gradient: DataTexture

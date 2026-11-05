@@ -1,9 +1,9 @@
 // Where things are done, drawn on the ground, for the developer: the fills and the scenes' zones.
 import { Scene, Group, MeshBasicNodeMaterial, Mesh, RingGeometry } from 'three/webgpu'
 import { GoosePlay } from '../game/gooseplay'
-import { type PlaySwarm } from '../swarm/play'
+import type { PlaySwarm } from '../swarm/play'
 import { url } from '../game/address'
-import { type FixedLight } from '../swarm/swarm'
+import type { FixedLight } from '../swarm/swarm'
 
 /** The rings on `scene`, off till the zones are asked for. */
 export function createZoneRings(scene: Scene, goosePlay: GoosePlay<PlaySwarm>, standAt: (x: number, z: number) => number) {

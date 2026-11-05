@@ -11,7 +11,7 @@
 // ground rumbles and the rats come, from out of view on every side, rushing
 // in at him. The branch lies there as the opening ends, his torch to pick up.
 // What happens when, where he walks, and how the screen shakes, as the
-// opening's time has it; the page draws it (main.ts).
+// opening's time has it; the page draws it (opening.ts, openingshow.ts).
 import type { Point } from '../world/plain'
 
 /** When each beat comes, s into the opening. */

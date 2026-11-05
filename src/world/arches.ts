@@ -18,7 +18,7 @@
 // darker, more saturated and glossier where the water is, its joints filled,
 // damp rising from the ground and streaks run down; in a toon shell of its
 // own, its highlight, strokes and steps the doors folder's (`ArchShell`). Both
-// start much as the road and the floor are as the page opens (main.ts). The
+// start much as the road and the floor are as the page opens (roadside.ts). The
 // file has no texture layout of its own, so the arch's is worked out as it
 // loads.
 import { BufferAttribute, Group, Mesh, Vector2, type BufferGeometry } from 'three/webgpu'

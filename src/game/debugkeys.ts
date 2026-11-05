@@ -1,9 +1,9 @@
 // The debug keys, on the developer's page and in a take.
-import { type Settings } from '../settings'
+import type { Settings } from '../settings'
 import { GoosePlay } from './gooseplay'
-import { type PlaySwarm } from '../swarm/play'
+import type { PlaySwarm } from '../swarm/play'
 import { type PondLook, islandMiddle, islandShoreAt } from '../world/pond'
-import { type Graveyard } from '../world/graveyard'
+import type { Graveyard } from '../world/graveyard'
 /** How far off the island's waterline the 6 debug key stands him, m. */
 const ISLAND_BY = 1
 
