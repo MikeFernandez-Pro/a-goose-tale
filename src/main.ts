@@ -9,14 +9,10 @@
 // has them. Each light's lit area is worked out on the page for the drawing and the GPU step, and in the worker
 // for its own (ADR-0054).
 import {
-  Group,
   Mesh,
-  MeshBasicNodeMaterial,
   type Node,
   type NodeMaterial,
-  type Object3D,
   PerspectiveCamera,
-  RingGeometry,
   Scene,
   Timer,
   Vector2,
@@ -26,25 +22,22 @@ import { int, pointShadow, uniform } from 'three/tsl'
 import { loadVAT } from 'three-vat'
 import { getMaxTextureSize, type VATTimeUniform } from 'three-vat/tsl'
 import { benchOn, debugOn, featureOn, filming, noPanel, phone, post0, url } from './game/address'
-import { FLOOR_LOOKS, GOOSE_EYES, copyInto, measuringSwitches, startingLook } from './look/startinglook'
+import { GOOSE_EYES, measuringSwitches, startingLook } from './look/startinglook'
 import { createPost, defaultDark, leaveUnshaded } from './look/post'
 import { DEATH_DOWN } from './characters/goosedeath'
 import { defaultBedLook, defaultRoadLook, defaultWellGroundLook, floor } from './world/ground'
 import { defaultRoadShape } from './world/road'
-import { type DeadTreeShape } from './world/deadtrees'
 import type { GooseFeel, Settings } from './settings'
 import { lightAndPause } from './ui/lightandpause'
-import type { PlaySwarm } from './swarm/play'
-import { PipelineSlices } from './look/pipelineslices'
-import { GoosePlay, type FireScene } from './game/gooseplay'
+import { GoosePlay } from './game/gooseplay'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './characters/goslings'
-import { layPieces, BURNING_LIGHT, CAGE_FIRE_LIGHT, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece } from './game/goosescenes'
-import { besideOf, type PadButton, padBeside } from './ui/holdhint'
+import { layPieces, BURNING_LIGHT, CAGE_FIRE_LIGHT, PIT_LIGHT, spawnTree, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes } from './game/goosescenes'
+import { besideOf } from './ui/holdhint'
 import { createGooseSounds } from './sound/goosesounds'
 import { FURTHEST, defaultPondLook, islandMiddle, islandShoreAt, shoreAt, standingIn, swimmingIn, widestShore, type PondLook } from './world/pond'
 import { OUTRO, outroDue } from './game/gooseoutro'
-import { ROUTE, WADE, keptShown, laid, toSave, type Plain, type Route } from './world/plain'
-import { defaultRollingLook, rollAgain, rollingGround } from './world/rolling'
+import { ROUTE, WADE, laid, type Plain } from './world/plain'
+import { defaultRollingLook, rollingGround } from './world/rolling'
 import { createLights, litMask, type LightLook } from './light/lights'
 import { LitAreas } from './swarm/litareas'
 import { seenTexture } from './swarm/seen'
@@ -55,17 +48,15 @@ import { createFlame } from './light/flame'
 import { createEmbers } from './light/embers'
 import { createFeathers } from './characters/feathers'
 import { createSmoke } from './light/smoke'
-import { defaultTuning, shoreLight, sightEdge, type Dark, type FixedLight, type Ground, type Light } from './swarm/swarm'
+import { defaultTuning, shoreLight, type Dark, type Ground, type Light } from './swarm/swarm'
 import { createTiltShift } from './look/tiltshift'
 import { createFallingLeaves, defaultFallLook, mountFallControls } from './world/fallingleaves'
 import { createFakeLamps, shown as drawnInScene } from './light/fakelamps'
 import { createFireShadow, defaultFireShadowLook } from './light/fireshadow'
-import type { BenchCost, BenchPlace, PhoneBench } from './dev/phonebench'
-import { keptRun, keepRun } from './game/keptrun'
+import type { PhoneBench } from './dev/phonebench'
 import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './game/gameplay'
 import { INTRO, cowering, litShare, ratsOut, startled } from './game/gooseintro'
 import { RemoteSwarm } from './swarm/swarm-remote'
-import { createBeats } from './game/beats'
 import { createDrawing } from './look/drawing'
 import { ladder, startingStep, Quality, PHONE_SLOW_FRAME } from './look/quality'
 import { createSkyFog } from './look/skyfog'
@@ -75,7 +66,7 @@ import { createOpeningShow } from './ui/openingshow'
 import { createEnding } from './game/ending'
 import { createGooseInput, DIAL, DIAL_RATE } from './ui/gooseinput'
 import { createPauseVeil } from './ui/pauseveil'
-import { CAMERA_FOV, fitToPage, createGooseView, GOOSE_CAMERA_KEPT, type GooseCamera } from './game/gooseview'
+import { CAMERA_FOV, fitToPage, createGooseView } from './game/gooseview'
 import { createRoadside } from './world/roadside'
 import { createPlainFires } from './light/plainfires'
 import { createPondWorld } from './world/pondworld'
@@ -83,6 +74,13 @@ import { MOST_FRAME, GpuSwarm } from './swarm/gpuswarm'
 import { createGooseHeard } from './sound/gooseheard'
 import { createGooseHints } from './ui/goosehints'
 import { createGooseFelt } from './game/goosefelt'
+import { createZoneRings } from './world/zonerings'
+import { createRatsArrive, RUMBLE_GAIN } from './game/ratsarrive'
+import { createLoading, STEP_FRAME } from './ui/loadingscreen'
+import { createRunKeeper } from './game/runkeeper'
+import { createBeats } from './game/beats'
+import { createDebugKeys } from './game/debugkeys'
+import { createPlainPieces } from './game/plainpieces'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
@@ -269,8 +267,6 @@ const time: VATTimeUniform = uniform(0)
 const goosePlain = laid(ROUTE)
 /** How far the pond was moved by hand from where it falls past home, m (the pond folder's, 2026-10-29; z 2026-10-30). */
 const POND_MOVED = { x: 3.37, z: -0.7 }
-/** How far off the island's waterline the 6 debug key stands him, m. */
-const ISLAND_BY = 1
 // The goose game's pond, as the pond folder edits it: past the last brazier, at the end of the route, the water the
 // rats are held off.
 const pondLook = pondPastHome(goosePlain)
@@ -415,21 +411,14 @@ const openingShow = createOpeningShow({ opening, goosePlay, goose, camera, rende
 // The ground laid under each well, where the play stands it.
 ground.setWells(goosePlay.scenes.filter((s) => s.kind === 'well'))
 const roadside = await createRoadside({ scene, goosePlay, lights, fakeLamps, backend, renderer, groundAt, pondLook, gooseFloorBox, roadShape, roadLook, ground, look, gooseTheme, gooseScenes, fallingLeaves, dev })
-const { graveyard, ghosts, graves, graveCandles, arches, archLook, archStone, archShell, archesChanged, archesShell, layArches, roadWalls, roadWallLook, wallStone, wallShell, layWalls, deadTreesMesh, deadTreeLook, deadTreeShape, deadTreeShine, deadTreeBark, deadTreeGrass, deadTreeLeaves, deadTreeWind, leavesFallAsTrees, layTrees, bushesMesh, bushLook, bushShape, bushLeaves, layBushes, gooseSee, gooseSeeLook, gooseSeeZone, cutSeenThrough, layRoad } = roadside
+const { graveyard, ghosts, graves, graveCandles, deadTreesMesh, deadTreeShine, deadTreeGrass, bushesMesh, gooseSee, gooseSeeLook, gooseSeeZone, cutSeenThrough } = roadside
 const fires = createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats })
-const { fireLook, fireLooks, pitFireLook, crownFireLook, trunkFireLook, footFireLook, branchLook, burningBranch, branchEmbers, branchFire, plainFlames, sceneFires, pitFires, crownFires, trunkFires, footFire, branchFlared } = fires
+const { burningBranch, branchEmbers, plainFlames, branchFlared } = fires
 const pondWorld = await createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look })
-const { waterLook, water, pond, nest, nestLook, nestLeaves, nestNeedles, layNest, islandFireLook, layIslandFire, tent, picnic, islandTree, layIslandTree, islandGeese } = pondWorld
+const { waterLook, water, tent, picnic, islandTree, islandGeese } = pondWorld
 const ending = createEnding({ goosePlay, pondLook, islandGeese, tent, look, waterLook, water, ground, deadTreesMesh, deadTreeGrass, islandTree, nightLights, light, gooseSounds, goose, camera, renderer })
 // The bed under the pond's water takes less light, as deep as the water lies.
 ground.setWaterLevel(pondLook.water)
-
-/**
- * DEBUG: where things are done, as rings on the ground: orange, a flame's dip, or a scene's fire's zone, the interact
- * key held to fill the torch; red, where the interact key works a scene, the well's
- * winch, the dead tree's trunk, the cage and its key. `?zones`, or the run folder's switch.
- */
-const refillZones = { show: url.has('zones') || url.has('refill') }
 
 /**
  * His fall: his death played in the open over the dark folder's `after` s, then the dark closing over its `finish` s,
@@ -446,45 +435,7 @@ function deathTimed() {
   goosePlay.settings.fall = { lasts: darkLook.after + darkLook.finish + DARK_HELD, dims: darkLook.after + darkLook.finish }
 }
 deathTimed()
-const refillRings = new Group()
-scene.add(refillRings)
-const dipRing = new MeshBasicNodeMaterial({ color: 0xff8a2a, fog: false, depthWrite: false })
-/** A flat ring `radius` m round, its band a few centimetres wide, in `material`. */
-const refillRing = (radius: number, material: MeshBasicNodeMaterial) => {
-  const ring = new Mesh(new RingGeometry(Math.max(0, radius - 0.05), radius, 64).rotateX(-Math.PI / 2), material)
-  ring.renderOrder = 10
-  refillRings.add(ring)
-  return ring
-}
-const dipRings = level.lights.map(() => refillRing(1, dipRing))
-const workRing = new MeshBasicNodeMaterial({ color: 0xff2a2a, fog: false, depthWrite: false })
-const workRings = goosePlay.scenes.map(() => refillRing(1, workRing))
-const keyRings = goosePlay.scenes.flatMap((s) => (s.kind === 'cage' ? [refillRing(1, workRing)] : []))
-/** The rings where the torch is filled now: every lit flame's dip. */
-function refillZonesFrame(placed: readonly FixedLight[]) {
-  refillRings.visible = refillZones.show
-  if (!refillZones.show) return
-  placed.forEach((light, k) => {
-    const ring = dipRings[k]!
-    const own = level.lights[k]!
-    ring.visible = own.flame && light.on
-    if (!ring.visible) return
-    const zone = goosePlay.dipZoneOf(k)
-    ring.scale.set(zone.rx, 1, zone.rz)
-    ring.position.set(zone.x, standAt(zone.x, zone.z) + 0.03, zone.z)
-  })
-  goosePlay.scenes.filter((s) => s.kind === 'cage').forEach((cage, c) => {
-    if (cage.kind !== 'cage') return
-    const { x, z, rx, rz } = goosePlay.keyZoneOf(cage)
-    keyRings[c]!.scale.set(rx, 1, rz)
-    keyRings[c]!.position.set(x, standAt(x, z) + 0.03, z)
-  })
-  goosePlay.scenes.forEach((s, k) => {
-    const { x, z, rx, rz } = goosePlay.zoneOf(s)
-    workRings[k]!.scale.set(rx, 1, rz)
-    workRings[k]!.position.set(x, standAt(x, z) + 0.03, z)
-  })
-}
+const zoneRings = createZoneRings(scene, goosePlay, standAt)
 
 /** Where the see-through's hole is cut round: the holder, at its chest. */
 const seeThroughAt = new Vector3()
@@ -515,10 +466,9 @@ const fireShadow = moon === 'none' ? undefined : createFireShadow(renderer, fake
 const fireCasters = [goose.object, goslings.object]
 const gooseMiddle = new Vector3()
 /** The fire's shadow not drawn, and the share of the rats asked for: for `?bench` to price them. */
-let fireShadowsHeld = false
-let benchRatShare = 1
+const benchHolds = { fireShadows: false, ratShare: 1 }
 function layFireShadows(): void {
-  if (!fireShadow || fireShadowsHeld) return
+  if (!fireShadow || benchHolds.fireShadows) return
   goose.object.getWorldPosition(gooseMiddle)
   const ground = groundAt(gooseMiddle.x, gooseMiddle.z)
   gooseMiddle.y = ground + look.goose.height * 0.5
@@ -658,226 +608,10 @@ function qualityChanged() {
   lookChanged()
 }
 
-// In the goose game F, a debug key, gives the torch a light that never burns down, held full each frame; and puts it out
-// again for real, its fuel gone, so nothing holds the rats off his circle until a fire fills it. Taken here first, before the panel's own F, which only hides the light from the rats. 0 to 5 on the
-// top row, debug keys too, stand him back where he starts, by the well's zone, the dead tree's, the
-// cage's and, on 5, the pond; on 6 in the water just off its island, facing it. Any other number, or 0 to 5 on the keypad, gives him that many goslings at
-// once, 0 none (the key's place, so the AZERTY row needs no shift).
-/** The goose game's torch held full each frame, its F debug key's. */
-let torchEverlasting = false
-/** ISLAND_BY m off the island's waterline on the camera's side (+z), facing it. */
-function standOffIsland() {
-  const middle = islandMiddle(pondLook)
-  const { holder, facing } = goosePlay.run
-  holder.x = middle.x
-  holder.z = middle.z + islandShoreAt(pondLook.island, Math.PI / 2) + ISLAND_BY
-  facing.x = 0
-  facing.z = -1
-}
-/** At the graveyard's entrance, facing in. */
-function standAtGraveyard() {
-  if (!graveyard) return
-  const { holder, facing } = goosePlay.run
-  holder.x = graveyard.entrance.x
-  holder.z = graveyard.entrance.z
-  facing.x = graveyard.entrance.facing.x
-  facing.z = graveyard.entrance.facing.z
-}
-addEventListener(
-  'keydown',
-  (event) => {
-    if (event.repeat || !settings.debug || event.target instanceof HTMLInputElement) return
-    const digit = /^(?:Digit|Numpad)(\d)$/.exec(event.code)
-    if (event.code === 'KeyF') run.fuel = (torchEverlasting = !torchEverlasting) ? 1 : 0
-    else if (event.code === 'KeyK' && !goosePlay.down) {
-      // K: his life gone where he stands, as if bitten away, to try his death.
-      goosePlay.life = 0
-      goosePlay.bittenAt = goosePlay.t
-    }
-    // J: his death clip played through where he stands, whole, without dying, to see it.
-    else if (event.code === 'KeyJ' && !goosePlay.down) felt.deathShownAt = goosePlay.t
-    else if (event.code === 'Digit0') goosePlay.standAtStart()
-    else if (event.code === 'Digit1') goosePlay.standBy('well')
-    else if (event.code === 'Digit2') goosePlay.standBy('tree')
-    else if (event.code === 'Digit3') goosePlay.standBy('cage')
-    else if (event.code === 'Digit5') goosePlay.standByPond()
-    else if (event.code === 'Digit6') standOffIsland()
-    else if (event.code === 'Digit4' && graveyard) standAtGraveyard()
-    else if (digit) goosePlay.giveGoslings(Number(digit[1]))
-    else return
-    event.preventDefault()
-    event.stopImmediatePropagation()
-  },
-  { capture: true },
-)
+const debugKeys = createDebugKeys({ settings, run, goosePlay, pondLook, graveyard, showDeath: () => (felt.deathShownAt = goosePlay.t) })
 if (dev && fallingLeaves && !noPanel) mountFallControls(fallingLeaves, dev.GUI)
 const view = createGooseView({ camera, renderer, light, goslings, run, feel, opening, ending, torchFilledOnce, tilt, standAt, groundAt, goosePlay, look })
-const panel = noPanel || filming ? undefined : dev?.createPanel(settings, tuning, look, capacity, {
-  count() {
-    // Sent with the next frame's input; the swarm grows at the arena's edge, so the rats on screen stay where they are.
-  },
-  size() {
-    // The rat is drawn at its size, and collides as a disc that size times
-    // the spacing: the swarm keeps bigger, or more spaced, rats further apart.
-    rats.setSize(settings.size)
-    rats.setSizeBySpeed(settings.sizeBySpeed)
-    tuning.ratRadius = RAT_RADIUS * settings.size * settings.spacing
-  },
-  speeds() {
-    tuning.minSpeed = settings.minSpeed
-    tuning.maxSpeed = settings.maxSpeed
-    tuning.fleeMinSpeed = settings.fleeMinSpeed
-    tuning.fleeMaxSpeed = settings.fleeMaxSpeed
-  },
-  animation() {
-    rats.setSpeed(settings.runAnimation)
-  },
-  light() {
-    if (torchChanged()) lookChanged()
-  },
-  shadows: shadowsChanged,
-  look: lookChanged,
-  floor() {
-    copyInto(look.floor, FLOOR_LOOKS[look.floor.texture])
-  },
-}, {
-  tuning: runTuning,
-  level,
-  // The goose game's dark, and its rats' seed: a new seed sets the rats down afresh, the page loaded again on it.
-  goose: {
-    settings: goosePlay.settings,
-    refillZones,
-    dark: darkLook,
-    feel,
-    introLight: openingShow.introLight && openingShow.introLightLook,
-    // The pond folder lays the pond again on every change.
-    pond: { look: pondLook, changed: () => {
-        pond.set(pondLook)
-        layNest()
-        tent.set(pondLook)
-        picnic.set(pondLook)
-        layIslandTree()
-        layIslandFire()
-        // The trees and bushes out of the water as it lies now, its own woods round it.
-        layTrees()
-        ground.setWaterLevel(pondLook.water)
-        goosePlay.setWater(pondWater(pondLook))
-      }, water: waterLook, waterChanged: () => water.set(waterLook), bed: bedLook, bedChanged: () => ground.setBed(bedLook), nest: { look: nestLook, changed: layNest, needles: nestNeedles, needlesChanged: () => nest.setNeedles(nestNeedles), leaves: nestLeaves, leavesChanged: () => nest.setLeaves(nestLeaves) }, tree: { look: islandTree.look, changed: layIslandTree, woodChanged: islandTree.woodChanged, leavesChanged: islandTree.leavesChanged, windChanged: islandTree.windChanged, fallChanged: islandTree.fallChanged, barkChanged: islandTree.barkChanged, grassChanged: () => islandTree.setGrass(look.floor) }, tent: { look: tent.look, changed: () => tent.set(pondLook), recolour: tent.recolour, shineChanged: tent.shineChanged }, picnic: { look: picnic.look, changed: () => picnic.set(pondLook), shineChanged: picnic.shineChanged }, bonfire: { look: islandFireLook, changed: layIslandFire }, geese: islandGeese.look },
-    // The ground folder lays the plain's swells again on every change: the grid in place, the rats' copy, the floor.
-    ground: { look: rollingLook, changed: () => {
-        rollAgain(gooseGround, goosePlain, pondPlace, rollingLook)
-        rats.groundChanged()
-        pond.set(pondLook)
-        // The arches and the walls stood on the ground as it rolls now.
-        arches.set(archLook)
-        roadWalls.lay(roadside.wallsLaid)
-        layTrees()
-      }, arches: { look: archLook, changed: archesChanged } },
-    // The doors, the road's arches: their stone and their own toon shell.
-    doors: { stone: archStone, stoneChanged: () => arches.setStone(archStone), shell: archShell, shellChanged: archesShell },
-    // The walls beside the road: their kind, number, place and size, laid again on every change; their stone and toon shell.
-    walls: {
-      look: roadWallLook,
-      changed: layWalls,
-      stone: wallStone,
-      stoneChanged: () => roadWalls.setStone(wallStone),
-      shell: wallShell,
-      shellChanged: () => roadWalls.setShell(wallShell),
-    },
-    // The dead trees: shown or not and their wood, and how they are scattered, again on every change.
-    trees: {
-      look: deadTreeLook,
-      shape: deadTreeShape as DeadTreeShape,
-      changed: layTrees,
-      woodChanged: () => deadTreesMesh.setWood(deadTreeLook.wood, deadTreeLook.saturation),
-      yChanged: () => deadTreesMesh.object.position.setY(deadTreeLook.y),
-      trunkChanged: () => {
-        deadTreesMesh.setTrunk(deadTreeLook.trunk)
-        deadTreesMesh.setRings(deadTreeLook.rings)
-      },
-      bark: deadTreeBark,
-      barkChanged: () => deadTreesMesh.setBark(deadTreeBark),
-      grass: deadTreeGrass,
-      grassChanged: () => deadTreesMesh.setGrass(deadTreeGrass, look.floor),
-      leaves: deadTreesMesh.leaves ? deadTreeLeaves : undefined,
-      leavesChanged: () => {
-        deadTreesMesh.setLeaves(deadTreeLeaves)
-        leavesFallAsTrees()
-      },
-      wind: deadTreeWind,
-      windChanged: () => deadTreesMesh.setWind(deadTreeWind),
-      shine: deadTreeShine,
-      shineChanged: lookChanged,
-    },
-    // The bushes: shown or not and their leaves, and how they are scattered, again on every change.
-    bushes: {
-      look: bushLook,
-      shape: bushShape as DeadTreeShape,
-      changed: layBushes,
-      leaves: bushLeaves,
-      leavesChanged: () => bushesMesh.setLeaves(bushLeaves),
-      yChanged: () => {
-        bushesMesh.object.position.setY(bushLook.y)
-      },
-    },
-    // The goslings' clip speeds, read live.
-    goslings: goslingSpeeds,
-    // Their height, read live.
-    goslingSize,
-    // The old road: its way laid again on a change, its look read live.
-    road: {
-      shape: roadShape,
-      shapeChanged: layRoad,
-      look: roadLook,
-      changed: () => ground.setRoadLook(roadLook),
-      arches: { look: archLook, countChanged: layArches },
-    },
-    // How far the spawn's brazier holds the rats off, if the plain starts by one.
-    spawn: pitLight < 0 ? undefined : goosePlay.settings,
-    // The burning branch's colours, lying or carried as his torch.
-    branch: burningBranch && {
-      colours: branchLook,
-      changed: () => burningBranch.setColours(branchLook),
-    },
-    // Every fire's own size, place and lamp, in the flames folder with the look they share, read live.
-    fires: {
-      look: fireLook,
-      shadows: { look: fireShadowLook },
-      each: [
-        { name: "dead tree's brazier", look: fireLooks.tree, lamp: true, offset: true },
-        { name: "cage's campfire", look: fireLooks.cage, lamp: true, offset: true },
-        { name: 'fire pit', look: pitFireLook, lamp: true },
-        { name: 'burning tree crown', look: crownFireLook, lamp: true },
-        { name: 'burning tree trunk', look: trunkFireLook },
-        { name: 'burning tree foot', look: footFireLook },
-      ],
-    },
-    // The well's colours, a material at a time.
-    well: { colours: gooseScenes.wellColours, glows: gooseScenes.wellGlows, changed: gooseScenes.wellChanged, bucket: gooseScenes.bucketOffset, fire: goosePlay.settings.wellFire, reach: goosePlay.settings, ground: { look: wellGroundLook, changed: () => ground.setWellGround(wellGroundLook) }, shine: { look: gooseScenes.wellShine, changed: lookChanged }, pit: { look: gooseScenes.pitLook, changed: gooseScenes.pitChanged, shine: gooseScenes.pitShine, shineChanged: lookChanged } },
-    // The dead tree's colour, size and perch, read live; where he calls its gosling down, and where the gosling lands; its brazier's
-    // place, its flame and lamp, where he fills his torch at it and how far it holds the rats.
-    tree: { look: gooseScenes.tree, jump: goosePlay.settings, fire: { at: goosePlay.settings.treeFire, ...sceneFirePanel('tree') } },
-    // The cage: where he opens it, where its key lies by the body and where he picks it up; its campfire's place and lamp's strength,
-    // where he fills his torch at it and how far it holds the rats.
-    cage: { hold: goosePlay.settings, key: { beside: goosePlay.settings.keyBeside, inWing: gooseScenes.keyInWing, bones: RIGHT_WING }, fire: { at: goosePlay.settings.cageFire, ...sceneFirePanel('cage'), lamp: fireLooks.cage }, look: gooseScenes.cage, colours: { colours: gooseScenes.cageColours, glows: gooseScenes.cageGlows, changed: gooseScenes.cageChanged }, shine: { cart: gooseScenes.cartShine, skull: gooseScenes.skullShine, changed: lookChanged }, wood: { look: gooseScenes.cartWood, changed: gooseScenes.cartWoodChanged } },
-    // The see-through round him: its hole and its noise, read live.
-    seeThrough: { look: gooseSeeLook, changed: () => gooseSee.set(gooseSeeLook) },
-    // The camera: its follow's lag; where it is from him, captured to the clipboard and kept for the next load.
-    camera: { follow: view.cameraFollow, lens: view.gooseLens, capture: () => view.captureGooseCamera(), forget: () => localStorage.removeItem(GOOSE_CAMERA_KEPT) },
-    reseed(seed) {
-      url.set('seed', String(seed))
-      location.search = url.toString()
-    },
-  },
-}, tilt && {
-  shift: tilt,
-  // The diorama's camera put in place, or the kept one back, as the tilt's folder moves it or turns it off.
-  placed() {
-    view.setGooseCamera(view.kind, false)
-    view.gooseLens.fov = view.keptGooseCamera()?.fov ?? CAMERA_FOV
-    view.controls.update()
-  },
-})
+const panel = noPanel || filming ? undefined : dev?.mountPagePanel({ settings, tuning, look, capacity, rats, RAT_RADIUS, torchChanged, lookChanged, shadowsChanged, runTuning, level, goosePlay, zoneRings, darkLook, feel, openingShow, pondLook, pondWorld, roadside, fires, ground, pondWater, bedLook, gooseGround, goosePlain, pondPlace, rollingLook, roadShape, roadLook, goslingSpeeds, goslingSize, pitLight, fireShadowLook, gooseScenes, wellGroundLook, view, tilt })
 // Without the panel, P still pauses, and F, a debug key, still puts the torch out.
 if (!panel) lightAndPause(settings, () => torchChanged() && lookChanged())
 qualityChanged()
@@ -981,136 +715,11 @@ function follow(dt: number, newBeat: boolean, frame: number) {
 follow(Infinity, true, 0)
 view.start()
 
-/**
- * The goose game's edit mode, E on and off (gooseedit.ts): the play paused and the camera the free orbit while it is
- * on, both put back as they were after; the scenes' pieces, and each plain brazier and its waiting gosling, to pick,
- * move, turn, raise and size; saved as the route, the page loaded again on it. The pieces raised and sized as the
- * route keeps them, edit mode or not.
- */
+const plainPieces = createPlainPieces(goosePlay, gooseScenes, lights, goslings, pitLight)
 layPieces([...gooseScenes.pieces(goosePlay), ...plainPieces()])
 // The tree's gosling lands a little ahead of where he is drawn sitting.
 goosePlay.landingOf = (tree) => gooseScenes.landingOf(goosePlay, tree)
-let editWasPaused = false
-let editWasCamera: GooseCamera = 'fixed'
-const editMode =
-  dev && !filming
-    ? dev.createEditMode({
-        camera,
-        dom: renderer.domElement,
-        scene,
-        pieces: () => [...gooseScenes.pieces(goosePlay), ...plainPieces()],
-        entered() {
-          editWasPaused = settings.paused
-          setPaused(true)
-          editWasCamera = view.kind
-          view.setGooseCamera('orbit', false)
-        },
-        left() {
-          setPaused(editWasPaused)
-          view.setGooseCamera(editWasCamera, false)
-        },
-        cameraTakes(takes) {
-          view.controls.enableZoom = takes
-        },
-        save: saveEditedRoute,
-      })
-    : undefined
-if (editMode) {
-  addEventListener('keydown', (event) => {
-    if (event.code !== 'KeyE' || event.repeat || event.target instanceof HTMLInputElement) return
-    editMode.toggle()
-  })
-}
-
-/** The plain braziers, those with no scene, and their goslings while waiting, and the fire pit by each well, as edit pieces: moved only. */
-function plainPieces(): EditPiece[] {
-  const play = goosePlay
-  // The well's fire pit saved where it stands before the settings' offset, as the dead tree's brazier is.
-  const wellPits = play.wellFires.flatMap(({ brazier, place }, w): EditPiece[] => {
-    const object = gooseScenes.wellPits[w]
-    if (!object) return []
-    return [
-      {
-        name: `well fire ${brazier + 1}`,
-        object,
-        shown: keptShown(play.plain.braziers[brazier]!, 'fire'),
-        move(dx, dz) {
-          place.x += dx
-          place.z += dz
-        },
-        save(braziers) {
-          braziers[brazier]!.fire = { ...place }
-        },
-      },
-    ]
-  })
-  return [...wellPits, ...plainBraziers(play)]
-}
-
-/** The plain braziers, those with no scene, and their goslings while waiting, as edit pieces. */
-function plainBraziers(play: GoosePlay<PlaySwarm>): EditPiece[] {
-  return play.plain.braziers.flatMap((b, k): EditPiece[] => {
-    if (b.scene || b.follows !== undefined) return []
-    const light = play.level.lights[k]!
-    const stand = (k === pitLight ? gooseScenes.pit : undefined) ?? lights.object.children[k]
-    const g = play.goslings[k]
-    const bird = goslings.object.children[k]
-    const pieces: EditPiece[] = []
-    if (stand) {
-      pieces.push({
-        name: `brazier ${k + 1}`,
-        object: stand,
-        shown: keptShown(b, 'fire'),
-        move(dx, dz) {
-          light.x += dx
-          light.z += dz
-        },
-        save(braziers) {
-          braziers[k]!.x = light.x
-          braziers[k]!.z = light.z
-        },
-      })
-    }
-    if (bird && g?.state === 'waiting') {
-      pieces.push({
-        name: `gosling ${k + 1}`,
-        object: bird,
-        shown: keptShown(b, 'gosling'),
-        move(dx, dz) {
-          g.x += dx
-          g.z += dz
-          play.waitsAt[k]!.x += dx
-          play.waitsAt[k]!.z += dz
-        },
-        // Where he waits, not where a searching gosling has paced to.
-        save(braziers) {
-          braziers[k]!.gosling = { ...play.waitsAt[k]! }
-        },
-      })
-    }
-    return pieces
-  })
-}
-
-/**
- * The route the edited pieces now make, written over src/world/gooseroute.json by the dev server,
- * and the page loaded again on it; or why not. Not with a debug placement on, which would be saved with it.
- */
-async function saveEditedRoute(pieces: EditPiece[]): Promise<string | undefined> {
-  if (goosePlay.settings.treeAhead !== null || goosePlay.settings.wellAhead !== null) return 'not saved: a debug placement (?tree) is on'
-  const { start, pond } = goosePlay.plain
-  const braziers = structuredClone(goosePlay.plain.braziers)
-  for (const piece of pieces) piece.save?.(braziers)
-  // The road as the route laid it, by hand or not at all: the edit mode moves none of it.
-  const { road } = goosePlay.plain
-  const route: Route = { start: { ...start }, braziers, pond: { ...pond }, ...(road ? { road: structuredClone(road) } : {}) }
-  // To the millimetre.
-  const body = JSON.stringify(toSave(route), (_, v: unknown) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v))
-  const response = await fetch('/goose-route', { method: 'POST', body }).catch(() => undefined)
-  if (!response?.ok) return `not saved: ${response ? await response.text() : 'no dev server'}`
-  location.reload()
-  return undefined
-}
+const editMode = dev && !filming ? dev.createPageEdit({ camera, renderer, scene, gooseScenes, goosePlay, plainPieces, settings, setPaused, view }) : undefined
 
 /** How far off the dark starts, m, before the walk's margin: the fog's far edge, or with `roundPast` that distance, the fog nearer where it is on. */
 function darkRadius(): number {
@@ -1141,11 +750,6 @@ function darkMargin(): number {
   const unseen = 2 * swarm.pace + FRAME_CAP + lightHeld + swarmHeld
   const running = swarmHeld > 0 ? swarmHeld + FRAME_CAP : 0
   return DARK_MARGIN + settings.lightSpeed * unseen + tuning.maxSpeed * running
-}
-
-/** A scene's fire as its folder edits it: its reach, which holds the rats off; its flame the flames folder's, its zone the interaction zones folder's. */
-function sceneFirePanel(kind: FireScene) {
-  return { reach: goosePlay.settings.fireReach, kind }
 }
 
 /** The goose's bones by name, the cage's key carried on one of them. */
@@ -1191,349 +795,14 @@ function islandNear(): boolean {
   return view.inView(middle.x, middle.z, widest + ISLAND_SHADOWS)
 }
 
-/** Whether the rats have rushed in yet. */
-let rushed = false
-/**
- * How far past the edge of the view the rats are set down for the rush, m, at the nearest and the farthest: fewest
- * near it and more the further out, so they come in one by one at first, then thicker, never as a block.
- */
-const RUSH_FROM = [0.6, 18] as const
-/** How far either side of the way spared the rats of a rush do not come from, rad. */
-const RUSH_SPARED = Math.PI / 4
-/**
- * Rats `from` to `to` set down out of view, on every side of him, to rush in: few just past its edge, more and more
- * behind. Given `notFrom`, a way over the ground, none come from within RUSH_SPARED rad of it.
- */
-function rushIn(dark: Dark, from: number, to: number, notFrom?: number) {
-  const [near, far] = RUSH_FROM
-  const spared = notFrom === undefined ? 0 : RUSH_SPARED
-  const start = (notFrom ?? 0) + spared
-  for (let i = from; i < to; i++) {
-    const way = start + Math.random() * (2 * Math.PI - 2 * spared)
-    const ux = Math.cos(way)
-    const uz = Math.sin(way)
-    // More the further out: the nearest share s of the way out holds s² of them.
-    const r = sightEdge(dark, ux, uz) + near + Math.sqrt(Math.random()) * (far - near)
-    swarm.setDown(i, dark.x + ux * r, dark.z + uz * r)
-  }
-}
-
-/**
- * More rats for every gosling he finds, RATS_PER_GOSLING of them (`?ratsPerGosling=N` for others): the little one's
- * peeps were heard in the dark. They come RATS_AFTER s after the find, once he has him back, rushing in from out of
- * view as the opening's do over a lower rumble, but never from the bottom of the screen. None while the game's rats
- * are at none, and none for a ghost's gosling.
- */
-const askedPerGosling = Number(url.get('ratsPerGosling'))
-const RATS_PER_GOSLING = url.has('ratsPerGosling') && askedPerGosling >= 0 ? Math.round(askedPerGosling) : 300
-const RATS_AFTER = 1.2
-const RUMBLE_GAIN = 0.5
-/** How many goslings' rats have come; how long till the next gosling's do, s, or none due. */
-let ratsCameFor = 0
-let ratsDueIn = -1
-/** The rats come for the goslings found so far, over the game's own. */
-const ratsForGoslings = () => (settings.rats > 0 ? ratsCameFor * RATS_PER_GOSLING : 0)
-/** Whether a found gosling's rats come this frame, `dt` s on: one gosling's at a time, RATS_AFTER s apart. */
-function ratsComeFrame(dt: number): boolean {
-  const circle = goosePlay.circleHeard
-  // Through the opening, or the play started again: none come for those with him.
-  if (opening.running() || circle < ratsCameFor) {
-    ratsCameFor = circle
-    ratsDueIn = -1
-    return false
-  }
-  if (ratsDueIn < 0 && circle > ratsCameFor) ratsDueIn = RATS_AFTER
-  if (ratsDueIn < 0 || (ratsDueIn -= dt) > 0) return false
-  ratsCameFor++
-  ratsDueIn = -1
-  return true
-}
-
-const heard = createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats, ghosts, islandGeese, pondLook, pitLight, run, settings, feel, opening, ending, input, camera, renderer, dev, hisAt, standAt, torchFilledOnce, loaded: () => loaded })
+const arrive = createRatsArrive({ goosePlay, settings, opening, swarm })
+const heard = createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats, ghosts, islandGeese, pondLook, pitLight, run, settings, feel, opening, ending, input, camera, renderer, dev, hisAt, standAt, torchFilledOnce, loaded: () => loadingPage.loaded })
 const hints = createGooseHints({ goosePlay, goslings, gooseSounds, opening, ending, input, camera, renderer, dev, standAt, torchFilledOnce, pitLight })
 /** How many times he had fallen as of the last frame: one more, he has woken, and the camera is put on him at once. */
 let fallsSeen = 0
 const felt = createGooseFelt({ goosePlay, feel, gooseSounds, hisAt, standAt, goose, feathers, embers, flame, post, goslings, nightLights, torchHeard: heard.torchHeard, input, camera, view, beats, opening, ending, darkLook, darkHeld: DARK_HELD })
 
-/** Whether what the game hides until its moment has been drawn once unseen, to build its pipelines. */
-let unseenBuilt = false
-/** Whether the page has loaded: every pipeline built, the GPU done building them, and the loading screen fading. */
-let loaded = false
-/**
- * Show what is hidden until its moment, and draw what stands out of sight;
- * the function returned puts it all back. Hidden until their moment, the rats,
- * the rain's streaks, the flames of the lights not yet lit, the torch's flame,
- * embers and smoke while it starts out, would build their pipelines only then,
- * and stall the strike, the rain's coming or the torch's first lighting (108 ms
- * on the goose game, 2026-10-27); and what stands out of the cameras' sight at
- * the start, the sun's shadow camera's too, stalls his arrival where it stands
- * (150-200 ms at the goose game's well, cage and pond); and the graveyard's
- * ghosts, asleep till he comes near, stalled him at the dead tree beside it
- * (350-550 ms, 2026-10-30); and the goslings out of sight, the moon's shadow
- * of the first to come into it (50 ms at the well); and the island's geese, drawn only near it, the mother stalled him
- * in the graveyard, in sight of it, on a phone's first visit (749 ms, 2026-11-03).
- */
-function showUnseen(placed: readonly FixedLight[]): () => void {
-  const ratsShown = rats.object.visible
-  rats.object.visible = true
-  const islanders = [islandGeese.object, ...islandGeese.object.children]
-  const islandersShown = islanders.map((part) => part.visible)
-  for (const part of islanders) part.visible = true
-  const ghostsShown = ghosts?.object.visible
-  if (ghosts) ghosts.object.visible = true
-  // Each gosling, hidden while the camera does not see him, as the first in sight (goslings.ts): his shadow is not the goose's.
-  const birds = goslings.object.children
-  const birdsShown = birds.map((bird) => bird.visible)
-  for (const bird of birds) bird.visible = true
-  lights.update(placed.map((light) => ({ ...light, on: true })))
-  const fireShown = sceneFires.map(({ fire }) => fire.object.visible)
-  for (const { fire } of sceneFires) fire.object.visible = true
-  const pitShown = pitFires.map(({ fire }) => fire.object.visible)
-  for (const { fire } of pitFires) fire.object.visible = true
-  const torchParts = [flame.object, embers.object, smoke.object, ...crownFires.map(({ fire }) => fire.object), ...trunkFires.map(({ fire }) => fire.object), ...(footFire ? [footFire.object] : [])]
-  // The burning branch, hidden in the crown till it snaps, its flame and its embers.
-  if (burningBranch && branchFire && branchEmbers) torchParts.push(burningBranch.object, branchFire.object, branchEmbers.object)
-  const torchShown = torchParts.map((part) => part.visible)
-  for (const part of torchParts) part.visible = true
-  const culled: Object3D[] = []
-  scene.traverse((object) => {
-    if (!object.frustumCulled) return
-    object.frustumCulled = false
-    culled.push(object)
-  })
-  return () => {
-    for (const object of culled) object.frustumCulled = true
-    lights.update(placed)
-    sceneFires.forEach(({ fire }, i) => (fire.object.visible = fireShown[i]!))
-    pitFires.forEach(({ fire }, p) => (fire.object.visible = pitShown[p]!))
-    torchParts.forEach((part, i) => (part.visible = torchShown[i]!))
-    rats.object.visible = ratsShown
-    islanders.forEach((part, k) => (part.visible = islandersShown[k]!))
-    if (ghosts) ghosts.object.visible = ghostsShown!
-    birds.forEach((bird, k) => (bird.visible = birdsShown[k]!))
-  }
-}
-
-/** Draw everything at once, shown and in sight, shadows and all, under the frame the page shows: the last of the loading. */
-function buildUnseen(placed: readonly FixedLight[]) {
-  unseenBuilt = true
-  const back = showUnseen(placed)
-  sun.shadow.needsUpdate = lamp.shadow.needsUpdate = true
-  post.render()
-  back()
-  shadowed.dirty = true
-}
-
-/** The loading screen, index.html's: the share of the scene built so far on it, and gone once all of it is. */
-const loadingScreen = document.getElementById('loading')
-const loadingShare = loadingScreen?.querySelector<HTMLElement>('.share')
-loadingScreen?.addEventListener('transitionend', (event) => {
-  if (event.target === loadingScreen && loadingScreen.classList.contains('loaded')) loadingScreen.remove()
-})
-/** How many pipelines' objects a frame of the loading draws: a couple, so a frame takes a fifth of a second or so. */
-const PIPELINES_A_SLICE = 2
-/** The share of the loading screen's count the scene pass's pipelines take, built all at once before the slices. */
-const COMPILED_SHARE = 0.6
-/** Whether the scene pass's pipelines are built: undefined until asked for, false while they build (Post.compileScene). */
-let sceneCompiled: boolean | undefined
-/** The loading's frames with nothing of the scene drawn: the post's own pipelines built on the first, the step's on the second. */
-const EMPTY_FRAMES = 2
-/** The loading's one frame the swarm steps on, to build the step's pipelines: a step or two, which moves no rat to speak of. */
-const STEP_FRAME = 1
-/** The scene's drawn objects in slices, made on the loading's first frame, the scene all there by then. */
-let loadSlices: PipelineSlices | undefined
-/** How many frames the loading has drawn. */
-let loadFrame = 0
-/** Whether the loading's last frame is still being built on the GPU: no more is drawn until it is. */
-let loadWaiting = false
-
-/** Once the GPU has done all that is drawn so far, `then`; at once without a queue to ask. */
-function whenBuilt(then: () => void) {
-  if (!gpuQueue) return then()
-  loadWaiting = true
-  void gpuQueue.onSubmittedWorkDone().then(() => {
-    loadWaiting = false
-    then()
-  })
-}
-
-/** The share built, 0 to 1, on the loading screen: its count. */
-function showLoaded(share: number) {
-  if (!loadingShare) return
-  const percent = Math.round(share * 100)
-  loadingShare.textContent = `${percent} %`
-  loadingShare.setAttribute('aria-valuenow', String(percent))
-}
-
-/** When the bench last logged how the loading stands, ms. */
-let loadWatchedAt = -Infinity
-/** Under `?bench`, how the loading stands each second: on a phone that stops at a share, which step it stopped at. */
-function loadWatched() {
-  const now = performance.now()
-  if (!benchOn || now - loadWatchedAt < 1000) return
-  loadWatchedAt = now
-  benchTools?.logToServer({ kind: 'load', ms: Math.round(now), backend, compiled: sceneCompiled, frame: loadFrame, slices: loadSlices?.slices.length, waiting: loadWaiting, ready: swarm.ready, unseenBuilt })
-}
-
-/**
- * A frame of the loading, drawn behind its screen in place of the game's:
- * shown and in sight as for `buildUnseen`, but one slice of the scene alone,
- * so its pipelines are built a couple a frame, each frame is shown, and the
- * screen counts them, each once the GPU has built it; past the slices, once
- * the rats stand, everything at once for what no slice drew, the game's first
- * frame over it, and once the GPU has built that, the screen fades.
- */
-function loadSlice(placed: readonly FixedLight[]) {
-  loadWatched()
-  if (loadWaiting) return
-  if (buildsApart) return loadFirstFrame(placed)
-  // First the scene pass's pipelines, everything shown and in sight for the call, built many at once while the
-  // screen goes on being drawn; then the slices, for what that cannot build: the shadows, the post, the step.
-  if (sceneCompiled === undefined) {
-    sceneCompiled = false
-    loadWaiting = true
-    const back = showUnseen(placed)
-    const built = post.compileScene((done, of) => showLoaded((COMPILED_SHARE * done) / of))
-    back()
-    void built
-      .catch((error: unknown) => console.warn('the scene pass was not built ahead', error))
-      .then(() => {
-        sceneCompiled = true
-        loadWaiting = false
-      })
-    return
-  }
-  loadSlices ??= new PipelineSlices(scene, PIPELINES_A_SLICE)
-  const frames = EMPTY_FRAMES + loadSlices.slices.length
-  const k = loadFrame
-  if (k < frames) {
-    loadFrame++
-    const back = showUnseen(placed)
-    const backSlice = loadSlices.only(k - EMPTY_FRAMES)
-    sun.shadow.needsUpdate = lamp.shadow.needsUpdate = true
-    post.render()
-    backSlice()
-    back()
-    shadowed.dirty = true
-    whenBuilt(() => showLoaded(COMPILED_SHARE + ((1 - COMPILED_SHARE) * (k + 1)) / (frames + 1)))
-    return
-  }
-  if (!swarm.ready || unseenBuilt) return
-  buildUnseen(placed)
-  post.render()
-  whenBuilt(loadDone)
-}
-
-/** All that has to be built before the game shows, built: Enter, or the game. */
-function loadDone() {
-  showLoaded(1)
-  if (benchOn) {
-    // Under `?bench=load`, sound on: what a first visit fetched by the time Enter shows, and once the sounds are in.
-    benchTools?.logFetched('ready')
-    // Which material each pipeline's label names: on what, how many, skinned or instanced.
-    const worn = new Map<number, { type: string; on: string[]; meshes: number; skinned: boolean; instanced: boolean }>()
-    scene.traverse((object) => {
-      const { material } = object as Mesh
-      for (const one of material ? (Array.isArray(material) ? material : [material]) : []) {
-        const entry = worn.get(one.id) ?? { type: one.type, on: [], meshes: 0, skinned: false, instanced: false }
-        entry.meshes++
-        if (entry.on.length < 3) entry.on.push(object.name || object.parent?.name || object.parent?.parent?.name || object.type)
-        entry.skinned ||= (object as Mesh & { isSkinnedMesh?: boolean }).isSkinnedMesh === true
-        entry.instanced ||= (object as Mesh & { isInstancedMesh?: boolean }).isInstancedMesh === true
-        worn.set(one.id, entry)
-      }
-    })
-    benchTools?.logToServer({ kind: 'materials', list: [...worn].map(([id, entry]) => ({ id, ...entry })) })
-    setTimeout(() => benchTools?.logFetched('after 20 s'), 20000)
-  }
-  enterWhenAsked(() => {
-    loadingScreen?.classList.add('loaded')
-    loaded = true
-  })
-}
-
-/**
- * A phone's first visit took 37 s here, 32 s of it building every pipeline in the game, much of that frozen and in
- * slices it does not need (iPhone 15 Pro Max, 2026-11-02; a second visit 3 s, the browser's cache holding them). So a
- * phone builds them apart from the page, so the screen goes on counting: first what the first frame draws, then the rest.
- * All of it before Enter: built behind the opening, it played the opening at 2 to 5 fps for as long as it took, 13 s.
- */
-const buildsApart = lean
-/** The share of the loading screen's count the first frame's pipelines fill. */
-const FIRST_FRAME_SHARE = 0.6
-/** A phone's loading: the first frame drawn, the swarm's first step taken with it, then all the rest, then Enter. */
-function loadFirstFrame(placed: readonly FixedLight[]) {
-  // What the first frame's camera sees, as things now stand: nothing hidden shown, nothing out of sight.
-  if (sceneCompiled === undefined) {
-    sceneCompiled = false
-    loadWaiting = true
-    void post
-      .compileScene((done, of) => showLoaded((FIRST_FRAME_SHARE * done) / of))
-      .catch((error: unknown) => console.warn('the first frame was not built ahead', error))
-      .then(() => {
-        sceneCompiled = true
-        loadWaiting = false
-      })
-    return
-  }
-  if (loadFrame <= STEP_FRAME || !swarm.ready) {
-    loadFrame++
-    post.render()
-    whenBuilt(() => {})
-    return
-  }
-  if (unseenBuilt) return
-  unseenBuilt = true
-  post.render()
-  loadWaiting = true
-  const back = showUnseen(placed)
-  const built = post.compileScene((done, of) => showLoaded(FIRST_FRAME_SHARE + ((1 - FIRST_FRAME_SHARE) * done) / of))
-  back()
-  void built
-    .catch((error: unknown) => console.warn('the scene was not built', error))
-    .then(() => {
-      allBuilt()
-      loadWaiting = false
-      if (benchOn) benchTools?.logToServer({ kind: 'built', ms: Math.round(performance.now()) })
-      whenBuilt(loadDone)
-    })
-}
-
-/**
- * The goose game, built, waits on its loading screen for the player to enter, by its button or the controls' confirm:
- * their click, key or pad's press is what lets the browser play sounds, so the opening is heard from its first moment.
- * Safari takes no pad's press for it: it enters all the same, heard from the first click or key.
- * Filmed or driven by a tool, it goes straight in.
- */
-const askToEnter = !!gooseSounds && !filming && !navigator.webdriver
-/** The loading screen's Enter pressed, once it shows. */
-let enterAsked: (() => void) | undefined
-/** On a pad, its button beside the loading screen's Enter. */
-let enterPad: PadButton | undefined
-function enterWhenAsked(go: () => void) {
-  if (!askToEnter || !loadingScreen) return go()
-  // In the share's place, so the title stays where it is.
-  const slot = loadingShare?.parentElement ?? loadingScreen
-  loadingShare?.remove()
-  const enter = document.createElement('button')
-  enter.className = 'enter'
-  enter.textContent = 'Enter'
-  enterPad = padBeside(enter)
-  let entered = false
-  const once = () => {
-    if (entered) return
-    entered = true
-    enterAsked = undefined
-    enter.disabled = true
-    // From a pad's press, the sounds' own unlock on a click or key never ran.
-    gooseSounds?.unlock()
-    go()
-  }
-  enter.addEventListener('click', once)
-  enterAsked = once
-  slot.append(enter)
-  enter.focus()
-}
+const loadingPage = createLoading({ scene, post, rats, islandGeese, ghosts, goslings, lights, fires, flame, embers, smoke, sun, lamp, shadowed, swarm, gpuQueue, lean, benchTools, backend, allBuilt, gooseSounds })
 
 /** The game paused or going on, the panel's pause button saying which. */
 function setPaused(on: boolean) {
@@ -1541,8 +810,8 @@ function setPaused(on: boolean) {
   panel?.refresh()
 }
 /** Whether the game pauses on its own here: in the opening, the play or the ending's card, not in edit mode. */
-const pausesHere = () => loaded && !editMode?.on && !ending.againShown()
-const pauseVeil = createPauseVeil({ settings, input, gooseSounds, loaded: () => loaded, editing: () => editMode?.on, setPaused })
+const pausesHere = () => loadingPage.loaded && !editMode?.on && !ending.againShown()
+const pauseVeil = createPauseVeil({ settings, input, gooseSounds, loaded: () => loadingPage.loaded, editing: () => editMode?.on, setPaused })
 // Losing the window pauses the game where it would pause on Start, typing in a field or not, and so does the page
 // hidden, a phone switched to another app or locked; coming back leaves it paused. Not filmed or driven by a tool,
 // whose windows come and go.
@@ -1556,217 +825,9 @@ document.addEventListener('pointerlockchange', () => {
   if (view.chasing && !document.pointerLockElement && !filming && pausesHere()) setPaused(true)
 })
 
-// ---------------------------------------------------------------- the phone's bench
-// `?bench` (phonebench.ts) reads the game's places and what each thing drawn costs, on whatever it runs on, and posts it
-// to the dev server's log. For a phone: `pnpm phone`, then `?bench&intro=0&outro=0&mute` at the address it prints,
-// the screen left on for a few minutes. `?bench=all` reads every cost and place; `?bench=load`, with no `mute`, what a
-// first visit fetches, the sounds with it, waiting at Enter. `?bench=soak` walks him up the road and
-// back for five minutes, with a stand between, which shows a phone heating up, and with the quality free to move, which
-// step it settles on. Otherwise the step is held where the device starts. The goose never dies, and his torch never
-// burns down. The late game's load after the first place: every gosling with him, and their rats. Elsewhere
-// `&budget=` says a vsync, ms, where it isn't 60 Hz. The load is raised by the pixel ratio, up to BENCH_DPRS.
-/** `objects` not drawn, in any pass: by layer, since the page sets their visibility itself, each frame. */
-function benchHide(name: string, ...objects: (Object3D | undefined | false)[]): BenchCost {
-  const masks = new Map<Object3D, number>()
-  return {
-    name,
-    off() {
-      for (const object of objects) {
-        if (!object) continue
-        object.traverse((part) => {
-          masks.set(part, part.layers.mask)
-          part.layers.set(31)
-        })
-      }
-    },
-    on() {
-      for (const [part, mask] of masks) part.layers.mask = mask
-      masks.clear()
-    },
-  }
-}
-/** A look taken off and put back. */
-function benchLook(name: string, set: (on: boolean) => void): BenchCost {
-  const change = (on: boolean) => {
-    set(on)
-    lookChanged()
-  }
-  return { name, off: () => change(false), on: () => change(true) }
-}
-const BENCH_DPRS = [2.5, 3, 4]
-/** How long `?bench=soak` goes on, in rounds of a walk up, a walk back and a stand, each reading 5 s. */
-const SOAK_ROUNDS = 20
-function createBench(): PhoneBench | undefined {
-  if (!benchTools || url.get('bench') === 'load') return undefined
-  const play = goosePlay
-  const everyGosling = () => play.giveGoslings(play.goslings.length)
-  torchEverlasting = true
-  const benchMode = url.get('bench')
-  const soaking = benchMode === 'soak'
-  const everything = benchMode === 'all'
-  // Time for each gosling's rats to come, RATS_AFTER s apart.
-  const ratsCome = 3000 + play.goslings.length * RATS_AFTER * 1000
-  /** The key held down, as a player's would be: the bench walks him as a keyboard does. */
-  let heldKey = ''
-  const hold = (code: string) => {
-    if (heldKey) dispatchEvent(new KeyboardEvent('keyup', { code: heldKey }))
-    heldKey = code
-    if (code) dispatchEvent(new KeyboardEvent('keydown', { code }))
-  }
-  const walks: BenchPlace[] = [{ name: 'gathering', go: everyGosling, settle: ratsCome }]
-  for (let round = 1; round <= SOAK_ROUNDS; round++) {
-    const settle = 2000
-    walks.push({ name: `${round} up`, go: () => hold('KeyW'), settle }, { name: `${round} back`, go: () => hold('KeyS'), settle }, { name: `${round} stand`, go: () => hold(''), settle })
-  }
-  const places: BenchPlace[] = soaking ? walks : !everything ? [
-    { name: 'start', go: everyGosling, settle: ratsCome },
-    { name: 'dead tree', go: () => play.standBy('tree') },
-    { name: 'pond', go: () => play.standByPond() },
-  ] : [
-    { name: 'start, no gosling', go: () => play.standAtStart() },
-    { name: 'start', go: everyGosling, settle: ratsCome },
-    { name: 'well', go: () => play.standBy('well') },
-    { name: 'dead tree', go: () => play.standBy('tree') },
-    { name: 'cage', go: () => play.standBy('cage') },
-    ...(graveyard ? [{ name: 'graveyard', go: standAtGraveyard }] : []),
-    { name: 'pond', go: () => play.standByPond() },
-    { name: 'island', go: standOffIsland },
-  ]
-  const printed = { hatch: look.hatch.enabled, vignette: look.vignette.enabled, grain: look.grain.grain, paper: look.grain.paper, bloom: look.bloom.enabled, tilt: tilt?.look.enabled ?? false }
-  const setTilt = (on: boolean) => {
-    if (!tilt) return
-    tilt.look.enabled = on && printed.tilt
-    tilt.set()
-  }
-  const setGrain = (on: boolean) => {
-    look.grain.grain = on && printed.grain
-    look.grain.paper = on && printed.paper
-  }
-  const waterMeshes: Object3D[] = []
-  scene.traverse((part) => {
-    if ((part as { material?: unknown }).material === water.material) waterMeshes.push(part)
-  })
-  /** The pixel ratio the costs are read at, raised till the frames run over budget. */
-  let benchDpr = quality.step.dpr
-  const raise = () => {
-    const next = BENCH_DPRS.find((dpr) => dpr > benchDpr)
-    if (next === undefined) return false
-    renderer.setPixelRatio((benchDpr = next))
-    return true
-  }
-  const costs: BenchCost[] = soaking ? [] : [
-    { name: 'rats at a tenth', off: () => (benchRatShare = 0.1), on: () => (benchRatShare = 1) },
-    // Where the load was not raised, the first reads the same both ways: what a price of nothing looks like.
-    ...[2, 1.5, 1].map((dpr): BenchCost => ({ name: `dpr ${dpr}`, off: () => renderer.setPixelRatio(dpr), on: () => renderer.setPixelRatio(benchDpr) })),
-    benchLook('every effect after the scene', (on) => {
-      setTilt(on)
-      setGrain(on)
-      look.bloom.enabled = on && printed.bloom
-      look.hatch.enabled = on && printed.hatch
-      look.vignette.enabled = on && printed.vignette
-    }),
-    benchHide('rats', rats.object),
-    benchHide('dead trees and bushes', deadTreesMesh.object, deadTreesMesh.own, bushesMesh.object),
-    benchHide('ground', ground.mesh),
-    ...(!everything ? [] : [
-      benchLook('tilt', setTilt),
-      benchLook('moon shadows', (on) => (look.sun.shadows = on)),
-      benchLook('bloom', (on) => (look.bloom.enabled = on && printed.bloom)),
-      benchLook('hatch', (on) => (look.hatch.enabled = on && printed.hatch)),
-      benchLook('grain and paper', setGrain),
-      benchLook('vignette', (on) => (look.vignette.enabled = on && printed.vignette)),
-      { name: 'fire shadows', off: () => (fireShadowsHeld = true), on: () => (fireShadowsHeld = false) },
-      benchLook('rat trails', (on) => (look.trails.enabled = on)),
-      { name: 'rat depth pre-pass', off: () => rats.setPrepass(!prepassOn), on: () => rats.setPrepass(prepassOn) },
-      benchHide('falling leaves', fallingLeaves?.object),
-      benchHide('goose and goslings', goose.object, goslings.object),
-      ...(graveyard && ghosts ? [{ ...benchHide('ghosts', ghosts.object), place: 'graveyard' }] : []),
-      ...(waterMeshes.length > 0 ? [{ ...benchHide('water', ...waterMeshes), place: 'pond' }] : []),
-    ]),
-  ]
-  const line = document.createElement('div')
-  line.style.cssText = 'position:fixed;top:8px;left:8px;z-index:100;font:12px monospace;color:#fff;background:#000a;padding:2px 6px;pointer-events:none'
-  document.body.append(line)
-  const device = (renderer.backend as unknown as { device?: { lost: Promise<{ reason: string; message: string }>; features: Set<string>; adapterInfo?: { vendor: string; architecture: string } } }).device
-  const runs = Number(sessionStorage.getItem('goose-bench-runs') ?? 0) + 1
-  sessionStorage.setItem('goose-bench-runs', String(runs))
-  benchTools?.logToServer({
-    kind: 'start',
-    // A second run in one tab: the phone killed the first, or it was opened again.
-    run: runs,
-    address: location.search,
-    agent: navigator.userAgent,
-    backend,
-    gpu: device?.adapterInfo && { vendor: device.adapterInfo.vendor, architecture: device.adapterInfo.architecture },
-    // Whether the GPU's own clock can be asked for, should the frames' prices not do.
-    timestampQuery: device?.features.has('timestamp-query'),
-    loadMs: Math.round(performance.now()),
-    size: [innerWidth, innerHeight],
-    devicePixelRatio,
-    step: quality.level,
-    dpr: renderer.getPixelRatio(),
-    lean,
-    moon,
-  })
-  void device?.lost.then((lost) => benchTools?.logToServer({ kind: 'error', what: 'device lost', detail: `${lost.reason}: ${lost.message}` }))
-  // The screen kept on for it where the phone allows: some only from a tap.
-  const keepAwake = () => void navigator.wakeLock?.request('screen').catch(() => {})
-  keepAwake()
-  addEventListener('pointerdown', keepAwake, { once: true })
-  const bench: PhoneBench = new benchTools.PhoneBench(places, costs, {
-    report: (reading) =>
-      benchTools?.logToServer({ kind: 'reading', ...reading, lean, moon, step: quality.level, goose: [run.holder.x, run.holder.z], rats: swarm.count, drawn: rats.drawn, drawCalls: renderer.info.render.drawCalls, dpr: renderer.getPixelRatio() }),
-    budget: Number(url.get('budget')) || undefined,
-    raise: soaking ? undefined : raise,
-    timeQueue:
-      gpuQueue &&
-      ((record) => {
-        const from = performance.now()
-        void gpuQueue.onSubmittedWorkDone().then(() => record(performance.now() - from))
-      }),
-    show(shown) {
-      line.textContent = `bench ${shown}`
-      if (shown === 'done') benchTools?.logToServer({ kind: 'done', priced: bench.priced })
-    },
-  })
-  return bench
-}
-// ---------------------------------------------------------------- the run kept
-// On a phone the page can go at any moment, dropped behind another app or a locked screen, and come back from nothing.
-// So the run is kept (keptrun.ts) and taken up where he last filled his torch, past the opening. `?keep` tries it elsewhere.
-/** How often the run is kept, s of the page: a phone may drop it with no warning. */
-const KEEP_EVERY = 2
-const keeping = !filming && !benchOn && (phone || url.has('keep'))
-let runToTakeUp = keeping ? keptRun() : undefined
-let keepIn = KEEP_EVERY
-/** The run kept now, unless he is yet to have a run worth keeping, or it is over. */
-function keepTheRun() {
-  if (!keeping || !goosePlay.armed || opening.running() || ending.running() || goosePlay.down) return
-  keepRun(goosePlay.saved())
-}
-if (keeping) {
-  document.addEventListener('visibilitychange', () => document.hidden && keepTheRun())
-  addEventListener('pagehide', keepTheRun)
-}
-/** A frame of the page past its loading: the kept run taken up on the first, as if the opening were skipped; and kept again as it goes. */
-function keptRunFrame(frame: number) {
-  if (!keeping) return
-  if (runToTakeUp) {
-    opening.skip()
-    rushed = true
-    goosePlay.restore(runToTakeUp)
-    ratsCameFor = goosePlay.circleHeard
-    ratsDueIn = -1
-    // What was done before, not heard again.
-    goosePlay.scenes.forEach((scene, s) => {
-      if (scene.kind === 'cage') heard.takenHeard[s] = scene.takenAt
-    })
-    runToTakeUp = undefined
-  }
-  if ((keepIn -= frame) > 0) return
-  keepIn = KEEP_EVERY
-  keepTheRun()
-}
+/** The phone's bench on the page, fetched under `?bench` alone. */
+const pageBench = benchOn ? await import('./dev/pagebench') : undefined
+const keptRunFrame = createRunKeeper({ goosePlay, opening, ending, heard, arrive })
 
 /** Under `?bench=load`, the frames of each second in play: how many, the longest and the second longest, ms; for the hitches of what is still building. */
 const watched = { frames: 0, worst: 0, next: 0, from: -1 }
@@ -1805,7 +866,7 @@ renderer.setAnimationLoop(() => {
   const frame = timer.getDelta()
   // Paused, no time passes for the run, the light's walk or the camera's follow; the mouse still moves the camera.
   // Loading, none either: the scene is being built behind the loading screen, a slice a frame (loadSlice).
-  const loading = !loaded
+  const loading = !loadingPage.loaded
   if (!loading) keptRunFrame(frame)
   const dt = settings.paused || loading ? 0 : Math.min(frame, FRAME_CAP)
   beats.clock += dt
@@ -1820,10 +881,10 @@ renderer.setAnimationLoop(() => {
   if (input.commands.resume) setPaused(false)
   pauseVeil.frame()
   if (input.commands.confirm) {
-    enterAsked?.()
+    loadingPage.enterAsked?.()
     ending.playAgain?.()
   }
-  enterPad?.update(besideOf(input.commands))
+  loadingPage.enterPad?.update(besideOf(input.commands))
   ending.againPad?.update(besideOf(input.commands))
   if (!loading) opening.skipFrame(input.commands.skip, frame)
   const newBeat = beats.frame(lookChanged)
@@ -1861,7 +922,7 @@ renderer.setAnimationLoop(() => {
       // Slower in the water: his walking pace given way to his swimming one as he takes to it.
       const swimming = swimmingIn(pondLook, run.holder.x, run.holder.z, pondLook.goose)
       goosePlay.settings.pace = settings.lightSpeed * (1 + (pondLook.goose.pace - 1) * swimming) * share
-      if (torchEverlasting) run.fuel = 1
+      if (debugKeys.torchEverlasting) run.fuel = 1
       goosePlay.frame(dt, {
         heading: share > 0 ? { x: view.walking.x, z: view.walking.z } : null,
         interact: input.commands.interact,
@@ -1897,7 +958,7 @@ renderer.setAnimationLoop(() => {
   const drawn = felt.wakeFlare(branchFlared(opening.running() && pitLight >= 0 ? placed.map((p, k) => (k === pitLight ? { ...p, reach: p.reach * litShare(opening.t) } : p)) : placed))
   lights.update(drawn)
   skyFog.lightUp(drawn, run.torch, run.torch.lit && settings.on, nightLights.torchFlare)
-  refillZonesFrame(drawn)
+  zoneRings.frame(drawn)
   // The lamp, the fog, the sun and the camera after the light, before the swarm is told what the fog hides: this frame's fog, not the last one's.
   follow(dt, newBeat, frame)
   fires.branchFrame(newBeat, held)
@@ -1931,14 +992,14 @@ renderer.setAnimationLoop(() => {
   const margin = darkMargin()
   const dark: Dark | undefined =
     settings.bringRound ? { x: shown.x, z: shown.z, radius: darkRadius() + margin, view: view.groundView(margin) } : undefined
-  const ratsCome = ratsComeFrame(dt)
-  const wanted = fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, Math.round((settings.rats + ratsForGoslings()) * quality.step.rats * benchRatShare))
+  const ratsCome = arrive.comeFrame(dt)
+  const wanted = fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, Math.round((settings.rats + arrive.forGoslings()) * quality.step.rats * benchHolds.ratShare))
   // The goose game's goslings in the dark pull the rats near them (#188).
   // Held till the strike, but stepped once on the loading screen with the rest, so its first step builds nothing.
   const ratsHeld = opening.on && !ratsOut(opening.t) && !loading
-  if (opening.on && !rushed && ratsOut(opening.t) && dark) {
-    rushed = true
-    rushIn(dark, 0, wanted)
+  if (opening.on && !arrive.rushed && ratsOut(opening.t) && dark) {
+    arrive.rushed = true
+    arrive.rushIn(dark, 0, wanted)
     // The ground rumbles under them.
     gooseSounds?.play('quake')
   }
@@ -1946,13 +1007,13 @@ renderer.setAnimationLoop(() => {
   if (ratsCome && dark && wanted > swarm.count) {
     const from = swarm.count
     swarm.setCount(wanted)
-    rushIn(dark, from, wanted, Math.atan2(camera.position.z - dark.z, camera.position.x - dark.x))
+    arrive.rushIn(dark, from, wanted, Math.atan2(camera.position.z - dark.z, camera.position.x - dark.x))
     gooseSounds?.play('quake', undefined, RUMBLE_GAIN)
     felt.rumbledAt = goosePlay.t
   }
   // Loading, it takes its step on STEP_FRAME, and goes on being asked till it has stood them: the worker of WebGL 2 reads
   // its input on a clock of its own, and asked for one frame alone it could miss it, and the loading wait for ever at 99 %.
-  const loadHeld = loading && (loadFrame < STEP_FRAME || (loadFrame > STEP_FRAME && swarm.ready))
+  const loadHeld = loading && (loadingPage.frame < STEP_FRAME || (loadingPage.frame > STEP_FRAME && swarm.ready))
   swarm.send(wanted, swarmLight, tuning, settings.paused || loadHeld || ratsHeld, dark, keptOff, goosePlay.targets)
   // The places: every frame when smooth; on the beat when held; and the first time a state is there, whatever the beat.
   if (!(stop.enabled && stop.swarm) || !swarm.ready) swarm.sample(performance.now())
@@ -2004,7 +1065,7 @@ renderer.setAnimationLoop(() => {
   }
   heard.ghostsFrame(dt)
   plainFlames.update()
-  if (loading) loadSlice(placed)
+  if (loading) loadingPage.slice(placed)
   else post.render()
   // The orbit's camera put back, for the mouse, the keys and the next frame's follow.
   if (shot) {
@@ -2030,7 +1091,7 @@ renderer.setAnimationLoop(() => {
   if (!loading) {
     if (!benchMade) {
       benchMade = true
-      bench = createBench()
+      bench = pageBench?.createBench({ benchTools, goosePlay, look, tilt, scene, water, quality, renderer, lookChanged, rats, deadTreesMesh, bushesMesh, ground, prepassOn, fallingLeaves, goose, goslings, graveyard, ghosts, backend, lean, moon, run, swarm, gpuQueue, debugKeys, holds: benchHolds })
     }
     if (bench) goosePlay.life = 1
     bench?.frame(frame * 1000, performance.now() - start, performance.now())

@@ -526,3 +526,6 @@ export function createGooseView({ camera, renderer, light, goslings, run, feel, 
     },
   }
 }
+
+/** The camera as the page has it. */
+export type GooseView = ReturnType<typeof createGooseView>
