@@ -64,20 +64,19 @@ import { createDeadTrees, deadTrees, defaultBarkLook, defaultGrassLook, offWay, 
 import { bushes, createBushes, defaultBushLeafLook, defaultBushShape } from './bushes'
 import { createRoadWalls, defaultRoadWallLook, ROAD_WALL_STYLES, roadWallLines, roadWallsOf, roadWallStones, type RoadWallLook, type StoneBlock } from './roadwalls'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { createPanel, createReadouts, lightAndPause, type GooseFeel, type Look, type Settings, type ShineLook } from './panel'
+import type { GooseFeel, Look, Settings, ShineLook } from './panel'
+import { lightAndPause } from './lightandpause'
 import type { PlaySwarm } from './play'
 import { PipelineSlices } from './pipelineslices'
 import { GoosePlay, MOST_BITERS, eased, inZone, type FireScene, type SceneState, type Zone } from './gooseplay'
 import { createGoslingBadge, mountBadgeControls } from './goslingbadge'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './goslings'
-import { BURNING_LIGHT, BURNING_MODEL, CAGE_FIRE_LIGHT, PIT_BOWL, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_BOWL, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece, type SceneFireLook } from './goosescenes'
-import { createEditMode, layPieces } from './gooseedit'
+import { layPieces, BURNING_LIGHT, BURNING_MODEL, CAGE_FIRE_LIGHT, PIT_BOWL, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_BOWL, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece, type SceneFireLook } from './goosescenes'
 import { besideOf, createHoldHint, createPadButton, promptedOf, type PadButton } from './holdhint'
 import { createThumbs } from './goosethumbs'
 import { BUTTON_RADIUS, STICK_REACH, touchLayout } from './goosetouch'
 import { GooseControls, SPACE, WALK_KEYS, type Commands, type ControlsState, type Walk } from './goosecontrols'
 import { createGooseSounds, type Loop as SoundLoop } from './goosesounds'
-import { mountSoundPanel, mountTakesPanel } from './soundpanel'
 import { createGooseMusic } from './goosemusic'
 import { callAt, createCallHint, createPeepWords, type CallAt } from './callhint'
 import { FURTHEST, createPond, defaultPondLook, groundOf, islandMiddle, islandShoreAt, shoreAt, standingIn, swimmingIn, widestShore, type PondLook } from './pond'
@@ -116,7 +115,7 @@ import { gooseThemeOf, layInto } from './goosethemes'
 import { RemoteSwarm } from './swarm-remote'
 import { GpuSwarm, MOST_FRAME } from './gpuswarm'
 import { nextAfterFailure, watchForDrawFailure } from './cannotdraw'
-import { PhoneBench, logFetched, logLatePipelines, logPageTrouble, logPipelineTimes, logToServer, makeShadersNew, type BenchCost, type BenchPlace } from './phonebench'
+import type { BenchCost, BenchPlace, PhoneBench } from './phonebench'
 import { keptRun, keepRun, dropKeptRun } from './keptrun'
 import { PHONE_SLOW_FRAME, Quality, ladder, maxPixelRatio, startingStep } from './quality'
 import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './gameplay'
@@ -140,6 +139,8 @@ const debugOn = location.hash === '#_debug'
 addEventListener('hashchange', () => {
   if ((location.hash === '#_debug') !== debugOn) location.reload()
 })
+/** The developer's page's tools, fetched on that page alone. */
+const dev = debugOn ? await import('./devtools') : undefined
 /** Whether the pointer is a finger: a phone, or a tablet. */
 const phone = matchMedia('(pointer: coarse)').matches
 /** The touch stick and button (#198): on a phone, or with `?touch` to try them elsewhere. */
@@ -458,7 +459,9 @@ const requiredLimits = adapter && !forceWebGL
   : undefined
 const timestamps = url.has('timestamps')
 const benchOn = url.has('bench')
-if (benchOn) logPageTrouble()
+/** The phone's bench's tools (phonebench.ts), fetched under `?bench` alone. */
+const benchTools = benchOn ? await import('./phonebench') : undefined
+benchTools?.logPageTrouble()
 // A phone that cannot draw the game tries WebGL 2, else says so (cannotdraw.ts), rather than playing on with no goose.
 const cannotDraw = { stop: () => {} }
 if (phone) {
@@ -473,12 +476,12 @@ if (phone) {
   )
 }
 // `?bench=load&cold`: a first visit's load, whatever this phone has compiled before.
-if (benchOn && url.has('cold')) makeShadersNew()
+if (url.has('cold')) benchTools?.makeShadersNew()
 /** Whether a phone has built all it builds before Enter; and what is being drawn, for the log of what came after it. */
 let allBuilt = false
 let drawingNow = ''
-if (benchOn) logLatePipelines(() => allBuilt, () => drawingNow)
-if (url.get('bench') === 'load') logPipelineTimes(url.has('serial'))
+benchTools?.logLatePipelines(() => allBuilt, () => drawingNow)
+if (url.get('bench') === 'load') benchTools?.logPipelineTimes(url.has('serial'))
 const renderer = new WebGPURenderer({ antialias: true, forceWebGL, requiredLimits, trackTimestamp: timestamps })
 // The most the pixel ratio is drawn at, held to a 4K frame; the quality's steps take it lower, or `?dpr=N` sets it.
 const maxDpr = Number(url.get('dpr')) || maxPixelRatio(devicePixelRatio, innerWidth, innerHeight)
@@ -520,7 +523,7 @@ if (benchOn) {
     drawObject(object, scene, camera, geometry, material, group, lightsNode, clippingContext, passId)
   }
 }
-if (benchOn) renderer.domElement.addEventListener('webglcontextlost', () => logToServer({ kind: 'error', what: 'context lost', ms: Math.round(performance.now()) }))
+if (benchOn) renderer.domElement.addEventListener('webglcontextlost', () => benchTools?.logToServer({ kind: 'error', what: 'context lost', ms: Math.round(performance.now()) }))
 const backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'WebGPU' : 'WebGL 2'
 // Ready for the sun and the lamp to cast, each while its shadows toggle is on.
 // Variance shadow maps, blurred before they are read, so the sun's softness
@@ -1063,9 +1066,10 @@ if (goosePlay) {
     }
   }
 }
-if (ghosts && !noPanel)
+if (dev && ghosts && !noPanel)
   mountGhostControls(
     ghosts,
+    dev.GUI,
     graves &&
       ((gui) => {
         mountGraveControls(graves, gui, () => {
@@ -2351,7 +2355,7 @@ addEventListener(
   { capture: true },
 )
 // The crowd folder edits the swarm's own tuning: the next step reads it.
-if (fallingLeaves && !noPanel) mountFallControls(fallingLeaves)
+if (dev && fallingLeaves && !noPanel) mountFallControls(fallingLeaves, dev.GUI)
 /**
  * How far behind the light the camera's follow runs, s: in the goose game, longer, a lazier glide after him, and set
  * on the panel's camera folder.
@@ -2400,7 +2404,7 @@ function orthoFrame() {
   camera.far = distance + ORTHO_DEPTH
   camera.updateProjectionMatrix()
 }
-const panel = noPanel || filming ? undefined : createPanel(settings, tuning, look, capacity, {
+const panel = noPanel || filming ? undefined : dev?.createPanel(settings, tuning, look, capacity, {
   count() {
     // Sent with the next frame's input; the swarm grows at the arena's edge, so the rats on screen stay where they are.
   },
@@ -2573,7 +2577,7 @@ if (!panel) lightAndPause(settings, () => torchChanged() && lookChanged())
 qualityChanged()
 shadowsChanged()
 // After the backend, the step and what it, or the address, turned off: so a phone shows what it draws.
-const readouts = filming || !debugOn ? () => {} : createReadouts(() =>
+const readouts = filming || !dev ? () => {} : dev.createReadouts(() =>
   [
     backend,
     `step ${quality.level}/${steps.length - 1}${adapt ? '' : ' held'}`,
@@ -2964,8 +2968,8 @@ if (goosePlay && gooseScenes) goosePlay.landingOf = (tree) => gooseScenes.landin
 let editWasPaused = false
 let editWasCamera: GooseCamera = 'fixed'
 const editMode =
-  debugOn && goosePlay && gooseScenes && !filming
-    ? createEditMode({
+  dev && goosePlay && gooseScenes && !filming
+    ? dev.createEditMode({
         camera,
         dom: renderer.domElement,
         scene,
@@ -3756,9 +3760,9 @@ if (gooseSounds) {
     gooseSounds.muted = !gooseSounds.muted
   })
   if (!noPanel) {
-    mountSoundPanel(gooseSounds, gooseMusic)
+    dev?.mountSoundPanel(gooseSounds, gooseMusic)
     // The takes as ElevenLabs gave them come from the dev server alone.
-    if (import.meta.env.DEV) mountTakesPanel()
+    if (import.meta.env.DEV) dev?.mountTakesPanel()
   }
 }
 /** Where he is heard from: his middle, where the play has him. */
@@ -4284,7 +4288,7 @@ const badgeLook = url.get('marker') === 'doodle' ? 'doodle' : 'portrait'
 const BADGE_FIT_SIDE = 800
 const badgeFit = () => (phone ? Math.min(1, Math.min(innerWidth, innerHeight) / BADGE_FIT_SIDE) : 1)
 const callBadge = goosePlay && !filming && featureOn('marker') ? createGoslingBadge(badgeLook, badgeFit) : undefined
-if (callBadge && badgeLook === 'portrait' && !noPanel) mountBadgeControls()
+if (dev && callBadge && badgeLook === 'portrait' && !noPanel) mountBadgeControls(dev.GUI)
 /** The badge's honk, as said, and how big it is written; whether its gosling is in view, for it to be written at all. */
 const BADGE_WORD = '*honk*'
 const BADGE_CALL = 0.5
@@ -4616,7 +4620,7 @@ function loadWatched() {
   const now = performance.now()
   if (!benchOn || now - loadWatchedAt < 1000) return
   loadWatchedAt = now
-  logToServer({ kind: 'load', ms: Math.round(now), backend, compiled: sceneCompiled, frame: loadFrame, slices: loadSlices?.slices.length, waiting: loadWaiting, ready: swarm.ready, unseenBuilt })
+  benchTools?.logToServer({ kind: 'load', ms: Math.round(now), backend, compiled: sceneCompiled, frame: loadFrame, slices: loadSlices?.slices.length, waiting: loadWaiting, ready: swarm.ready, unseenBuilt })
 }
 
 /**
@@ -4673,7 +4677,7 @@ function loadDone() {
   showLoaded(1)
   if (benchOn) {
     // Under `?bench=load`, sound on: what a first visit fetched by the time Enter shows, and once the sounds are in.
-    logFetched('ready')
+    benchTools?.logFetched('ready')
     // Which material each pipeline's label names: on what, how many, skinned or instanced.
     const worn = new Map<number, { type: string; on: string[]; meshes: number; skinned: boolean; instanced: boolean }>()
     scene.traverse((object) => {
@@ -4687,8 +4691,8 @@ function loadDone() {
         worn.set(one.id, entry)
       }
     })
-    logToServer({ kind: 'materials', list: [...worn].map(([id, entry]) => ({ id, ...entry })) })
-    setTimeout(() => logFetched('after 20 s'), 20000)
+    benchTools?.logToServer({ kind: 'materials', list: [...worn].map(([id, entry]) => ({ id, ...entry })) })
+    setTimeout(() => benchTools?.logFetched('after 20 s'), 20000)
   }
   enterWhenAsked(() => {
     loadingScreen?.classList.add('loaded')
@@ -4738,7 +4742,7 @@ function loadFirstFrame(placed: readonly FixedLight[]) {
     .then(() => {
       allBuilt = true
       loadWaiting = false
-      if (benchOn) logToServer({ kind: 'built', ms: Math.round(performance.now()) })
+      if (benchOn) benchTools?.logToServer({ kind: 'built', ms: Math.round(performance.now()) })
       whenBuilt(loadDone)
     })
 }
@@ -4927,7 +4931,7 @@ const BENCH_DPRS = [2.5, 3, 4]
 /** How long `?bench=soak` goes on, in rounds of a walk up, a walk back and a stand, each reading 5 s. */
 const SOAK_ROUNDS = 20
 function createBench(): PhoneBench | undefined {
-  if (!benchOn || !goosePlay || url.get('bench') === 'load') return undefined
+  if (!benchTools || !goosePlay || url.get('bench') === 'load') return undefined
   const play = goosePlay
   const everyGosling = () => play.giveGoslings(play.goslings.length)
   torchEverlasting = true
@@ -5020,7 +5024,7 @@ function createBench(): PhoneBench | undefined {
   const device = (renderer.backend as unknown as { device?: { lost: Promise<{ reason: string; message: string }>; features: Set<string>; adapterInfo?: { vendor: string; architecture: string } } }).device
   const runs = Number(sessionStorage.getItem('goose-bench-runs') ?? 0) + 1
   sessionStorage.setItem('goose-bench-runs', String(runs))
-  logToServer({
+  benchTools?.logToServer({
     kind: 'start',
     // A second run in one tab: the phone killed the first, or it was opened again.
     run: runs,
@@ -5038,14 +5042,14 @@ function createBench(): PhoneBench | undefined {
     lean,
     moon,
   })
-  void device?.lost.then((lost) => logToServer({ kind: 'error', what: 'device lost', detail: `${lost.reason}: ${lost.message}` }))
+  void device?.lost.then((lost) => benchTools?.logToServer({ kind: 'error', what: 'device lost', detail: `${lost.reason}: ${lost.message}` }))
   // The screen kept on for it where the phone allows: some only from a tap.
   const keepAwake = () => void navigator.wakeLock?.request('screen').catch(() => {})
   keepAwake()
   addEventListener('pointerdown', keepAwake, { once: true })
-  const bench: PhoneBench = new PhoneBench(places, costs, {
+  const bench: PhoneBench = new benchTools.PhoneBench(places, costs, {
     report: (reading) =>
-      logToServer({ kind: 'reading', ...reading, lean, moon, step: quality.level, goose: [run.holder.x, run.holder.z], rats: swarm.count, drawn: rats.drawn, drawCalls: renderer.info.render.drawCalls, dpr: renderer.getPixelRatio() }),
+      benchTools?.logToServer({ kind: 'reading', ...reading, lean, moon, step: quality.level, goose: [run.holder.x, run.holder.z], rats: swarm.count, drawn: rats.drawn, drawCalls: renderer.info.render.drawCalls, dpr: renderer.getPixelRatio() }),
     budget: Number(url.get('budget')) || undefined,
     raise: soaking ? undefined : raise,
     timeQueue:
@@ -5056,7 +5060,7 @@ function createBench(): PhoneBench | undefined {
       }),
     show(shown) {
       line.textContent = `bench ${shown}`
-      if (shown === 'done') logToServer({ kind: 'done', priced: bench.priced })
+      if (shown === 'done') benchTools?.logToServer({ kind: 'done', priced: bench.priced })
     },
   })
   return bench
@@ -5107,7 +5111,7 @@ function watchFrames(ms: number) {
   if (ms > watched.worst) [watched.worst, watched.next] = [ms, watched.worst]
   else if (ms > watched.next) watched.next = ms
   if (now - watched.from < 1000) return
-  logToServer({ kind: 'second', ms: Math.round(now), opening: Math.round(introT * 10) / 10, frames: watched.frames, worst: Math.round(watched.worst), next: Math.round(watched.next), rats: swarm.count, drawn: rats.drawn, step: quality.level })
+  benchTools?.logToServer({ kind: 'second', ms: Math.round(now), opening: Math.round(introT * 10) / 10, frames: watched.frames, worst: Math.round(watched.worst), next: Math.round(watched.next), rats: swarm.count, drawn: rats.drawn, step: quality.level })
   Object.assign(watched, { frames: 0, worst: 0, next: 0, from: now })
 }
 

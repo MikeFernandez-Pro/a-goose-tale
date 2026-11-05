@@ -11,7 +11,7 @@
 // - A toy's grade over the finished frame: brighter, more contrast, richer.
 //
 // With it on, the deep output is drawn whether or not the depth of field is.
-import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
+import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { Vector2, type Node } from 'three/webgpu'
 import { abs, max, mix, pow, saturation, screenSize, screenUV, smoothstep, uniform, vec2 } from 'three/tsl'
 

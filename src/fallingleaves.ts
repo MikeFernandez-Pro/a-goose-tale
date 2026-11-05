@@ -5,7 +5,7 @@
 // shrinks away. Its colours are the litter's as they were, unless the game
 // gives it the dead trees' (main.ts).
 import { BufferGeometry, Color, DataTexture, DataUtils, DoubleSide, Float32BufferAttribute, HalfFloatType, LinearFilter, Mesh, MeshLambertNodeMaterial, RedFormat, Uint16BufferAttribute, Vector2, type Node } from 'three/webgpu'
-import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
+import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { abs, attribute, cos, float, floor, fract, Fn, int, max, mix, normalLocal, select, sin, smoothstep, step, texture, uniform, vec2, vec3, vec4 } from 'three/tsl'
 import type { HeightGrid } from './heights'
 import { leaveOutOfBloom } from './post'
@@ -251,11 +251,11 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
   return falling
 }
 
-export function mountFallControls(falling: FallingLeaves): void {
+export function mountFallControls(falling: FallingLeaves, Gui: typeof GUI): void {
   const container = document.createElement('div')
   container.style.cssText = 'position:fixed;bottom:8px;left:276px;z-index:1000'
   document.body.append(container)
-  const gui = new GUI({ title: 'falling leaves', container, width: 240 } as ConstructorParameters<typeof GUI>[0])
+  const gui = new Gui({ title: 'falling leaves', container, width: 240 } as ConstructorParameters<typeof GUI>[0])
   gui.close()
   const { look } = falling
   const changed = () => falling.set()

@@ -70,7 +70,7 @@ import {
 } from 'three/tsl'
 import { modelLoader } from './gltf'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
-import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
+import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import type { FixedLight } from './swarm'
 import { FakeLamp, type FakeLamps } from './fakelamps'
 
@@ -964,11 +964,11 @@ export function createPlainGhosts(groundAt: (x: number, z: number) => number, wa
 }
 
 /** The ghosts' folder; the preset and the count reload the page, the blob's settings lay the sheets again, the rest is live. */
-export function mountGhostControls(ghosts: Ghosts, more?: (gui: GUI) => void): void {
+export function mountGhostControls(ghosts: Ghosts, Gui: typeof GUI, more?: (gui: GUI) => void): void {
   const container = document.createElement('div')
   container.style.cssText = 'position:fixed;bottom:8px;left:524px;z-index:1000;max-height:90vh;overflow:auto'
   document.body.append(container)
-  const gui = new GUI({ title: 'ghosts', container, width: 250 } as ConstructorParameters<typeof GUI>[0])
+  const gui = new Gui({ title: 'ghosts', container, width: 250 } as ConstructorParameters<typeof GUI>[0])
   gui.close()
   // What the page adds (the graves) first, open; the ghosts' own folders after it, shut.
   more?.(gui)

@@ -382,6 +382,17 @@ export interface EditPiece {
   lay?(): void
 }
 
+/** `piece` drawn as its `shown` has it: by its own `lay`, else raised and sized round its place. */
+export function layPiece(piece: EditPiece) {
+  if (piece.lay) piece.lay()
+  else if (piece.shown) layShown(piece.object, piece.shown)
+}
+
+/** The pieces drawn raised and sized as the route keeps them: once, as the page loads, edit mode or not. */
+export function layPieces(pieces: readonly EditPiece[]) {
+  for (const piece of pieces) layPiece(piece)
+}
+
 /** Each object's drawing as `layShown` raises and sizes it: its children, gathered into a group of their own. */
 const shownGroups = new WeakMap<Object3D, Group>()
 const shownScale = new Vector3()

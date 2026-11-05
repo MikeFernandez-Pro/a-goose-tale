@@ -9,7 +9,7 @@
 // there, quiet once he has seen the goose, till the goose has him. Each honk pops and tilts
 // it a little; the honk's word, small, as said, is written over the gosling
 // himself, in view, never by the badge.
-import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
+import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import type { CallAt } from './callhint'
 
 /** The gosling, painted whole (6_icon_Mike.png, 2026-11-01), facing right, on nothing, packed 256 square. */
@@ -227,11 +227,11 @@ export function createGoslingBadge(look: BadgeLook = 'portrait', fit: () => numb
 }
 
 /** The portrait's panel, at the foot of the page by the other trials': its zoom, the point at its middle, each gosling's background. */
-export function mountBadgeControls(): void {
+export function mountBadgeControls(Gui: typeof GUI): void {
   const container = document.createElement('div')
   container.style.cssText = 'position:fixed;bottom:8px;left:780px;z-index:1000'
   document.body.append(container)
-  const gui = new GUI({ title: 'gosling badge', container, width: 240 } as ConstructorParameters<typeof GUI>[0])
+  const gui = new Gui({ title: 'gosling badge', container, width: 240 } as ConstructorParameters<typeof GUI>[0])
   gui.add(portraitLook, 'zoom', 0.5, 5, 0.01).name('zoom')
   gui.add(portraitLook, 'x', 0, 1, 0.005).name('offset x')
   gui.add(portraitLook, 'y', 0, 1, 0.005).name('offset y')

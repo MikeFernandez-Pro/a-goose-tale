@@ -5,6 +5,7 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 import { gooseRoute } from './tools/gooseroute-plugin'
 import { gooseSounds } from './tools/goosesounds-plugin'
 import { phoneLog } from './tools/phonelog-plugin'
+import { stripComments } from './tools/stripcomments-plugin'
 
 // The game is one page and one program, so this is a plain vite app.
 export default defineConfig(({ mode }) => ({
@@ -15,7 +16,7 @@ export default defineConfig(({ mode }) => ({
   // types this config against vite 5, the plugin is typed against vite 7.
   // The dev server also saves the goose game's route from its edit mode (tools/gooseroute-plugin.ts) and its sound mix
   // from the sound panel (tools/goosesounds-plugin.ts), and keeps what `?bench` measures on a phone (tools/phonelog-plugin.ts).
-  plugins: [gooseRoute() as never, gooseSounds() as never, phoneLog() as never, ...(mode === 'phone' ? [basicSsl() as never] : [])],
+  plugins: [gooseRoute() as never, gooseSounds() as never, phoneLog() as never, stripComments() as never, ...(mode === 'phone' ? [basicSsl() as never] : [])],
   // Another project's dev server holds 5173 on this machine, and vite answers
   // any path with its index: a game moved to 5174 looked like the other page.
   // One port, and a refusal to start rather than a quiet move to the next.

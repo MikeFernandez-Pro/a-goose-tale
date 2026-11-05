@@ -8,7 +8,7 @@
 // to src/gooseroute.json through the dev server, and
 // loads the page again, so the play lays its rules out afresh on it.
 import { BoxHelper, Plane, Raycaster, Vector2, Vector3, type Camera, type Object3D, type Scene } from 'three/webgpu'
-import { layShown, type EditPiece } from './goosescenes'
+import { layPiece, type EditPiece } from './goosescenes'
 
 /** How far a notch of the wheel turns a piece, degrees; with Shift. */
 const NOTCH = 5
@@ -26,17 +26,6 @@ export interface EditMode {
   toggle(): void
   /** A frame: the picked piece's box kept round it. */
   frame(): void
-}
-
-/** `piece` drawn as its `shown` has it: by its own `lay`, else raised and sized round its place. */
-function lay(piece: EditPiece) {
-  if (piece.lay) piece.lay()
-  else if (piece.shown) layShown(piece.object, piece.shown)
-}
-
-/** The pieces drawn raised and sized as the route keeps them: once, as the page loads, edit mode or not. */
-export function layPieces(pieces: readonly EditPiece[]) {
-  for (const piece of pieces) lay(piece)
 }
 
 export interface EditOptions {
@@ -178,7 +167,7 @@ export function createEditMode(options: EditOptions): EditMode {
     if (!raycaster.ray.intersectPlane(plane, hit)) return
     if (rise && picked.shown) {
       picked.shown.y += hit.y - last.y
-      lay(picked)
+      layPiece(picked)
       say()
     } else picked.move(hit.x - last.x, hit.z - last.z)
     last.copy(hit)
@@ -203,7 +192,7 @@ export function createEditMode(options: EditOptions): EditMode {
       if (event.altKey && picked.shown) {
         const size = picked.shown.size - notch * (event.shiftKey ? SIZE_FINE : SIZE_NOTCH)
         picked.shown.size = Math.max(SMALLEST, Math.round(size * 100) / 100)
-        lay(picked)
+        layPiece(picked)
         say()
       } else if (!event.altKey && picked.turn) picked.turn((notch * (event.shiftKey ? FINE : NOTCH) * Math.PI) / 180)
       else return
@@ -218,7 +207,7 @@ export function createEditMode(options: EditOptions): EditMode {
     if (!on || !picked?.shown || event.code !== 'KeyR' || event.repeat || event.target instanceof HTMLInputElement) return
     picked.shown.y = 0
     picked.shown.size = 1
-    lay(picked)
+    layPiece(picked)
     say()
   })
 
