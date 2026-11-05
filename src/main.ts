@@ -31,7 +31,7 @@ import {
 import { int, pointShadow, positionWorld, renderGroup, uniform } from 'three/tsl'
 import { loadVAT } from 'three-vat'
 import { getMaxTextureSize, type VATTimeUniform } from 'three-vat/tsl'
-import { benchOn, calm, debugOn, featureOn, filming, noPanel, phone, post0, touchOn, url } from './game/address'
+import { benchOn, calm, debugOn, featureOn, filming, noPanel, phone, post0, url } from './game/address'
 import { FLOOR_LOOKS, GOOSE_EYES, copyInto, measuringSwitches, startingLook } from './look/startinglook'
 import { createPost, defaultDark, leaveUnshaded } from './look/post'
 import { DEATH_DOWN } from './characters/goosedeath'
@@ -52,9 +52,8 @@ import { createGoslingBadge, mountBadgeControls } from './ui/goslingbadge'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './characters/goslings'
 import { layPieces, BURNING_LIGHT, BURNING_MODEL, CAGE_FIRE_LIGHT, PIT_BOWL, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_BOWL, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece, type SceneFireLook } from './game/goosescenes'
 import { besideOf, createHoldHint, promptedOf, type PadButton, padBeside } from './ui/holdhint'
-import { createThumbs } from './ui/goosethumbs'
 import { BUTTON_RADIUS, STICK_REACH, touchLayout } from './ui/goosetouch'
-import { GooseControls, SPACE, WALK_KEYS, type Commands, type ControlsState, type Walk } from './ui/goosecontrols'
+import { type Walk } from './ui/goosecontrols'
 import { createGooseSounds, type Loop as SoundLoop } from './sound/goosesounds'
 import { createGooseMusic } from './sound/goosemusic'
 import { callAt, createCallHint, createPeepWords, type CallAt } from './ui/callhint'
@@ -103,9 +102,11 @@ import { createDrawing } from './look/drawing'
 import { ladder, startingStep, Quality, PHONE_SLOW_FRAME } from './look/quality'
 import { createSkyFog } from './look/skyfog'
 import { createNightLights } from './light/nightlights'
-import { createOpening, SKIP_HOLD } from './game/opening'
+import { createOpening } from './game/opening'
 import { createOpeningShow } from './ui/openingshow'
 import { createEnding } from './game/ending'
+import { createGooseInput, DIAL, DIAL_RATE } from './ui/gooseinput'
+import { createPauseVeil } from './ui/pauseveil'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
@@ -1623,55 +1624,6 @@ const readouts = filming || !dev ? () => {} : dev.createReadouts(() =>
     .join(' · '),
 )
 
-// ---------------------------------------------------------------- keys
-// The keys, the pads and the thumbs on a touch screen go through the controls
-// (goosecontrols.ts), which turn them into walk, interact, skip and confirm by
-// where the game is; the thumbs are heard and drawn by goosethumbs.ts. The
-// walk sends the holder as the camera sees the ground: up the screen is -z.
-// Q and E, debug keys, turn the torch's reach up and down while held, as its
-// slider does.
-/** The keys held. */
-const pressed = new Set<string>()
-/** The keys gone down since the last frame, repeats left out, and whether the page was clicked: what tells the controls the keyboard is in use. */
-const keysDown = new Set<string>()
-let clicked = false
-const gooseControls = new GooseControls(phone ? 'touch' : 'keyboard')
-/** The thumbs on a touch screen, in A Goose Tale with the phone version on; none filmed. */
-const thumbs = !filming && touchOn ? createThumbs(() => setPaused(true)) : undefined
-/** The screen, as the controls read the thumbs on it. */
-const viewport = () => ({ width: innerWidth, height: innerHeight })
-/** Whether the touch stick and button are drawn this frame. */
-let thumbsShown = false
-/** What the player asks of the game this frame, from the controls. */
-let commands: Commands = gooseControls.frame({ keys: pressed, pressed: keysDown, clicked, pads: [], touches: [], tapped: false, viewport: viewport(), state: 'none' })
-/** Whether the game was paused as of the last frame of the controls. */
-let pausedWas = false
-/** Where the game is, for the controls: nothing goes through in edit mode (which pauses) or typing in a field. */
-function controlsState(loading: boolean): ControlsState {
-  if (editMode?.on || document.activeElement instanceof HTMLInputElement) return 'none'
-  if (loading) return 'loading'
-  if (settings.paused) return 'paused'
-  if (opening.running()) return 'opening'
-  if (ending.running()) return ending.againShown() ? 'playAgain' : 'ending'
-  return 'play'
-}
-/** The controls' commands for this frame, from the keys and the pads as they now are. */
-function controlsFrame(loading: boolean) {
-  const pads = navigator.getGamepads?.() ?? []
-  // Paused, every thumb let go, so none still down walks him once it goes on.
-  if (settings.paused && !pausedWas) thumbs?.letGo()
-  pausedWas = settings.paused
-  const { touches, tapped } = thumbs?.take() ?? { touches: [], tapped: false }
-  const state = controlsState(loading)
-  commands = gooseControls.frame({ keys: pressed, pressed: keysDown, clicked, pads, touches, tapped, viewport: viewport(), state })
-  keysDown.clear()
-  clicked = false
-  // The stick and the button drawn on a phone, or wherever touch is in use, each only where it does something: the
-  // words Resume and Play again are buttons themselves, and a second there would be one too many.
-  const touchShown = !!thumbs && (phone || commands.device === 'touch')
-  thumbsShown = touchShown && (state === 'opening' || state === 'play')
-  thumbs?.draw(gooseControls.thumbs, { stick: touchShown && state === 'play', button: thumbsShown, pause: touchShown && (state === 'opening' || state === 'play' || state === 'ending') }, state === 'opening' ? opening.skipHolding / SKIP_HOLD : 0)
-}
 /** His walk as it eases: the way he moves and the share of his pace he moves at, as x and z. */
 const walking = { x: 0, z: 0 }
 /** Under this share of his pace, no key held, he has stopped. */
@@ -1690,34 +1642,9 @@ function walkFrame(toward: { x: number; z: number } | null, dt: number): number 
   if (!toward && Math.hypot(walking.x, walking.z) < STOPPED) walking.x = walking.z = 0
   return Math.min(1, Math.hypot(walking.x, walking.z))
 }
-/** The debug keys that turn the torch's reach up and down, and how many metres a second of one adds or takes. */
-const DIAL: Record<string, number> = { KeyQ: 1, KeyE: -1 }
-const DIAL_RATE = 1.2
 /** The reach as dialled, before the slider's step rounds it. */
 let dialled = runTuning.torchReach
-/** The pause screen's sound key, which takes Enter and Space for itself: elsewhere there they resume. */
-let soundKey: HTMLButtonElement | undefined
-// Captured on the way down: lil-gui stops keys from bubbling out of the panel.
-addEventListener(
-  'keydown',
-  (event) => {
-    if (event.target instanceof HTMLInputElement) return
-    if (event.target === soundKey && (event.code === 'Enter' || event.code === 'NumpadEnter' || event.code === SPACE)) return
-    if (!event.repeat) keysDown.add(event.code)
-    if (!(event.code in WALK_KEYS) && !(event.code in DIAL) && event.code !== SPACE) return
-    // A panel button last clicked keeps the focus, and Space would press it. Before the play, the loading screen's
-    // Enter keeps its focus.
-    if (event.code === SPACE && !opening.running() && document.activeElement instanceof HTMLElement) document.activeElement.blur()
-    event.preventDefault()
-    pressed.add(event.code)
-  },
-  { capture: true },
-)
-addEventListener('keyup', (event) => pressed.delete(event.code), { capture: true })
-// Keys released while the page had no focus never send their keyup.
-addEventListener('blur', () => pressed.clear())
-// A touch is no click: it puts the controls on touch.
-addEventListener('pointerdown', (event) => event.pointerType !== 'touch' && (clicked = true), { capture: true })
+const input = createGooseInput({ settings, opening, ending, editing: () => editMode?.on, setPaused })
 
 // The camera: the mouse turns it round the light (left button), slides it
 // (right), and brings it in and out (wheel), as far as it likes; only the
@@ -2362,7 +2289,7 @@ function torchFrame(dt: number, held: number) {
   // Its flame its full size, as see-through as its light is short of a full torch's: fading in a straight line as the light fades out.
   const left = lit ? run.torch.reach / Math.max(goosePlay.runTuning.torchReach, 1e-3) : 0
   flame.burning(1 - 0.5 * torch.dips * dip + pop, 1 + 0.4 * pop, 1 + torch.gutter * low, left)
-  const filling = goosePlay.atRefill && commands.interact
+  const filling = goosePlay.atRefill && input.commands.interact
   const faster = filling ? 1 + torch.rise * (lit ? run.fuel : kindled) : 1
   torchHeard.faster += (faster - torchHeard.faster) * (1 - Math.exp(-dt / CRACKLE_EASE))
   torchHeard.level = lit ? 1 - torch.thin * low : filling ? kindled : 0
@@ -2480,7 +2407,7 @@ function gooseFrame(dt: number, held: number) {
   islandGeese.object.visible = ending.running() || islandNear()
   if (islandGeese.object.visible) islandGeese.update(dt, held)
   goslings.update(goosePlay, dt, held, !opening.on || opening.settled ? (k) => gooseScenes.lift(goosePlay, k) : undefined, ending.running() ? ending.act : undefined)
-  openingShow.skipHintFrame(commands)
+  openingShow.skipHintFrame(input.commands)
 }
 
 /** How far past the island's waterline the camera's view wakes its geese, m: their shadows and a little more. */
@@ -3042,7 +2969,7 @@ let fallingWas = false
 function scenesHeardFrame(dt: number, at: { x: number; y: number; z: number }) {
   if (!gooseSounds || dt <= 0) return
   const lit = goosePlay.run.torch.lit
-  const topping = lit && goosePlay.atRefill && commands.interact
+  const topping = lit && goosePlay.atRefill && input.commands.interact
   if ((lit && !litWas) || (topping && !toppingWas && goosePlay.run.fuel < 0.98)) gooseSounds.play('ignite', { x: at.x, y: at.y + 0.5, z: at.z })
   litWas = lit
   toppingWas = topping
@@ -3118,7 +3045,7 @@ const hintAt = new Vector3()
 function holdHintFrame() {
   holdShown = false
   if (!holdHint) return
-  holdHint.prompt(promptedOf(commands))
+  holdHint.prompt(promptedOf(input.commands))
   if (opening.running() || ending.running() || goosePlay.down) return holdHint.update(null, 0)
   const well = goosePlay.scenes.find((s) => s.kind === 'well' && s.near)
   const winching = well?.kind === 'well'
@@ -3259,8 +3186,8 @@ const BADGE_MARGIN = 160
 const BADGE_THUMBS_GAP = 10
 /** A badge out of view reaching `reach` px from `at` lifted clear of the touch stick and button while they show. */
 function clearOfThumbs(at: CallAt, reach: number) {
-  if (!thumbsShown || !at.out) return
-  const layout = touchLayout(viewport())
+  if (!input.thumbsShown || !at.out) return
+  const layout = touchLayout(input.viewport())
   for (const [middle, radius] of [[layout.stick, STICK_REACH], [layout.button, BUTTON_RADIUS]] as const) {
     const clear = radius + reach + BADGE_THUMBS_GAP
     const across = at.x - middle.x
@@ -3751,39 +3678,6 @@ function standAtShots(): boolean {
   return moved
 }
 
-/**
- * The game paused (#197), by Escape, P, Start, losing the window or the pad in use unplugged: a dark veil over it, as the
- * loading screen and the ending's card are ink on black, "paused" on it in the hints' hand, and under it Resume, as the
- * loading screen's Enter is drawn, the pad's button beside it on a pad. Resume clicked, or Escape, Start or the bottom
- * face button again, it goes on. Not in edit mode, which pauses as well, nor filmed.
- */
-const pauseVeil = filming ? undefined : document.createElement('div')
-let resumePad: PadButton | undefined
-let resumeKey: HTMLButtonElement | undefined
-if (pauseVeil) {
-  pauseVeil.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#0009;opacity:0;transition:opacity 0.2s;pointer-events:none;visibility:hidden;z-index:25;font-family:Gaegu,cursive;font-weight:700;color:#f6ead0;text-shadow:0 2px 4px #000c'
-  const word = document.createElement('div')
-  word.textContent = 'paused'
-  word.style.cssText = 'font-size:min(11vw,104px);line-height:1'
-  const resume = document.createElement('button')
-  resume.className = 'enter'
-  resume.textContent = 'Resume'
-  resumePad = padBeside(resume)
-  resume.addEventListener('click', () => setPaused(false))
-  resumeKey = resume
-  pauseVeil.setAttribute('role', 'dialog')
-  pauseVeil.setAttribute('aria-label', 'Paused')
-  pauseVeil.append(word, resume)
-  // M's work where there is no M: a phone, or a player on the mouse.
-  if (gooseSounds) {
-    const sounds = gooseSounds
-    soundKey = document.createElement('button')
-    soundKey.className = 'enter'
-    soundKey.addEventListener('click', () => (sounds.muted = !sounds.muted))
-    pauseVeil.append(soundKey)
-  }
-  document.body.append(pauseVeil)
-}
 /** The game paused or going on, the panel's pause button saying which. */
 function setPaused(on: boolean) {
   settings.paused = on
@@ -3791,28 +3685,7 @@ function setPaused(on: boolean) {
 }
 /** Whether the game pauses on its own here: in the opening, the play or the ending's card, not in edit mode. */
 const pausesHere = () => loaded && !editMode?.on && !ending.againShown()
-/** Whether the veil showed last frame. */
-let veilShown = false
-/** The veil over the paused game, focus on Resume while it shows, and Resume's button as the device last used has it. */
-function pauseFrame() {
-  if (!pauseVeil) return
-  const shown = settings.paused && loaded && !editMode?.on
-  pauseVeil.style.opacity = shown ? '1' : '0'
-  pauseVeil.style.pointerEvents = shown ? 'auto' : 'none'
-  if (shown !== veilShown) {
-    veilShown = shown
-    // Hidden once it has faded, out of Tab's way and a screen reader's.
-    pauseVeil.style.transition = shown ? 'opacity 0.2s' : 'opacity 0.2s,visibility 0s 0.2s'
-    pauseVeil.style.visibility = shown ? 'visible' : 'hidden'
-    if (shown) resumeKey?.focus({ preventScroll: true })
-    else if (document.activeElement instanceof HTMLElement && pauseVeil.contains(document.activeElement)) document.activeElement.blur()
-  }
-  if (soundKey && gooseSounds) {
-    const says = gooseSounds.muted ? 'Sound off' : 'Sound on'
-    if (soundKey.textContent !== says) soundKey.textContent = says
-  }
-  resumePad?.update(besideOf(commands))
-}
+const pauseVeil = createPauseVeil({ settings, input, gooseSounds, loaded: () => loaded, editing: () => editMode?.on, setPaused })
 // Losing the window pauses the game where it would pause on Start, typing in a field or not, and so does the page
 // hidden, a phone switched to another app or locked; coming back leaves it paused. Not filmed or driven by a tool,
 // whose windows come and go.
@@ -4061,7 +3934,7 @@ let benchMade = false
 // the developer's page, whose panels are read.
 if (!debugOn) {
   for (const child of document.body.children) {
-    if (child !== pauseVeil && child !== ending.card && child.tagName !== 'MAIN' && child.tagName !== 'BUTTON') child.setAttribute('aria-hidden', 'true')
+    if (child !== pauseVeil.element && child !== ending.card && child.tagName !== 'MAIN' && child.tagName !== 'BUTTON') child.setAttribute('aria-hidden', 'true')
   }
 }
 
@@ -4081,21 +3954,21 @@ renderer.setAnimationLoop(() => {
   beats.clock += dt
   if (opening.running()) opening.t = Math.min(INTRO.end, opening.t + dt)
   if (ending.running()) ending.t = Math.min(OUTRO.end, ending.t + dt)
-  controlsFrame(loading)
+  input.frame(loading)
   // The chase camera's hold on the mouse let go, for a click to reach the veil.
-  if (commands.pause) {
+  if (input.commands.pause) {
     setPaused(true)
     document.exitPointerLock?.()
   }
-  if (commands.resume) setPaused(false)
-  pauseFrame()
-  if (commands.confirm) {
+  if (input.commands.resume) setPaused(false)
+  pauseVeil.frame()
+  if (input.commands.confirm) {
     enterAsked?.()
     ending.playAgain?.()
   }
-  enterPad?.update(besideOf(commands))
-  ending.againPad?.update(besideOf(commands))
-  if (!loading) opening.skipFrame(commands.skip, frame)
+  enterPad?.update(besideOf(input.commands))
+  ending.againPad?.update(besideOf(input.commands))
+  if (!loading) opening.skipFrame(input.commands.skip, frame)
   const newBeat = beats.frame(lookChanged)
   const stop = look.stopMotion
   // The run's time: held on the beat, and on a baked frame of the clip when snapping, so a held pose is a pose and not a blend.
@@ -4112,7 +3985,7 @@ renderer.setAnimationLoop(() => {
 
   // Q and E, the debug keys, turn the torch's reach up and down: it moves at the dial's rate while one is held, and the panel shows it.
   let dial = 0
-  if (settings.debug) for (const code of pressed) dial += DIAL[code] ?? 0
+  if (settings.debug) for (const code of input.pressed) dial += DIAL[code] ?? 0
   if (dial !== 0 && dt > 0) {
     // Dialled smoothly, shown at the slider's own step; a slider moved by hand is picked up from where it was left.
     if (Math.abs(dialled - runTuning.torchReach) >= 0.01) dialled = runTuning.torchReach
@@ -4127,14 +4000,14 @@ renderer.setAnimationLoop(() => {
       ending.walk()
     } else if (!opening.running()) {
       // His walk eased to the one asked: a little weight to him, starting and stopping.
-      const share = walkFrame(heading(commands.walk), dt)
+      const share = walkFrame(heading(input.commands.walk), dt)
       // Slower in the water: his walking pace given way to his swimming one as he takes to it.
       const swimming = swimmingIn(pondLook, run.holder.x, run.holder.z, pondLook.goose)
       goosePlay.settings.pace = settings.lightSpeed * (1 + (pondLook.goose.pace - 1) * swimming) * share
       if (torchEverlasting) run.fuel = 1
       goosePlay.frame(dt, {
         heading: share > 0 ? { x: walking.x, z: walking.z } : null,
-        interact: commands.interact,
+        interact: input.commands.interact,
         look: gooseCamera === 'chase' ? drawnForward : null,
       })
       // The ending's music asked for when the last gosling is found, not held all the game.
