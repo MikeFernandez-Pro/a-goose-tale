@@ -20,10 +20,8 @@ import {
   type NodeMaterial,
   type Object3D,
   PerspectiveCamera,
-  Quaternion,
   RingGeometry,
   Scene,
-  Spherical,
   Timer,
   Vector2,
   Vector3,
@@ -41,7 +39,6 @@ import { archesOf, archStones, createArches, defaultArchLook, defaultArchWet, ty
 import { createDeadTrees, deadTrees, defaultBarkLook, defaultGrassLook, offWay, defaultDeadTreeShape, defaultLeafLook, treeVariantOf, trunkRadius, type DeadTree, type DeadTreeShape } from './world/deadtrees'
 import { bushes, createBushes, defaultBushLeafLook, defaultBushShape } from './world/bushes'
 import { createRoadWalls, defaultRoadWallLook, ROAD_WALL_STYLES, roadWallLines, roadWallsOf, roadWallStones, type RoadWallLook, type StoneBlock } from './world/roadwalls'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { ShineLook } from './look/shell'
 import type { GooseFeel, Settings } from './settings'
 import { lightAndPause } from './ui/lightandpause'
@@ -53,7 +50,6 @@ import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './characte
 import { layPieces, BURNING_LIGHT, BURNING_MODEL, CAGE_FIRE_LIGHT, PIT_BOWL, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_BOWL, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece, type SceneFireLook } from './game/goosescenes'
 import { besideOf, createHoldHint, promptedOf, type PadButton, padBeside } from './ui/holdhint'
 import { BUTTON_RADIUS, STICK_REACH, touchLayout } from './ui/goosetouch'
-import { type Walk } from './ui/goosecontrols'
 import { createGooseSounds, type Loop as SoundLoop } from './sound/goosesounds'
 import { createGooseMusic } from './sound/goosemusic'
 import { callAt, createCallHint, createPeepWords, type CallAt } from './ui/callhint'
@@ -63,7 +59,7 @@ import { createTent } from './world/tent'
 import { createPicnic } from './world/picnic'
 import { createIslandTree } from './world/islandtree'
 import { createIslandGeese } from './characters/islandgeese'
-import { OUTRO, goslingOf, outroDue, peepsOf, pullOf } from './game/gooseoutro'
+import { OUTRO, goslingOf, outroDue, peepsOf } from './game/gooseoutro'
 import { ROUTE, WADE, keptShown, laid, shownOf, toSave, type Plain, type Point, type Route } from './world/plain'
 import { defaultRollingLook, rollAgain, rollingGround } from './world/rolling'
 import { createWater, defaultWaterLook, WATER_LOOKS } from './world/water'
@@ -80,7 +76,7 @@ import { createEmbers } from './light/embers'
 import { branchColours, branchPose, carriedPose, createBranch, lyingPose } from './light/branch'
 import { createFeathers } from './characters/feathers'
 import { createSmoke } from './light/smoke'
-import { defaultTuning, shoreLight, sightEdge, type Dark, type FixedLight, type Ground, type Light, type ViewPlane } from './swarm/swarm'
+import { defaultTuning, shoreLight, sightEdge, type Dark, type FixedLight, type Ground, type Light } from './swarm/swarm'
 import { createTiltShift } from './look/tiltshift'
 import { createFallingLeaves, defaultFallLook, mountFallControls } from './world/fallingleaves'
 import { FakeLamp, createFakeLamps, shown as drawnInScene } from './light/fakelamps'
@@ -95,7 +91,7 @@ import { keptRun, keepRun } from './game/keptrun'
 import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './game/gameplay'
 import { createLightning } from './world/lightning'
 import { flashAt } from './world/weather'
-import { CHAT, INTRO, afterglow, branchAt, branchFlare, cowering, flameGrown, litShare, ratsOut, rumbleAt, shakeAt, startled, walkOf } from './game/gooseintro'
+import { CHAT, INTRO, afterglow, branchAt, branchFlare, cowering, flameGrown, litShare, ratsOut, rumbleAt, startled, walkOf } from './game/gooseintro'
 import { RemoteSwarm } from './swarm/swarm-remote'
 import { createBeats } from './game/beats'
 import { createDrawing } from './look/drawing'
@@ -107,6 +103,7 @@ import { createOpeningShow } from './ui/openingshow'
 import { createEnding } from './game/ending'
 import { createGooseInput, DIAL, DIAL_RATE } from './ui/gooseinput'
 import { createPauseVeil } from './ui/pauseveil'
+import { CAMERA_FOV, fitToPage, createGooseView, GOOSE_CAMERA_KEPT, type GooseCamera } from './game/gooseview'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
@@ -117,57 +114,6 @@ const SEED = 7
 const dev = debugOn ? await import('./dev/devtools') : undefined
 /** The light's height above the ground where its holder carries it, when it is not in the torch. */
 const LIGHT_HEIGHT = 1.1
-/**
- * Where the camera starts from the light, and its field of view: a third
- * person's view, behind and a little above the holder, looking at its head
- * (2026-10-10; before, high and close, (0, 3.6, 2.8) at the feet).
- * From there the mouse moves it freely, and it keeps wherever it was put
- * from the light as the light walks.
- */
-const CAMERA_OFFSET = new Vector3(0, 2.3, 4.6)
-const CAMERA_TARGET = new Vector3(0, 0.9, -0.4)
-/** Where the camera starts from the light when filming, and where it looks, from the light: a take's start, copied from the Film panel, since removed, on 2026-10-08. */
-const FILM_CAMERA = new Vector3(-0.07, 1.97, 3.94)
-const FILM_TARGET = new Vector3(-0.03, -0.13, -0.54)
-/** How far over the ground the camera always stays, m; and how far a pixel of the locked pointer turns it, radians. */
-const CAMERA_ABOVE = 0.6
-const LOOK_SPEED = 0.0025
-/**
- * The goose game's cameras, V going round them (?orbit, ?locked or ?chase starts in one) (2026-10-24). The fixed one,
- * the page's own: GOOSE_CAMERA from his feet, looking at GOOSE_TARGET, the chosen framing, captured on the panel on
- * 2026-10-24, 22 degrees down from 5.5 m (or the panel's capture kept since); nothing the mouse does turns it, but the
- * pointer's place on the screen slides it a little, as Portfolio2024's camera does: up to PARALLAX m across
- * and up, eased over PARALLAX_EASE s, the way it looks unchanged. The orbit, free, from the same framing. The locked
- * one, the same framing, never turned across; the drag tilts it only, between LOCKED_TILT's angles down from the
- * horizon. The chase, from CHASE_LOOK m over him, CHASE_CAMERA back and up, turning on the locked pointer, he turning
- * to it as he stands.
- */
-const GOOSE_CAMERA = new Vector3(0.4, 2.67, 4.94)
-const GOOSE_TARGET = new Vector3(0.02, 0.58, -0.12)
-const PARALLAX = { x: 0.5, y: 0.3 }
-const PARALLAX_EASE = 0.35
-const LOCKED_TILT = [15, 80] as const
-const CHASE_CAMERA = new Vector3(0, 1.6, 4)
-const CHASE_LOOK = 0.9
-type GooseCamera = 'fixed' | 'orbit' | 'locked' | 'chase'
-const GOOSE_CAMERAS: readonly GooseCamera[] = ['fixed', 'orbit', 'locked', 'chase']
-/** Where the camera captured on the panel is kept between loads. */
-const GOOSE_CAMERA_KEPT = 'a-goose-tale.goose-camera'
-/** A captured camera: where it stands and where it looks, m from his feet; and the follow's lag, s. */
-interface CapturedCamera {
-  camera: [number, number, number]
-  target: [number, number, number]
-  lag: number
-  /** The field of view, degrees: none in a capture from before it was kept. */
-  fov?: number
-}
-const CAMERA_FOV = 42
-/**
- * How far behind the light the camera's follow runs, in seconds: it closes
- * most of the gap in this long, so a key pressed or released reaches the
- * camera as a glide rather than a step.
- */
-const GOOSE_CAMERA_FOLLOW = 0.6
 /**
  * The most game time a frame carries, s: as much as the swarm can catch up in one, so that on a slow phone he keeps the
  * rats' pace, and a hitch moves the light, the clock and the camera no further.
@@ -186,24 +132,7 @@ const { renderer, backend, lean, moon, maxDpr, timestamps, benchTools, gpuQueue,
 const camera = new PerspectiveCamera(CAMERA_FOV, innerWidth / innerHeight, 0.1, 100)
 const scene = new Scene()
 const skyFog = createSkyFog(scene, camera)
-/**
- * How much a phone's lens zooms in, held sideways and upright: the frame's height is what the lens keeps, and a phone
- * sideways has little of it and upright little width. `?zoom=sideways,upright` to try others.
- */
-const askedZoom = (url.get('zoom') ?? '').split(',').map(Number)
-const ZOOM_SIDEWAYS = askedZoom[0] || 1.3
-const ZOOM_UPRIGHT = askedZoom[1] || 0.88
-/** The lens fitted to the page as it now is. */
-function fitLens() {
-  camera.aspect = innerWidth / innerHeight
-  camera.zoom = !phone ? 1 : camera.aspect < 1 ? ZOOM_UPRIGHT : ZOOM_SIDEWAYS
-  camera.updateProjectionMatrix()
-}
-fitLens()
-addEventListener('resize', () => {
-  fitLens()
-  renderer.setSize(innerWidth, innerHeight)
-})
+fitToPage(camera, renderer)
 
 const nightLights = createNightLights(scene, moon)
 const { fill, sun, lamp } = nightLights
@@ -429,6 +358,9 @@ const hisAt = () => {
 }
 /** The goose game's sounds (goosesounds.ts): none in a take, or with `?mute`; M mutes them. */
 const gooseSounds = !filming && !url.has('mute') ? createGooseSounds(camera) : undefined
+/** Whether his torch has been full once: starting with it out, he lights it first, and no gosling peeps for him nor turns the camera till then. */
+let torchFilled = false
+const torchFilledOnce = () => (torchFilled ||= goosePlay.run.fuel >= 0.99)
 
 // The level and its rules, the goose play's. Its torch: it burns down, its light shrinking with the
 // fuel in a straight line to nothing, and grows back as he fills it at a fire. A and E (Q and E on a QWERTY keyboard)
@@ -1093,8 +1025,6 @@ const islandGeese = await createIslandGeese(
 )
 scene.add(islandGeese.object)
 
-/** How far the camera's follow leans off him toward a gosling still waiting, m, as it now leans (cameraLeanFrame). */
-const leanAim = { x: 0, y: 0, z: 0 }
 const ending = createEnding({ goosePlay, pondLook, islandGeese, tent, look, waterLook, water, ground, deadTreesMesh, deadTreeGrass, islandTree, nightLights, light, gooseSounds, goose, camera, renderer })
 // The bed under the pond's water takes less light, as deep as the water lies.
 ground.setWaterLevel(pondLook.water)
@@ -1387,53 +1317,7 @@ addEventListener(
   { capture: true },
 )
 if (dev && fallingLeaves && !noPanel) mountFallControls(fallingLeaves, dev.GUI)
-/**
- * How far behind the light the camera's follow runs, s, as the panel's camera folder sets it.
- */
-const cameraFollow = { lag: GOOSE_CAMERA_FOLLOW }
-/** The camera's field of view, degrees, as the panel's camera folder sets it. */
-const gooseLens = {
-  get fov() {
-    return camera.fov
-  },
-  set fov(degrees: number) {
-    camera.fov = degrees
-    camera.updateProjectionMatrix()
-  },
-  ortho: false,
-  orthoChanged: () => setOrtho(gooseLens.ortho),
-}
-/**
- * TEST: a near orthographic camera, as the panel's switch asks: not an orthographic camera, which every pass, the rats'
- * cull and the hints would have to learn, but a long lens from far off: ORTHO_FOV degrees, backed off so he stays the
- * size he was, the clip planes kept round him (orthoFrame) for the depth's sake. Off, the lens and distance as they were.
- */
-const ORTHO_FOV = 2
-const ORTHO_DEPTH = 80
-const unOrtho = { fov: CAMERA_FOV, minDistance: 0.5, maxDistance: 80 }
-function setOrtho(on: boolean) {
-  const offset = new Vector3().subVectors(camera.position, controls.target)
-  const half = (fov: number) => Math.tan((fov * Math.PI) / 360)
-  const to = on ? ORTHO_FOV : unOrtho.fov
-  if (on) Object.assign(unOrtho, { fov: camera.fov, minDistance: controls.minDistance, maxDistance: controls.maxDistance })
-  offset.multiplyScalar(half(camera.fov) / half(to))
-  camera.position.copy(controls.target).add(offset)
-  controls.minDistance = on ? unOrtho.minDistance * (half(unOrtho.fov) / half(to)) : unOrtho.minDistance
-  controls.maxDistance = on ? unOrtho.maxDistance * (half(unOrtho.fov) / half(to)) : unOrtho.maxDistance
-  if (!on) {
-    camera.near = 0.1
-    camera.far = 100
-  }
-  gooseLens.fov = to
-}
-/** The clip planes round him while the lens is near orthographic, as far off as the camera now is. */
-function orthoFrame() {
-  if (!gooseLens.ortho) return
-  const distance = camera.position.distanceTo(controls.target)
-  camera.near = Math.max(0.1, distance - ORTHO_DEPTH)
-  camera.far = distance + ORTHO_DEPTH
-  camera.updateProjectionMatrix()
-}
+const view = createGooseView({ camera, renderer, light, goslings, run, feel, opening, ending, torchFilledOnce, tilt, standAt, groundAt, goosePlay, look })
 const panel = noPanel || filming ? undefined : dev?.createPanel(settings, tuning, look, capacity, {
   count() {
     // Sent with the next frame's input; the swarm grows at the arena's edge, so the rats on screen stay where they are.
@@ -1585,7 +1469,7 @@ const panel = noPanel || filming ? undefined : dev?.createPanel(settings, tuning
     // The see-through round him: its hole and its noise, read live.
     seeThrough: { look: gooseSeeLook, changed: () => gooseSee.set(gooseSeeLook) },
     // The camera: its follow's lag; where it is from him, captured to the clipboard and kept for the next load.
-    camera: { follow: cameraFollow, lens: gooseLens, capture: () => captureGooseCamera(), forget: () => localStorage.removeItem(GOOSE_CAMERA_KEPT) },
+    camera: { follow: view.cameraFollow, lens: view.gooseLens, capture: () => view.captureGooseCamera(), forget: () => localStorage.removeItem(GOOSE_CAMERA_KEPT) },
     reseed(seed) {
       url.set('seed', String(seed))
       location.search = url.toString()
@@ -1595,9 +1479,9 @@ const panel = noPanel || filming ? undefined : dev?.createPanel(settings, tuning
   shift: tilt,
   // The diorama's camera put in place, or the kept one back, as the tilt's folder moves it or turns it off.
   placed() {
-    setGooseCamera(gooseCamera, false)
-    gooseLens.fov = keptGooseCamera()?.fov ?? CAMERA_FOV
-    controls.update()
+    view.setGooseCamera(view.kind, false)
+    view.gooseLens.fov = view.keptGooseCamera()?.fov ?? CAMERA_FOV
+    view.controls.update()
   },
 })
 // Without the panel, P still pauses, and F, a debug key, still puts the torch out.
@@ -1624,101 +1508,16 @@ const readouts = filming || !dev ? () => {} : dev.createReadouts(() =>
     .join(' · '),
 )
 
-/** His walk as it eases: the way he moves and the share of his pace he moves at, as x and z. */
-const walking = { x: 0, z: 0 }
-/** Under this share of his pace, no key held, he has stopped. */
-const STOPPED = 0.02
-/**
- * His walk eased toward where the walk sends him, `toward` (`heading`'s point as far past him, m, as the walk is
- * strong, or none) over `dt` s: within 5% of it in `feel.inertia` s, three of its time constants. The share of his
- * pace he walks at, 0 to 1.
- */
-function walkFrame(toward: { x: number; z: number } | null, dt: number): number {
-  const wx = toward ? toward.x - run.holder.x : 0
-  const wz = toward ? toward.z - run.holder.z : 0
-  const k = feel.inertia > 0 ? 1 - Math.exp((-3 * dt) / feel.inertia) : 1
-  walking.x += (wx - walking.x) * k
-  walking.z += (wz - walking.z) * k
-  if (!toward && Math.hypot(walking.x, walking.z) < STOPPED) walking.x = walking.z = 0
-  return Math.min(1, Math.hypot(walking.x, walking.z))
-}
 /** The reach as dialled, before the slider's step rounds it. */
 let dialled = runTuning.torchReach
 const input = createGooseInput({ settings, opening, ending, editing: () => editMode?.on, setPaused })
 
-// The camera: the mouse turns it round the light (left button), slides it
-// (right), and brings it in and out (wheel), as far as it likes; only the
-// ground stops it.
-const controls = new OrbitControls(camera, renderer.domElement)
-controls.enableDamping = true
-controls.maxPolarAngle = Math.PI / 2 - 0.05
-controls.minDistance = 0.5
-controls.maxDistance = 80
-// The chase camera: a click locks the pointer, and the pointer then turns the camera round him, up and down as far as
-// the orbit goes: the drag does not. Escape lets it go.
-/** The goose game's camera, and whether it turns on the locked pointer, as all but the orbit do. */
-let gooseCamera: GooseCamera = 'fixed'
-/** The pointer's place on the screen, -1 to 1 across and down; the fixed camera's parallax as now slid, m. */
-const pointerShare = { x: 0, y: 0 }
-const parallax = new Vector3()
-const parallaxAcross = new Vector3()
-const parallaxWanted = new Vector3()
-const parallaxStep = new Vector3()
-let chasing = false
-const orbit = new Spherical()
-const orbitOffset = new Vector3()
-renderer.domElement.addEventListener('click', () => {
-  if (chasing && document.pointerLockElement !== renderer.domElement) void renderer.domElement.requestPointerLock()
-})
-addEventListener('mousemove', (event) => {
-  // A shot in holds the orbit where it was, to hand back to.
-  if (!chasing || document.pointerLockElement !== renderer.domElement || shotIn()) return
-  orbit.setFromVector3(orbitOffset.copy(camera.position).sub(controls.target))
-  orbit.theta -= event.movementX * LOOK_SPEED
-  orbit.phi = Math.min(controls.maxPolarAngle, Math.max(0.15, orbit.phi - event.movementY * LOOK_SPEED))
-  camera.position.copy(controls.target).add(orbitOffset.setFromSpherical(orbit))
-})
-
-/**
- * Up the screen along the ground as the walk reads it: the drawn camera's
- * forward, but while a shot is in, as of the last frame he was sent no way, so
- * a shot cutting in or out never turns a walk already asked; and the drawn
- * camera's forward, last frame.
- */
-const keysForward = { x: 0, z: -1 }
-const drawnForward = { x: 0, z: -1 }
-
-/**
- * A point past the light the way the walk points, as the camera sees the
- * ground wherever it is turned, as many metres past as the walk is strong: a
- * full push a metre, a light one less. Null when it is sent no way.
- */
-function heading(walk: Walk | null): { x: number; z: number } | null {
-  if (!walk || !shotIn()) {
-    keysForward.x = drawnForward.x
-    keysForward.z = drawnForward.z
-  }
-  if (!walk) return null
-  // Up the screen is the camera's forward along the ground; right is to its right.
-  const fx = keysForward.x
-  const fz = keysForward.z
-  const wx = -fz * walk.x - fx * walk.y
-  const wz = fx * walk.x - fz * walk.y
-  return { x: run.holder.x + wx * walk.strength, z: run.holder.z + wz * walk.strength }
-}
-
 // ---------------------------------------------------------------- loop
 const timer = new Timer()
-/** Where the camera's follow of the light has got to: it eases after the light, CAMERA_FOLLOW behind. */
-const followed = new Vector3(light.x, 0, light.z)
-const moved = new Vector3()
-
 /** The light as shown: where the lamp, its pool and the fog ring stand, a beat behind the light when the stop motion holds it. */
 const shown = { x: light.x, z: light.z }
 /** Whether a circle of `radius` m round (x, z) comes within `reach` m of him, where he is drawn. */
 const within = (x: number, z: number, radius: number, reach: number) => Math.hypot(x - shown.x, z - shown.z) - radius < reach
-/** The camera's follow owed since it last moved, s, while the stop motion holds the camera. */
-let owed = 0
 /** Where the lamp hangs: easing after the light's shown place by the lamp's lag, the held frames' worth of it on the beat. */
 const lampAt = { x: light.x, z: light.z }
 let lampOwed = 0
@@ -1727,15 +1526,10 @@ const lightPace = { x: 0, z: 0, wasX: light.x, wasZ: light.z }
 /** How high he stands, m: easing after the ground under him, so a step up is a step, not a jump. */
 let stood = Number.NaN
 const STAND_EASE = 0.08
-/** The camera's view, as the dead trees and bushes are culled to it. */
-const plantsView = new Frustum()
-const plantsMatrix = new Matrix4()
+const { plantsView } = view
 /** The way to the sun, as the dead trees and bushes are kept for the shadows they throw into the view. */
 const plantsSunward = new Vector3()
-const viewSphere = new Sphere()
-/** Whether the ground round (x, z), `radius` m out, is in the camera's view as last laid; or round (x, y, z), given `y`. */
-const inView = (x: number, z: number, radius: number, y = groundAt(x, z)) => plantsView.intersectsSphere(viewSphere.set(viewSphere.center.set(x, y, z), radius))
-goslings.seen = (x, y, z) => inView(x, z, GOSLING_SEEN, y)
+goslings.seen = (x, y, z) => view.inView(x, z, GOSLING_SEEN, y)
 /**
  * Carry the lamp, the fog's centre and the sun's aim to the light, and the
  * camera after it: by a share of how far the light has got ahead of it, so
@@ -1817,95 +1611,17 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   // The sun stays over the light, so its shadows always cover the view.
   sun.target.position.set(shown.x, 0, shown.z)
   sun.position.copy(sun.target.position).add(look.sun)
-  // The same share of the gap a second whatever the frame rate; held, the frames' worth of it comes on the beat.
-  owed += dt
-  if (!(stop.enabled && stop.camera) || newBeat) {
-    moved.set(light.x + ending.aim.x + leanAim.x, stood + leanAim.y, light.z + ending.aim.z + leanAim.z).sub(followed).multiplyScalar(cameraFollow.lag > 0 ? 1 - Math.exp(-owed / cameraFollow.lag) : 1)
-    followed.add(moved)
-    camera.position.add(moved)
-    controls.target.add(moved)
-    owed = 0
-  }
-  parallaxFrame(dt)
-  controls.update(frame)
-  // Never into the ground.
-  const above = groundAt(camera.position.x, camera.position.z) + CAMERA_ABOVE
-  if (camera.position.y < above) camera.position.y = above
+  view.glide(dt, newBeat, frame, stood)
   // The dead trees' and bushes' stretches past the fog's solid edge, its wisps and all, left undrawn: they would draw as
   // the fog. Those out of the camera's view too, now it has moved, unless their shadow is in it.
   const plantsReach = look.fog.enabled ? skyFog.edge + 1.5 * look.fog.wisp + 0.5 : Infinity
-  camera.updateMatrixWorld()
-  plantsView.setFromProjectionMatrix(plantsMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse), camera.coordinateSystem)
+  view.lookedFrom()
   const plantsSun = sun.castShadow ? plantsSunward.subVectors(sun.position, sun.target.position).normalize() : undefined
   deadTreesMesh.cullPast(shown.x, shown.z, plantsReach, plantsView, plantsSun)
   bushesMesh.cullPast(shown.x, shown.z, plantsReach, plantsView, plantsSun)
 }
-followed.y = standAt(light.x, light.z)
-camera.position.set(light.x, followed.y, light.z).add(filming ? FILM_CAMERA : CAMERA_OFFSET)
-if (filming) controls.target.set(light.x, followed.y, light.z).add(FILM_TARGET)
-else controls.target.set(light.x, followed.y, light.z).add(CAMERA_TARGET)
 follow(Infinity, true, 0)
-
-/**
- * The goose game's camera set to `to`. The fixed one put back at the framing, kept or the page's, the mouse doing
- * nothing to it but the parallax. The locked one put back where it stands over him, held to its one way across
- * and its tilts. The chase looks at him from behind as the camera now faces, CHASE_CAMERA back and up, the locked
- * pointer turning it round him; the drag neither turns nor slides it, the wheel still brings it in and out. The orbit
- * free again. `lock`: asked on a key, the chase's pointer locked at once; else on the first click.
- */
-function setGooseCamera(to: GooseCamera, lock: boolean) {
-  gooseCamera = to
-  chasing = to === 'chase'
-  if (!chasing && document.pointerLockElement === renderer.domElement) document.exitPointerLock()
-  const locked = to === 'locked'
-  controls.enabled = to !== 'fixed'
-  controls.enableRotate = !chasing
-  controls.enablePan = to === 'orbit'
-  controls.minAzimuthAngle = locked ? 0 : -Infinity
-  controls.maxAzimuthAngle = locked ? 0 : Infinity
-  controls.minPolarAngle = locked ? ((90 - LOCKED_TILT[1]) * Math.PI) / 180 : 0
-  controls.maxPolarAngle = locked ? ((90 - LOCKED_TILT[0]) * Math.PI) / 180 : Math.PI / 2 - 0.05
-  parallax.set(0, 0, 0)
-  if (to === 'fixed') {
-    const kept = keptGooseCamera()
-    controls.target.copy(followed).add(kept ? new Vector3(...kept.target) : GOOSE_TARGET)
-    camera.position.copy(followed).add(kept ? new Vector3(...kept.camera) : GOOSE_CAMERA)
-    return
-  }
-  if (locked) {
-    controls.target.copy(followed).add(GOOSE_TARGET)
-    camera.position.copy(followed).add(GOOSE_CAMERA).setX(controls.target.x)
-    return
-  }
-  if (!chasing) return
-  controls.target.set(followed.x, followed.y + CHASE_LOOK, followed.z)
-  orbit.setFromVector3(orbitOffset.copy(camera.position).sub(controls.target))
-  const chase = new Spherical().setFromVector3(CHASE_CAMERA)
-  orbit.radius = chase.radius
-  orbit.phi = chase.phi
-  camera.position.copy(controls.target).add(orbitOffset.setFromSpherical(orbit))
-  if (lock) void renderer.domElement.requestPointerLock()
-}
-if (!filming) {
-  addEventListener('keydown', (event) => {
-    if (!debugOn || event.code !== 'KeyV' || event.repeat || event.target instanceof HTMLInputElement) return
-    setGooseCamera(GOOSE_CAMERAS[(GOOSE_CAMERAS.indexOf(gooseCamera) + 1) % GOOSE_CAMERAS.length]!, true)
-  })
-  addEventListener('mousemove', (event) => {
-    pointerShare.x = (event.clientX / innerWidth) * 2 - 1
-    pointerShare.y = (event.clientY / innerHeight) * 2 - 1
-  })
-  setGooseCamera(url.has('orbit') ? 'orbit' : url.has('locked') ? 'locked' : url.has('chase') ? 'chase' : 'fixed', false)
-  // The fixed camera and the free orbit start where a capture left them, else at the chosen framing.
-  if (gooseCamera === 'fixed' || gooseCamera === 'orbit') {
-    const kept = keptGooseCamera()
-    controls.target.copy(followed).add(kept ? new Vector3(...kept.target) : GOOSE_TARGET)
-    camera.position.copy(followed).add(kept ? new Vector3(...kept.camera) : GOOSE_CAMERA)
-    if (kept) cameraFollow.lag = kept.lag
-    if (kept?.fov !== undefined) gooseLens.fov = kept.fov
-    controls.update()
-  }
-}
+view.start()
 
 /**
  * The goose game's edit mode, E on and off (gooseedit.ts): the play paused and the camera the free orbit while it is
@@ -1928,15 +1644,15 @@ const editMode =
         entered() {
           editWasPaused = settings.paused
           setPaused(true)
-          editWasCamera = gooseCamera
-          setGooseCamera('orbit', false)
+          editWasCamera = view.kind
+          view.setGooseCamera('orbit', false)
         },
         left() {
           setPaused(editWasPaused)
-          setGooseCamera(editWasCamera, false)
+          view.setGooseCamera(editWasCamera, false)
         },
         cameraTakes(takes) {
-          controls.enableZoom = takes
+          view.controls.enableZoom = takes
         },
         save: saveEditedRoute,
       })
@@ -2038,54 +1754,6 @@ async function saveEditedRoute(pieces: EditPiece[]): Promise<string | undefined>
   return undefined
 }
 
-/**
- * The fixed camera slid after the pointer: toward where it is on the screen, -1 to 1 each way, up to PARALLAX m along
- * the camera's own across and up, camera and target together, so the way it looks never changes.
- */
-function parallaxFrame(dt: number) {
-  if (gooseCamera !== 'fixed' || !(dt > 0) || !Number.isFinite(dt)) return
-  parallaxAcross.set(1, 0, 0).applyQuaternion(camera.quaternion).setY(0).normalize()
-  parallaxWanted.copy(parallaxAcross).multiplyScalar(pointerShare.x * PARALLAX.x)
-  parallaxWanted.y = -pointerShare.y * PARALLAX.y
-  parallaxStep.subVectors(parallaxWanted, parallax).multiplyScalar(1 - Math.exp(-dt / PARALLAX_EASE))
-  parallax.add(parallaxStep)
-  camera.position.add(parallaxStep)
-  controls.target.add(parallaxStep)
-}
-
-/** The camera captured on an earlier load, if one is kept and reads right. */
-function keptGooseCamera(): CapturedCamera | undefined {
-  // With the tilt on, the diorama's camera, high over him, in place of any kept one.
-  if (tilt?.look.enabled) return tilt.camera(GOOSE_CAMERA_FOLLOW)
-  try {
-    const kept = JSON.parse(localStorage.getItem(GOOSE_CAMERA_KEPT) ?? 'null') as CapturedCamera | null
-    return kept && kept.camera?.length === 3 && kept.target?.length === 3 && Number.isFinite(kept.lag) ? kept : undefined
-  } catch {
-    return undefined
-  }
-}
-
-/**
- * Where the camera now is from his feet, where it looks, its angle and distance, and the follow's lag: kept for the next
- * load, copied to the clipboard and logged, as the text the panel shows.
- */
-function captureGooseCamera(): string {
-  const round = (v: number) => Math.round(v * 100) / 100
-  const from = (v: Vector3): [number, number, number] => [round(v.x - followed.x), round(v.y - followed.y), round(v.z - followed.z)]
-  const captured: CapturedCamera = { camera: from(camera.position), target: from(controls.target), lag: cameraFollow.lag, fov: camera.fov }
-  localStorage.setItem(GOOSE_CAMERA_KEPT, JSON.stringify(captured))
-  const at = new Spherical().setFromVector3(orbitOffset.copy(camera.position).sub(controls.target))
-  const text = JSON.stringify({
-    ...captured,
-    distance: round(at.radius),
-    down: round(90 - (at.phi * 180) / Math.PI),
-    turn: round((at.theta * 180) / Math.PI),
-  })
-  console.info('goose camera', text)
-  void navigator.clipboard?.writeText(text).catch(() => {})
-  return text
-}
-
 /** How far off the dark starts, m, before the walk's margin: the fog's far edge, or with `roundPast` that distance, the fog nearer where it is on. */
 function darkRadius(): number {
   if (settings.roundPast === undefined) return skyFog.edge
@@ -2117,21 +1785,6 @@ function darkMargin(): number {
   return DARK_MARGIN + settings.lightSpeed * unseen + tuning.maxSpeed * running
 }
 
-const viewFrustum = new Frustum()
-const viewMatrix = new Matrix4()
-const viewPlanes: ViewPlane[] = viewFrustum.planes.map(() => ({ a: 0, b: 0, c: 0 }))
-/**
- * The camera's frustum met with the ground, each plane pushed `margin` m out, so a rat set down past it shows no
- * part of itself: the goose game's dark, where the rats left behind are set down as near him as the view allows.
- */
-function groundView(margin: number): ViewPlane[] {
-  camera.updateMatrixWorld()
-  viewMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
-  viewFrustum.setFromProjectionMatrix(viewMatrix, camera.coordinateSystem)
-  viewFrustum.planes.forEach(({ normal, constant }, k) => Object.assign(viewPlanes[k]!, { a: normal.x, b: normal.z, c: constant + margin }))
-  return viewPlanes
-}
-
 /** How many times brighter the rats' eyes glow at the height of a strike's flash. */
 const EYES_FLASH = 4
 
@@ -2155,8 +1808,6 @@ const gooseBone = (name: string) => goose.bone(name)
 let biteCued = Number.NEGATIVE_INFINITY
 let biteHard = 0
 const biteCame = { x: 0, z: 0 }
-/** The camera's knock this frame, m, a bite's, the torch's catch's and a rumble's, added over the orbit's for the drawing (standAtShots); zero, none. */
-const cameraKnock = new Vector3()
 /** How hard a bite by one rat is, of the hardest, MOST_BITERS of them at once. */
 const BITE_SOFTEST = 0.6
 /**
@@ -2197,7 +1848,7 @@ function biteFrame() {
   // back past where it was, then settling.
   const settle = through(bite.knockLasts)
   const knock = bite.knock * biteHard * (1 - settle) ** 2 * Math.cos(2.5 * Math.PI * settle)
-  cameraKnock.set(-biteCame.x * knock, -knock * 0.5, -biteCame.z * knock)
+  view.cameraKnock.set(-biteCame.x * knock, -knock * 0.5, -biteCame.z * knock)
 }
 /** How high on him the feathers puff off, m over his feet. */
 const BITE_BODY = 0.3
@@ -2296,7 +1947,7 @@ function torchFrame(dt: number, held: number) {
   // Nudged back along the camera's look, off him, at once; springing back past where it was, then settling.
   const settled = through(torch.knockLasts)
   const knock = torch.knock * torchHard * (1 - settled) ** 2 * Math.cos(2.5 * Math.PI * settled)
-  if (knock !== 0) cameraKnock.add(awayFromLook.subVectors(camera.position, controls.target).normalize().multiplyScalar(knock))
+  if (knock !== 0) view.cameraKnock.add(awayFromLook.subVectors(camera.position, view.controls.target).normalize().multiplyScalar(knock))
 }
 
 /** When a found gosling's rats last rumbled in, on the play's time; none yet, NaN. */
@@ -2304,58 +1955,9 @@ let rumbledAt = Number.NaN
 /** The ground shaking the camera under a found gosling's rats, for as long as their rumble is heard. */
 function rumbleFrame() {
   const { x, y, z } = rumbleAt(goosePlay.t - rumbledAt, feel.rumble.shake, feel.rumble.lasts)
-  cameraKnock.x += x
-  cameraKnock.y += y
-  cameraKnock.z += z
-}
-
-const leanHead = new Vector3()
-/**
- * The camera leaning toward the nearest gosling still waiting (the feel folder's `lean`): as he comes within `from` m of
- * the little one, the more the nearer, all of it by `near` m, `pull` of the way from him to the gosling as drawn, up a tree or
- * down a well, `most` m at most, up but never down; easing there over `ease` s, and back once the gosling is with him. Slid,
- * never turned, so the keys walk him the way they always do. Held back as his torch runs low, `low` on: every metre
- * framed toward him is a metre of the dark on his other side not seen.
- */
-function cameraLeanFrame(dt: number) {
-  const { lean } = feel
-  let x = 0
-  let y = 0
-  let z = 0
-  if (!opening.running() && !ending.running() && Number.isNaN(goosePlay.fallen) && torchFilledOnce()) {
-    const { holder, run } = goosePlay
-    let near = -1
-    let off = lean.from
-    goosePlay.goslings.forEach((g, k) => {
-      const d = g?.state === 'waiting' ? Math.hypot(g.x - holder.x, g.z - holder.z) : Infinity
-      if (d < off) {
-        near = k
-        off = d
-      }
-    })
-    const g = goosePlay.goslings[near]
-    if (g) {
-      const c = Math.min(1, Math.max(0, (lean.from - off) / Math.max(lean.from - lean.near, 1e-3)))
-      const close = c * c * (3 - 2 * c)
-      const burning = !run.torch.lit ? 0 : lean.low ? Math.min(1, run.fuel / Math.max(feel.torch.low, 1e-3)) : 1
-      goslings.headOf(near, leanHead)
-      const share = lean.pull * close * burning
-      x = (leanHead.x - holder.x) * share
-      z = (leanHead.z - holder.z) * share
-      y = Math.max(0, leanHead.y - (Number.isNaN(stood) ? standAt(holder.x, holder.z) : stood)) * share
-      const length = Math.hypot(x, y, z)
-      if (length > lean.most) {
-        const cut = lean.most / length
-        x *= cut
-        y *= cut
-        z *= cut
-      }
-    }
-  }
-  const k = lean.ease > 0 ? 1 - Math.exp(-dt / lean.ease) : 1
-  leanAim.x += (x - leanAim.x) * k
-  leanAim.y += (y - leanAim.y) * k
-  leanAim.z += (z - leanAim.z) * k
+  view.cameraKnock.x += x
+  view.cameraKnock.y += y
+  view.cameraKnock.z += z
 }
 
 /** When J last showed his death clip whole, s of the play. */
@@ -2398,7 +2000,7 @@ function gooseFrame(dt: number, held: number) {
   biteFrame()
   torchFrame(dt, held)
   rumbleFrame()
-  cameraLeanFrame(dt)
+  view.cameraLeanFrame(dt, stood)
   gooseSoundsFrame(dt)
   islandGeese.direct(ending.cue())
   ending.frame()
@@ -2417,7 +2019,7 @@ function islandNear(): boolean {
   const middle = islandMiddle(pondLook)
   let widest = 0
   for (let k = 0; k < 16; k++) widest = Math.max(widest, islandShoreAt(pondLook.island, (k / 16) * Math.PI * 2))
-  return inView(middle.x, middle.z, widest + ISLAND_SHADOWS)
+  return view.inView(middle.x, middle.z, widest + ISLAND_SHADOWS)
 }
 
 /** Whether the rats have rushed in yet. */
@@ -2939,7 +2541,7 @@ function ghostsNear(): boolean {
   const x = (minX + maxX) / 2
   const z = (minZ + maxZ) / 2
   const radius = Math.hypot(maxX - minX, maxZ - minZ) / 2
-  return within(x, z, radius, GHOST_HEARD) || (!!ghosts && inView(x, z, radius + ghosts.look.reach + GHOST_SETTLE))
+  return within(x, z, radius, GHOST_HEARD) || (!!ghosts && view.inView(x, z, radius + ghosts.look.reach + GHOST_SETTLE))
 }
 /** Now and then, the ghost nearest him moans, from where it walks, if near enough. */
 function ghostsHeardFrame(dt: number) {
@@ -3032,9 +2634,6 @@ function ratsHeardFrame() {
  * At the cage without its key, the hint over the cage says it.
  */
 const holdHint = !filming ? createHoldHint() : undefined
-/** Whether his torch has been full once: starting with it out, he lights it first, and no gosling peeps for him nor turns the camera till then. */
-let torchFilled = false
-const torchFilledOnce = () => (torchFilled ||= goosePlay.run.fuel >= 0.99)
 /** How high over the ground he stands on the indicator's foot, m: over his head. */
 const HINT_HEIGHT = 1.15
 const hintAt = new Vector3()
@@ -3634,50 +3233,6 @@ function enterWhenAsked(go: () => void) {
   enter.focus()
 }
 
-/** Whether a shot is in over the orbit: the opening's or the ending's. */
-const shotIn = () => opening.running() || ending.running()
-/** The orbit's camera kept, to put back once the frame is drawn. */
-const orbitAt = new Vector3()
-const orbitTurn = new Quaternion()
-const looking = new Vector3()
-
-/** No shake, where less motion is asked for. */
-const STILL_CAMERA = { x: 0, y: 0, z: 0 }
-
-/** The camera stood at the shots as far in as they are, over the orbit, for this frame's drawing: true if it moved, to be put back after. */
-function standAtShots(): boolean {
-  const knocked = !calm && !shotIn() && cameraKnock.lengthSq() > 0
-  const moved = shotIn() || knocked
-  if (moved && opening.running()) {
-    orbitAt.copy(camera.position)
-    orbitTurn.copy(camera.quaternion)
-    // The game's own camera, thrown about by the strike.
-    const shake = calm ? STILL_CAMERA : shakeAt(opening.t)
-    camera.position.add(looking.set(shake.x, shake.y, shake.z))
-    camera.lookAt(controls.target.x + shake.x * 0.6, controls.target.y + shake.y * 0.6, controls.target.z + shake.z * 0.6)
-  } else if (moved && ending.running()) {
-    orbitAt.copy(camera.position)
-    orbitTurn.copy(camera.quaternion)
-    // The game's own camera, drawn back along its look as the ending closes.
-    looking.subVectors(camera.position, controls.target).normalize().multiplyScalar(pullOf(ending.t))
-    camera.position.add(looking)
-    camera.lookAt(controls.target)
-  } else if (knocked) {
-    orbitAt.copy(camera.position)
-    orbitTurn.copy(camera.quaternion)
-    // A bite on him: the camera knocked, its look with it a little behind, as the opening's strike throws it.
-    camera.position.add(cameraKnock)
-    camera.lookAt(controls.target.x + cameraKnock.x * 0.6, controls.target.y + cameraKnock.y * 0.6, controls.target.z + cameraKnock.z * 0.6)
-  }
-  camera.getWorldDirection(looking)
-  const along = Math.hypot(looking.x, looking.z)
-  if (along > 1e-3) {
-    drawnForward.x = looking.x / along
-    drawnForward.z = looking.z / along
-  }
-  return moved
-}
-
 /** The game paused or going on, the panel's pause button saying which. */
 function setPaused(on: boolean) {
   settings.paused = on
@@ -3696,7 +3251,7 @@ if (!filming && !navigator.webdriver && !benchOn) {
 // In the chase camera, Escape lets the locked pointer go before the page hears the key: the lock lost, the game pauses
 // as on Escape. Turning to another camera lets it go too, the chase already left.
 document.addEventListener('pointerlockchange', () => {
-  if (chasing && !document.pointerLockElement && !filming && pausesHere()) setPaused(true)
+  if (view.chasing && !document.pointerLockElement && !filming && pausesHere()) setPaused(true)
 })
 
 // ---------------------------------------------------------------- the phone's bench
@@ -4000,15 +3555,15 @@ renderer.setAnimationLoop(() => {
       ending.walk()
     } else if (!opening.running()) {
       // His walk eased to the one asked: a little weight to him, starting and stopping.
-      const share = walkFrame(heading(input.commands.walk), dt)
+      const share = view.walkFrame(view.heading(input.commands.walk), dt)
       // Slower in the water: his walking pace given way to his swimming one as he takes to it.
       const swimming = swimmingIn(pondLook, run.holder.x, run.holder.z, pondLook.goose)
       goosePlay.settings.pace = settings.lightSpeed * (1 + (pondLook.goose.pace - 1) * swimming) * share
       if (torchEverlasting) run.fuel = 1
       goosePlay.frame(dt, {
-        heading: share > 0 ? { x: walking.x, z: walking.z } : null,
+        heading: share > 0 ? { x: view.walking.x, z: view.walking.z } : null,
         interact: input.commands.interact,
-        look: gooseCamera === 'chase' ? drawnForward : null,
+        look: view.kind === 'chase' ? view.drawnForward : null,
       })
       // The ending's music asked for when the last gosling is found, not held all the game.
       if (ending.on && goosePlay.goslings[goosePlay.guide]?.state === 'guiding') void gooseSounds?.load('outro')
@@ -4016,8 +3571,8 @@ renderer.setAnimationLoop(() => {
       // Woken at a fire, under the black: the camera, the lamp and his height there at once, not gliding after him.
       if (goosePlay.deaths !== fallsSeen) {
         fallsSeen = goosePlay.deaths
-        walking.x = walking.z = 0
-        owed = lampOwed = Number.POSITIVE_INFINITY
+        view.onHim()
+        lampOwed = Number.POSITIVE_INFINITY
         stood = Number.NaN
       }
     } else {
@@ -4050,9 +3605,9 @@ renderer.setAnimationLoop(() => {
   callHintFrame(dt)
   peepWordsFrame(dt)
   editMode?.frame()
-  orthoFrame()
+  view.orthoFrame()
   // The shots over the orbit, before anything reads the camera for this frame's drawing.
-  const shot = standAtShots()
+  const shot = view.standAtShots()
   seeThroughAt.set(shown.x, stood + 0.8, shown.z)
   gooseSee.subject.value.set(seeThroughAt.x, stood + gooseSeeLook.height, seeThroughAt.z)
   gooseSeeZone.update(gooseSee.subject.value, camera, gooseSeeLook)
@@ -4073,7 +3628,7 @@ renderer.setAnimationLoop(() => {
   // swarm seems to have no end.
   const margin = darkMargin()
   const dark: Dark | undefined =
-    settings.bringRound ? { x: shown.x, z: shown.z, radius: darkRadius() + margin, view: groundView(margin) } : undefined
+    settings.bringRound ? { x: shown.x, z: shown.z, radius: darkRadius() + margin, view: view.groundView(margin) } : undefined
   const ratsCome = ratsComeFrame(dt)
   const wanted = fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, Math.round((settings.rats + ratsForGoslings()) * quality.step.rats * benchRatShare))
   // The goose game's goslings in the dark pull the rats near them (#188).
@@ -4139,7 +3694,7 @@ renderer.setAnimationLoop(() => {
   }
   // In the opening, none till the strike brings them.
   if (opening.on) rats.object.visible = ratsOut(opening.t)
-  fallingLeaves?.update(dt, followed.x, followed.z)
+  fallingLeaves?.update(dt, view.followed.x, view.followed.z)
   islandTree.update(dt)
   if (ghosts) {
     ghosts.object.visible = ghostsNear()
@@ -4151,8 +3706,7 @@ renderer.setAnimationLoop(() => {
   else post.render()
   // The orbit's camera put back, for the mouse, the keys and the next frame's follow.
   if (shot) {
-    camera.position.copy(orbitAt)
-    camera.quaternion.copy(orbitTurn)
+    view.backFromShots()
   }
   // The view's triangles: every rat on screen at its level of detail, and the ground. The shadow passes draw the rats again, off screen.
   const groundGeometry = ground.mesh.geometry
