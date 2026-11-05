@@ -26,11 +26,15 @@ export function createOpening(goosePlay: GoosePlay<PlaySwarm>, burningTreeLight:
     skipHolding: 0,
     /** Whether the opening has put the goslings where they wait, its last word on them: then the play has them. */
     settled: false,
-    /** The opening over at once: he where his walk ends, the rest the play's from the next frame. */
+    /**
+     * The opening over at once: he where his walk ends, each gosling where he waits, the rest the play's from the next
+     * frame. Its last word on the goslings said here, so a kept run taken up after it (runkeeper.ts) is not sent back too.
+     */
     skip() {
       opening.t = OPENING.end
       opening.skipHolding = 0
       opening.walk()
+      opening.goslingsFrame()
     },
     /** He walks up the road as the opening has him, facing the way he walks. */
     walk() {
