@@ -24,6 +24,8 @@ takes = {}
 # What this script makes is made again from nothing: the ambience loops (ambience.py), the swarm (swarm.py, from the
 # rat takes and freesound's) and the tree page's wind and leaves are not its own.
 OWN_NOT = {'fire_crackling.ogg', 'fire_calm.ogg', 'river_calm.ogg', 'wind.ogg', 'leaves.ogg', 'swarm_far.ogg', 'swarm_near.ogg', 'swarm_edge.ogg'}
+# Nor are the mp3 copies of those (mp3copies.py), which makes the winch's as well: run it after this.
+OWN_NOT |= {name.replace('.ogg', '.mp3') for name in OWN_NOT}
 for path in glob.glob(os.path.join(GAME, '*')):
     if os.path.basename(path) not in OWN_NOT:
         os.remove(path)

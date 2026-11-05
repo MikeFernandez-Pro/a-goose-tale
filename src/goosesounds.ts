@@ -131,6 +131,20 @@ export function savedTune(sound: GooseSound): Tune {
 /** The sound's takes by name, as built. */
 export const takesOf = (sound: GooseSound): string[] => (builtTakes as Record<string, string[]>)[spec(sound).file ?? sound] ?? ['']
 
+/**
+ * The formats a sound is asked for in, best first: as it was made; then, for an ogg, the mp3 copy
+ * (tools/sfx/mp3copies.py), for a device that decodes no Ogg, its loop perhaps with a gap but not silent.
+ */
+export function formatsOf(sound: GooseSound): string[] {
+  const { type } = spec(sound)
+  return type === 'ogg' ? [type, 'mp3'] : [type]
+}
+/** The file of the sound's `take`, '' for a sound of one file, in `format`. */
+export function soundFile(sound: GooseSound, take: string, format: string): string {
+  const { file = sound } = spec(sound)
+  return take ? `${file}_${take}.${format}` : `${file}.${format}`
+}
+
 /** How far off a take plays from its own pitch, either way, as a share; and from its level. */
 const PITCH_SPREAD = 0.06
 /** How long a cut take fades out over, s of the take. */
@@ -252,6 +266,18 @@ export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE
 
   const tunes = Object.fromEntries(GOOSE_SOUNDS.map((sound) => [sound, savedTune(sound)])) as Record<GooseSound, Tune>
   const loader = new AudioLoader()
+  /** The take in the first of the sound's formats this device decodes; only if none does, what the last one said. */
+  const fetched = async (sound: GooseSound, take: string): Promise<AudioBuffer> => {
+    let failed: unknown
+    for (const format of formatsOf(sound)) {
+      try {
+        return await loader.loadAsync(base + soundFile(sound, take, format))
+      } catch (error) {
+        failed = error
+      }
+    }
+    throw failed
+  }
   const files = new Map<string, Promise<AudioBuffer[]>>()
   const takes = new Map<GooseSound, AudioBuffer[]>()
   const last = new Map<GooseSound, number>()
@@ -259,9 +285,8 @@ export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE
   const load = (sound: GooseSound) => {
     let loaded = loading.get(sound)
     if (!loaded) {
-      const { type, file = sound } = spec(sound)
-      const name = (take: string) => (take ? `${file}_${take}.${type}` : `${file}.${type}`)
-      if (!files.has(file)) files.set(file, Promise.all(takesOf(sound).map((take) => loader.loadAsync(base + name(take)))))
+      const { file = sound } = spec(sound)
+      if (!files.has(file)) files.set(file, Promise.all(takesOf(sound).map((take) => fetched(sound, take))))
       loaded = files.get(file)!.then((buffers) => void takes.set(sound, buffers))
       loading.set(sound, loaded)
     }
