@@ -29,12 +29,11 @@ import { dFdx, dFdy, hue, materialColor, max, mix, normalView, positionView, ren
 import { modelLoader } from '../look/gltf'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
-import { ShellToonMaterial, type ShellLook, type PaintLook } from '../look/shell'
+import { ShellToonMaterial, type ShellLook, type ShineLook, type PaintLook } from '../look/shell'
 import { NO_COLOUR, NO_NORMALS, setLayer } from '../look/texturesets'
 import { random } from '../swarm/swarm'
 import { createInscriptions, inscribable, inscribe, mountInscriptionControls, type Inscriptions } from './inscriptions'
 import type { ToonLook } from '../look/toon'
-import type { ShineLook } from '../dev/panel'
 
 const MODEL = './models/graves.glb'
 /** The strokes' size over a scene piece, m, as goosescenes.ts lays them. */

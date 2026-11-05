@@ -1,5 +1,5 @@
 // F and P, with the panel or without one.
-import type { Settings } from '../dev/panel'
+import type { Settings } from '../settings'
 
 /**
  * The torch put out and relit, and the pause, as F and P do them and the

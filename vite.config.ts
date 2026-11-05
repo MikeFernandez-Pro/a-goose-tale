@@ -2,10 +2,10 @@
 // so one config serves the dev server, the build and the swarm's tests.
 import { defineConfig } from 'vitest/config'
 import basicSsl from '@vitejs/plugin-basic-ssl'
-import { gooseRoute } from './tools/gooseroute-plugin'
-import { gooseSounds } from './tools/goosesounds-plugin'
-import { phoneLog } from './tools/phonelog-plugin'
-import { stripComments } from './tools/stripcomments-plugin'
+import { gooseRoute } from './tools/vite/gooseroute-plugin'
+import { gooseSounds } from './tools/vite/goosesounds-plugin'
+import { phoneLog } from './tools/vite/phonelog-plugin'
+import { stripComments } from './tools/vite/stripcomments-plugin'
 
 // The game is one page and one program, so this is a plain vite app.
 export default defineConfig(({ mode }) => ({
@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => ({
   // certificate, since a phone gets WebGPU only in a secure context, and a
   // LAN address over http is not one. The browser warns once. Cast: vitest 2
   // types this config against vite 5, the plugin is typed against vite 7.
-  // The dev server also saves the goose game's route from its edit mode (tools/gooseroute-plugin.ts) and its sound mix
-  // from the sound panel (tools/goosesounds-plugin.ts), and keeps what `?bench` measures on a phone (tools/phonelog-plugin.ts).
+  // The dev server also saves the goose game's route from its edit mode (tools/vite/gooseroute-plugin.ts) and its sound mix
+  // from the sound panel (tools/vite/goosesounds-plugin.ts), and keeps what `?bench` measures on a phone (tools/vite/phonelog-plugin.ts).
   plugins: [gooseRoute() as never, gooseSounds() as never, phoneLog() as never, stripComments() as never, ...(mode === 'phone' ? [basicSsl() as never] : [])],
   // Another project's dev server holds 5173 on this machine, and vite answers
   // any path with its index: a game moved to 5174 looked like the other page.

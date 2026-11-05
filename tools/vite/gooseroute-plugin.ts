@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
-const FILE = resolve(fileURLToPath(new URL('.', import.meta.url)), '../src/world/gooseroute.json')
+const FILE = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../src/world/gooseroute.json')
 
 /** Whether `route` has the route's shape: a start, a list of braziers, each a point with a reach and, if it has one, a gosling, a pond, and, if laid by hand, the road's points. */
 function isRoute(route: unknown): boolean {

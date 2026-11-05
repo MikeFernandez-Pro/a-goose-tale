@@ -27,7 +27,7 @@
 // justASimpleTree colours its leaves, through three colours, shadow, mid and
 // light, hard-edged, here by that baked shade: the game's own lights light
 // them after. The texture is justASimpleTree's own, white leaves on black, as
-// it paints it (scripts/generators/leaves_texture.mjs), not the file's copy.
+// it paints it (tools/generators/leaves_texture.mjs), not the file's copy.
 // Their glow, their own colour shown as light, is kept out of the bloom.
 import { Box3, BufferAttribute, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Matrix4, NoColorSpace, Quaternion, Sphere, TextureLoader, Vector2, Vector3, type Material, type Texture, SRGBColorSpace } from 'three/webgpu'
 import { abs, attribute, dFdx, dFdy, dot, float, fract, hue, materialColor, max, mix, mx_noise_float, normalView, normalViewGeometry, normalWorld, positionGeometry, positionView, positionWorld, pow, renderGroup, saturation, select, smoothstep, texture, uniform, uv, vec2, vec3 } from 'three/tsl'
@@ -214,7 +214,7 @@ interface TreeFile {
 /**
  * The giant trees, under test (2026-10-26): four curled trees in leaf, the first 9.4 m tall, its foot about 0.55 m round
  * on the ground; each laid as tall as the first, and standing 8 m tall, as set from the panel on 2026-10-26. justASimpleTree's spooky trees (night theme, seeds 6964, 1759, 4843 and
- * 5197), as its own export writes them (scripts/generators/giant_tree.mjs), nothing between: their leaves each one cell
+ * 5197), as its own export writes them (tools/generators/giant_tree.mjs), nothing between: their leaves each one cell
  * of the leaf atlas (LEAF_TEXTURE), as it draws them; their wood's uvs its own too, a metre round each branch and a metre
  * along the wood a unit, a seam down each branch (2026-10-26). The Blender cut before them had unwrapped the leaves with
  * the wood, and its cards showed whole.
@@ -231,7 +231,7 @@ const GIANT_TREE: TreeFile = {
 }
 /**
  * The leaves' texture: justASimpleTree's pointed cluster, a 2 x 2 atlas of four clusters, white leaves on black, painted
- * by its own code (scripts/generators/leaves_texture.mjs); the way up its canvas is, as the cards' uvs read it.
+ * by its own code (tools/generators/leaves_texture.mjs); the way up its canvas is, as the cards' uvs read it.
  */
 const LEAF_TEXTURE = './textures/leaves/pointed-cluster.webp'
 /** The leaves' texture, loaded once, for all that read it: the dead trees and the island's oak. */

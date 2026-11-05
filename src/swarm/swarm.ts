@@ -76,7 +76,7 @@
 // within `notice`, a target within `pull`; a target straight, never round the
 // walls. A target is a holder like any other: in a light, the light keeps
 // the rats off it at its edge.
-import { ANGLES, LitAreas, MAX_LIGHTS } from '../light/litareas'
+import { ANGLES, LitAreas, MAX_LIGHTS } from './litareas'
 import { FlowField } from './flowfield'
 import { HOLDER_RADIUS, Walls, type Wall } from './walls'
 

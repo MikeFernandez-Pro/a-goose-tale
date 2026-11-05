@@ -1,4 +1,4 @@
-// The headed Chrome the dev tools drive (tools/page.mjs, scripts/generators/giant_tree.mjs).
+// The headed Chrome the dev tools drive (tools/page.mjs, tools/generators/giant_tree.mjs).
 // Plain JavaScript: its callers run under bare `node`.
 import { chromium } from "playwright-core";
 

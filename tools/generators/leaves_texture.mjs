@@ -3,7 +3,7 @@
 // seed 6964; the atlas has its own seed, the same for every tree). Its painters are read from the justASimpleTree
 // checkout beside this one and run in a page, for the canvas they paint on.
 //
-//   node scripts/generators/leaves_texture.mjs [path to justASimpleTree]
+//   node tools/generators/leaves_texture.mjs [path to justASimpleTree]
 //
 // Run from the repo root; writes public/textures/leaves/pointed-cluster.webp, lossless, through ImageMagick.
 import { execFileSync } from 'node:child_process'

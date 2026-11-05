@@ -2,11 +2,11 @@
 // each sound (goosesounds.ts) with its volume, speed and pitch, if heard from a place how far off at full level and
 // where silent, muted or not, played, looped and stopped, put back as
 // saved; and in it a folder of its takes, each to hear alone and to keep or discard, a discarded take never played.
-// Save writes the mix over src/sound/goosesounds.json through the dev server (tools/goosesounds-plugin.ts), the mix the
+// Save writes the mix over src/sound/goosesounds.json through the dev server (tools/vite/goosesounds-plugin.ts), the mix the
 // game starts from next load; with no dev server, a build, it downloads the file instead.
 // Speed and pitch are one thing in Web Audio: a take played faster is higher, and pitched up is shorter.
 // Beside it, on the dev server only, the takes panel: every take ElevenLabs gave for each title, as it came, to hear
-// and to ban; saved, the sounds are made again without the banned (tools/goosesounds-plugin.ts, _sfx/build.py).
+// and to ban; saved, the sounds are made again without the banned (tools/vite/goosesounds-plugin.ts, _sfx/build.py).
 import { GOOSE_SOUNDS, savedTune, takesOf, type GooseSound, type GooseSounds } from '../sound/goosesounds'
 import banned from '../sound/goosebans.json'
 import { ALL_LAYERS, MUSIC_LAYERS, type GooseMusic } from '../sound/goosemusic'

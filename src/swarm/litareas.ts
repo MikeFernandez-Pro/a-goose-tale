@@ -13,8 +13,8 @@
 // it moves; the rest are the lit lights the level places, in the swarm's
 // order, each seen again only when it moves, or when the walls change.
 // Water's row is its shore, as it was handed over, whatever the walls.
-import type { FixedLight } from '../swarm/swarm'
-import type { Walls } from '../swarm/walls'
+import type { FixedLight } from './swarm'
+import type { Walls } from './walls'
 
 /** The most lights the level places a step reads at once: the first lit ones. The GPU step hands them over as a uniform array this long. */
 export const MAX_LIGHTS = 16

@@ -8,11 +8,10 @@
 // folder too.
 import { DoubleSide, Group, type Color, type Material, type Mesh } from 'three/webgpu'
 import { modelLoader } from '../look/gltf'
-import { ShellToonMaterial, type PaintLook, type ShellLook } from '../look/shell'
+import { ShellToonMaterial, type PaintLook, type ShellLook, type ShineLook } from '../look/shell'
 import { createPalette } from '../look/palettemesh'
 import { groundOf, islandMiddle, type PondLook } from './pond'
 import type { ToonLook } from '../look/toon'
-import type { ShineLook } from '../dev/panel'
 import type { Point } from './plain'
 
 const MODEL = './models/tent.glb'

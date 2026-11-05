@@ -2,12 +2,12 @@
 // export ("tree" in its export menu) written to public/models/spookyTrees/ as it downloads, no other tool between.
 // Their leaves are baked as justASimpleTree draws them, each card one cell of the leaf atlas.
 //
-//   node scripts/generators/giant_tree.mjs [justASimpleTree's dev server]
+//   node tools/generators/giant_tree.mjs [justASimpleTree's dev server]
 //
 // Run from the repo root, with justASimpleTree's dev server up (`pnpm dev` there, http://localhost:5173 by default).
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { launchChrome } from '../../tools/browser.mjs'
+import { launchChrome } from '../browser.mjs'
 
 /** What every tree shares, as justASimpleTree's panel reads it from the page's hash. */
 const SPOOKY = {

@@ -6,7 +6,7 @@
 // the rats' fur, highlight, rim and eyes, the flame, the floor's tint, the ink
 // in the creases. The goose and his goslings keep their own colours: only his
 // rim and highlight follow the light.
-import type { Look } from '../dev/panel'
+import type { Look } from '../settings'
 import type { ShellLook } from './shell'
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends readonly unknown[] ? T[K] : T[K] extends object ? DeepPartial<T[K]> : T[K] }

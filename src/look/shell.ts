@@ -88,6 +88,9 @@ export interface ShellLook {
   rimColor: number
 }
 
+/** A shell's highlight and rim: what a model may show of them apart from the shell it shares. */
+export type ShineLook = Pick<ShellLook, 'specular' | 'shininess' | 'softness' | 'specularColor' | 'rim' | 'rimStrength' | 'rimWidth' | 'rimSoftness' | 'rimColor'>
+
 /** What a painted-normals folder edits. */
 
 export interface PaintLook {

@@ -40,6 +40,27 @@ The route is saved in `src/world/gooseroute.json`, which the game plays. Under
 `pnpm dev`, E on the game's page edits it in 3D: the play paused, a click picks a piece, a drag moves it,
 the wheel turns it, and Save writes the route.
 
+## Where things live
+
+`src/main.ts` is the page: it builds the scene and runs each frame. `src/settings.ts` holds
+what it tunes and reads. The rest of `src/` goes by what each file is in the game, with each
+test beside its source:
+
+| Folder | What is in it |
+| --- | --- |
+| `swarm/` | the rats: where they run, the way round the walls, the lit areas they keep out of, their workers and their drawing |
+| `game/` | the play with no drawing, the scenes, the opening and the ending |
+| `characters/` | the gander, the goslings, the island geese and the ghosts |
+| `world/` | the plain and the route it follows, the road, the pond, the graveyard, the trees and the weather |
+| `light/` | the lights, the flame, its embers and smoke, and the shadows fires cast |
+| `look/` | the shading, the frame after the scene, the themes, the quality steps and the model loader |
+| `sound/` | the sounds, the music and their mixes |
+| `ui/` | the controls, the hints, the badge and the error screens |
+| `dev/` | the panels, the route editor and the benches, loaded only when asked for |
+
+In `tools/`, `vite/` holds the dev server's and the build's plugins, `generators/` the scripts
+that made models and textures, and `sfx/` the sounds' build.
+
 ## Credits and licence
 
 The code is MIT (see `LICENSE`). Code ported from other projects, and the

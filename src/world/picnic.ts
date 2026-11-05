@@ -9,9 +9,8 @@
 import { DoubleSide, Group, Quaternion, Vector3, type Mesh, type MeshBasicMaterial, type Texture } from 'three/webgpu'
 import { texture } from 'three/tsl'
 import { modelLoader } from '../look/gltf'
-import { ShellToonMaterial, type ShellLook } from '../look/shell'
+import { ShellToonMaterial, type ShellLook, type ShineLook } from '../look/shell'
 import { groundOf, islandMiddle, type PondLook } from './pond'
-import type { ShineLook } from '../dev/panel'
 
 const MODEL = './models/picnic.glb'
 /** How wide the file's tray is, m, as modelled; how far its corners reach from its middle; how far under the origin its foot is. */

@@ -8,7 +8,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
-const DIR = resolve(fileURLToPath(new URL('.', import.meta.url)), '../_phone')
+const DIR = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../_phone')
 
 export function phoneLog(): Plugin {
   return {

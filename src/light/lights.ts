@@ -42,7 +42,7 @@ import { atan, float, int, ivec2, min, normalWorldGeometry, positionWorld, selec
 import { leaveUnshaded } from '../look/post'
 import { FakeLamp, type FakeLamps } from './fakelamps'
 import { createToonGradient } from '../look/toon'
-import { ANGLES, MAX_LIGHTS } from './litareas'
+import { ANGLES, MAX_LIGHTS } from '../swarm/litareas'
 import { flickerAt } from '../swarm/gpuswarm'
 import type { FixedLight } from '../swarm/swarm'
 import type { PlacedLight } from '../game/run'

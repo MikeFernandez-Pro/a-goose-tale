@@ -4,7 +4,7 @@
 // calling out of view is heard from his side. Every sound has a few takes, never the same one twice running, each
 // played a little off its own pitch and level. The loops run from a place of their own, or everywhere, as the wind.
 // Each sound has a tune the sound panel (soundpanel.ts) sets live: its volume, speed, pitch, if heard from a place how
-// far it is heard at full level and where it falls silent, whether it is muted, and the takes left out; the mix starts as goosesounds.json has it, which the panel saves (tools/goosesounds-plugin.ts).
+// far it is heard at full level and where it falls silent, whether it is muted, and the takes left out; the mix starts as goosesounds.json has it, which the panel saves (tools/vite/goosesounds-plugin.ts).
 import { AudioListener, AudioLoader, type Camera } from 'three'
 import saved from './goosesounds.json'
 import builtTakes from './goosetakes.json'

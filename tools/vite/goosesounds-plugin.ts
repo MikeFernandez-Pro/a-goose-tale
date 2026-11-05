@@ -13,9 +13,9 @@ import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
 const HERE = fileURLToPath(new URL('.', import.meta.url))
-const FILE = resolve(HERE, '../src/sound/goosesounds.json')
-const BANS = resolve(HERE, '../src/sound/goosebans.json')
-const SFX = resolve(HERE, '../_sfx')
+const FILE = resolve(HERE, '../../src/sound/goosesounds.json')
+const BANS = resolve(HERE, '../../src/sound/goosebans.json')
+const SFX = resolve(HERE, '../../_sfx')
 
 /** Whether `mix` has the mix's shape: a volume, and for each sound by name its volume, speed and pitch, muted or not, and the takes it leaves out. */
 function isMix(mix: unknown): boolean {

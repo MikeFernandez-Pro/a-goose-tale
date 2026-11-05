@@ -1,6 +1,6 @@
 // What each thing the game draws costs on a phone, read on the phone: `?bench`
 // stands the goose at each place, then takes each cost off and puts it back at
-// the slowest, and posts every reading to the dev server (tools/phonelog-plugin.ts),
+// the slowest, and posts every reading to the dev server (tools/vite/phonelog-plugin.ts),
 // so nothing is copied off a small screen.
 //
 // A phone can't be run uncapped, and a frame under its vsync reads the same
