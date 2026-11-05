@@ -10,7 +10,7 @@ import type { Node } from 'three/webgpu'
 import { NO_COLOUR, NO_NORMALS, setLayer } from './texturesets'
 
 /** The plank sets, from the woodTexture download of 2026-10-26: each its colour and OpenGL normal map, in public/textures/wood/`set`/, in WebP; `none` the cart's own colour. */
-export const CART_WOODS = ['none', 'wood_08', 'wood_11'] as const
+export const CART_WOODS = ['none', 'wood_11'] as const
 export type CartWoodName = (typeof CART_WOODS)[number]
 
 /** What the cart wood folder edits, as the dead trees' bark folder edits theirs. */
@@ -72,14 +72,12 @@ export function createCartWood(metresPerUnit: number, own: Node<'vec3'> = materi
   const turnUv = (at: Node<'vec2'>) => vec2(at.x.mul(turn.x).sub(at.y.mul(turn.y)), at.x.mul(turn.y).add(at.y.mul(turn.x)))
   // The map's lean back out of the turned tile, into the side's own u and v.
   const unturn = (lean: Node<'vec2'>) => vec2(lean.x.mul(turn.x).add(lean.y.mul(turn.y)), lean.y.mul(turn.x).sub(lean.x.mul(turn.y)))
-  const colours: ReturnType<typeof texture>[] = []
   const normals: ReturnType<typeof texture>[] = []
   /** One side's colour, and its relief as a lean in its u and v, its u flipped with the side. */
   const sideOf = (at: Node<'vec2'>, flip: Node<'float'>) => {
     const turnedAt = turnUv(at)
     const colour = texture(NO_COLOUR, turnedAt)
     const normal = texture(NO_NORMALS, turnedAt)
-    colours.push(colour)
     normals.push(normal)
     const m = normal.xyz.mul(2).sub(1)
     const leant = unturn(m.xy.mul(relief).mul(textured))
@@ -94,7 +92,7 @@ export function createCartWood(metresPerUnit: number, own: Node<'vec3'> = materi
   const ny = vec3(y.tn.xy.add(n.xz), abs(y.tn.z).mul(n.y))
   const nz = vec3(z.tn.xy.add(n.xy), abs(z.tn.z).mul(n.z))
   const local = nx.zyx.mul(share.x).add(ny.xzy.mul(share.y)).add(nz.xyz.mul(share.z)).normalize()
-  const lay = setLayer<CartWoodName>('./textures/wood', { colours, normals, textured, plain })
+  const lay = setLayer<CartWoodName>('./textures/wood', { normals, textured, plain })
   // The cart's own colour, or the set's lit, darkened and turned, or the cart's again over it as much as the folder has it.
   const wood = mix(own, saturation(hue(colour, turned), saturated).mul(lightness), textured.mul(plain.oneMinus())) as Node<'vec3'>
   const relieved = transformNormalToView(local).normalize() as Node<'vec3'>
@@ -112,8 +110,8 @@ export function createCartWood(metresPerUnit: number, own: Node<'vec3'> = materi
       relief.value = look.relief
       const angle = (look.rotation * Math.PI) / 180
       turn.value.set(Math.cos(angle), Math.sin(angle))
-      // Another set: its maps swapped into the same nodes once loaded, its colour only once some of it shows.
-      lay(look.texture, look.wood)
+      // Another set: its map swapped into the same nodes once loaded.
+      lay(look.texture)
     },
   }
 }

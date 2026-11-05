@@ -1,8 +1,7 @@
 // `?marker`: the calling gosling's badge, there all the time he calls,
 // not just as he honks. The gosling painted whole, on his own colour, in a ring
 // drawn in the game's own hand, as its words are, in their cream ink, the ring
-// boiling a little as a drawing's line does; or, with `?marker=icon`, a gosling
-// painted on black in its own white ring; or, with `?marker=doodle`, the gosling himself
+// boiling a little as a drawing's line does; or, with `?marker=doodle`, the gosling himself
 // doodled in that ink. A drawn arrow beside it. Out of view it sits at the screen's edge on his side, the arrow
 // pointing out to him, the doodle facing that way, the painted gosling always as
 // painted; in view it hangs over the
@@ -40,10 +39,8 @@ function framed(kid: number): string {
   const across = SIZE * zoom
   return `url(${PORTRAIT}) ${SIZE / 2 - x * across}px ${SIZE / 2 - y * across}px / ${across}px ${across}px no-repeat, ${colour}`
 }
-/** The icon, painted whole in its ring (5_icon_Mike.png, 2026-10-31), cut out of its black square and packed 256 square. */
-const ICON = `${import.meta.env.BASE_URL}ui/gosling-icon.webp`
-/** How the badge is drawn: the icon, the painted head in a drawn ring, or the doodle. */
-export type BadgeLook = 'icon' | 'portrait' | 'doodle'
+/** How the badge is drawn: the painted head in a drawn ring, or the doodle. */
+export type BadgeLook = 'portrait' | 'doodle'
 /** How thick the ring's line is, px. */
 const RING = 3.5
 /** Its ink, as the words'; the beak in the hold key's amber; the eye and the wing's line. */
@@ -159,22 +156,15 @@ export function createGoslingBadge(look: BadgeLook = 'portrait', fit: () => numb
     head.style.cssText = `position:absolute;left:${-SIZE / 2}px;top:${-SIZE / 2}px;width:${SIZE}px;height:${SIZE}px;border-radius:50%`
     body.append(head)
     portrait = head
-  } else if (look === 'icon') {
-    // Its own ring painted in, so none drawn over it, nor boiling.
-    const icon = document.createElement('div')
-    icon.style.cssText = `position:absolute;left:${-SIZE / 2}px;top:${-SIZE / 2}px;width:${SIZE}px;height:${SIZE}px;background:url(${ICON}) center / contain no-repeat`
-    body.append(icon)
   }
   // Its drawings, one showing at a time.
   const drawings: HTMLDivElement[] = []
   const arrows: HTMLDivElement[] = []
   for (let k = 0; k < BOILS; k++) {
-    if (look !== 'icon') {
-      const drawing = document.createElement('div')
-      drawing.innerHTML = look === 'portrait' ? ring(11 + k * 7919) : gosling(11 + k * 7919)
-      body.append(drawing)
-      drawings.push(drawing)
-    }
+    const drawing = document.createElement('div')
+    drawing.innerHTML = look === 'portrait' ? ring(11 + k * 7919) : gosling(11 + k * 7919)
+    body.append(drawing)
+    drawings.push(drawing)
     const drawn = document.createElement('div')
     drawn.innerHTML = arrow(23 + k * 104729)
     turn.append(drawn)

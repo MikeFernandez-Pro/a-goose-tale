@@ -1,8 +1,5 @@
-// The ground: one flat plane under a tiled, hand-painted floor and its normal
-// map, `public/textures/floor.png` and `floor-normal.png`, one set of
-// coordinates reading both; or earth, `ground.png` and `ground-normal.png`,
-// which the woods start on; or painted dirt, `dirt.png`, on a flat normal map; or one of the hand-painted stylized sets
-// in `floors/`, the goose game's, which starts on the grass. The panel's floor folder picks which, and sets how light it is,
+// The ground: one flat plane under a tiled floor, one of the hand-painted stylized sets in `floors/`, which starts on
+// the grass, one set of coordinates reading its painting and its normal map. The panel's floor folder picks which, and sets how light it is,
 // how saturated, which way its hue turns, how big a tile is on the ground, which way it is turned, and how deep its relief,
 // through uniforms, so a slider recompiles nothing. In the goose game the old road (road.ts) is laid over it in stone,
 // its slabs laid along it and across, so they follow it round its bends.
@@ -23,15 +20,10 @@ const handPainted = (set: string) => ({ map: `./textures/floors/${set}/color.web
 const reliefOnly = (set: string) => ({ normals: `./textures/floors/${set}/normal.webp` })
 
 /** The floors there are: each a painting and its normal map, in public/textures, or the normal map alone. */
-export const FLOORS: Record<'flagstones' | 'earth' | 'dirt' | `stylized_${'grass_01' | 'dirt_01' | 'sand_01' | 'stones_02'}`, { map?: string; normals: string }> = {
-  flagstones: { map: './textures/floor.png', normals: './textures/floor-normal.png' },
-  earth: { map: './textures/ground.png', normals: './textures/ground-normal.png' },
-  // Painted dirt, leaves, twigs, stones and moss: it came with no normal map, so its own is flat.
-  dirt: { map: './textures/dirt.png', normals: './textures/dirt-normal.png' },
+export const FLOORS: Record<`stylized_${'grass_01' | 'sand_01' | 'stones_02'}`, { map?: string; normals: string }> = {
   // The goose game's hand-painted sets, 2026-10-21, the only floors its folder offers: the Stylized_GrassAndDirt pack's
   // colour and OpenGL normal maps, cut from 4096 to 2048, then to 1024 in WebP (2026-10-30). Its plain starts on the grass.
   stylized_grass_01: handPainted('stylized_grass_01'),
-  stylized_dirt_01: handPainted('stylized_dirt_01'),
   // The sand, the bed's, its painting dropped on 2026-10-30 for a plain colour.
   stylized_sand_01: reliefOnly('stylized_sand_01'),
   stylized_stones_02: handPainted('stylized_stones_02'),
@@ -284,7 +276,7 @@ const loadNormals = (name: FloorName): Promise<Texture> => loadMap(FLOORS[name].
  * (`setWells`) fades to its set (`WellGroundLook`), under the bed's.
  */
 export async function floor(
-  start: FloorName = 'flagstones',
+  start: FloorName = 'stylized_grass_01',
   {
     slopes = false,
     bed,

@@ -403,7 +403,7 @@ export async function createGraves(where: GraveGround, groundAt: (x: number, z: 
   material.colorNode = inscriptions.colour(mix(materialColor, saturation(hue(colourTexel.rgb, turned), saturated).mul(lightness), textured.mul(plain.oneMinus())))
   const object = new Mesh(new BufferGeometry(), material)
   object.castShadow = object.receiveShadow = true
-  const lay = setLayer<StoneName>('./textures/stone', { colours: [colourTexel], normals: [normalTexel], textured, plain })
+  const lay = setLayer<StoneName>('./textures/stone', { normals: [normalTexel], textured, plain })
   const recolour = () => {
     material.color.set(look.colour)
     lightness.value = look.lightness
@@ -414,7 +414,7 @@ export async function createGraves(where: GraveGround, groundAt: (x: number, z: 
     const angle = (look.rotation * Math.PI) / 180
     turn.value.set(Math.cos(angle), Math.sin(angle))
     // Another set: its maps swapped into the same nodes once loaded, its colour only once some of it shows.
-    lay(look.texture, look.plain)
+    lay(look.texture)
   }
   const place = new Matrix4()
   const spin = new Quaternion()
@@ -502,7 +502,6 @@ export function mountGraveControls(graves: Graves, gui: GUI, laid: () => void): 
   stone.add(look, 'relief', 0, 6, 0.05).name('relief').onChange(recolour)
   stone.add(look, 'scale', 0.1, 4, 0.05).name('tile m').onChange(recolour)
   stone.add(look, 'rotation', 0, 180, 1).name('tile turn deg').onChange(recolour)
-  stone.add(look, 'plain', 0, 1, 0.01).name('plain colour share').onChange(recolour)
   stone.add(look, 'lightness', 0, 4, 0.01).name('lightness').onChange(recolour)
   stone.add(look, 'saturation', 0, 2, 0.01).name('saturation').onChange(recolour)
   stone.add(look, 'hue', -180, 180, 1).name('hue deg').onChange(recolour)

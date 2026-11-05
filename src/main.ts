@@ -259,64 +259,10 @@ const stylizedFloor = (texture: FloorName, own: Partial<Look['floor']> = {}): Lo
   ...own,
 })
 const FLOOR_LOOKS: Record<FloorName, Look['floor']> = {
-  // Set from the panel on 2026-10-05: the floor as painted, a little richer, on small tiles, its normal map as
-  // authored; a hard white highlight; wide, deep strokes over the map's relief; three steps from a grey shade.
-  // Halloween's purple turn taken off again on 2026-10-11.
-  flagstones: {
-    texture: 'flagstones',
-    lightness: 1,
-    saturation: 1.09,
-    hue: 0,
-    scale: 1.15,
-    relief: 1,
-    rotation: 0,
-    shell: { sheen: 0, specular: 0.85, shininess: 53, softness: 0, specularColor: 0xffffff, rim: false, rimStrength: 0.25, rimWidth: 0, rimSoftness: 0, rimColor: 0xe7febe },
-    paint: { strength: 10, density: 0.5, size: 2, rounding: 0.09 },
-    toon: { steps: 3, three: [0.3, 0.51, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
-  },
-  // Set from the panel on 2026-10-11: darker, a little drier and turned a touch red, a tile eight metres wide,
-  // flat, all but no highlight, broad strokes.
-  earth: {
-    texture: 'earth',
-    lightness: 0.59,
-    saturation: 0.9,
-    hue: -13,
-    scale: 8,
-    relief: 0,
-    rotation: 0,
-    shell: { sheen: 0, specular: 0.02, shininess: 114, softness: 0, specularColor: 0x4d7cf5, rim: false, rimStrength: 3, rimWidth: 0.01, rimSoftness: 0.08, rimColor: 0x4a271c },
-    paint: { strength: 4, density: 0.7, size: 3.35, rounding: 0.01 },
-    toon: { steps: 3, three: [0.3, 0.51, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
-  },
-  // A first try, 2026-10-11: the painting as painted, a tile three metres wide, so a leaf is a leaf's size;
-  // no highlight; the earth's strokes, over a flat normal map; three steps.
-  dirt: {
-    texture: 'dirt',
-    lightness: 1,
-    saturation: 1,
-    hue: 0,
-    scale: 3,
-    relief: 0,
-    rotation: 0,
-    shell: { sheen: 0, specular: 0, shininess: 53, softness: 0, specularColor: 0xffffff, rim: false, rimStrength: 0.25, rimWidth: 0, rimSoftness: 0, rimColor: 0xe7febe },
-    paint: { strength: 4, density: 0.7, size: 3.35, rounding: 0.01 },
-    toon: { steps: 3, three: [0.3, 0.51, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
-  },
   // The goose game's stylized sets, each set from the panel on 2026-10-21: the grass dark and turned to a warmer green,
-  // in deep relief; the dirt dark and nearly grey; the sand dark, a little warmer, flat; the stones grey, on smaller
-  // tiles, in deep relief.
+  // in deep relief; the sand dark, a little warmer, flat; the stones grey, on smaller tiles, in deep relief.
   // Paler and yellower, on bigger tiles: set from the panel on 2026-10-25, the goose game's floor.
   stylized_grass_01: stylizedFloor('stylized_grass_01', { lightness: 0.25, saturation: 0.6, hue: 32, scale: 4.6, relief: 3 }),
-  // On 2026-10-21 the dirt, the goose game's floor, on wide tiles: lighter and warmer, in deep relief, with a broad
-  // grey-blue highlight and a faint grey rim, as the panel set it.
-  stylized_dirt_01: stylizedFloor('stylized_dirt_01', {
-    lightness: 0.4,
-    saturation: 0.71,
-    hue: -22,
-    scale: 10,
-    relief: 3,
-    shell: { sheen: 0, specular: 1.21, shininess: 10, softness: 0.28, specularColor: 0x41595d, rim: true, rimStrength: 0.06, rimWidth: 0, rimSoftness: 0, rimColor: 0xc7c7c7 },
-  }),
   stylized_sand_01: stylizedFloor('stylized_sand_01', { lightness: 0.32, saturation: 0.63, hue: 14, relief: 0 }),
   stylized_stones_02: stylizedFloor('stylized_stones_02', { lightness: 0.52, saturation: 0, hue: 1, scale: 1.5, relief: 2.57 }),
 }
@@ -4327,7 +4273,7 @@ function wakeFlare(placed: readonly FixedLight[]): readonly FixedLight[] {
  * the gosling's head in view alone, none by the badge, and heard barely far off, louder as the goose comes; and his torch
  * out, or at the cage with its key, what to do written over where it is done (aheadFrame).
  */
-const badgeLook = url.get('marker') === 'doodle' ? 'doodle' : url.get('marker') === 'icon' ? 'icon' : 'portrait'
+const badgeLook = url.get('marker') === 'doodle' ? 'doodle' : 'portrait'
 /**
  * On a phone, the badge fitted to the screen: as drawn on a short side of BADGE_FIT_SIDE px, smaller on a smaller one,
  * never larger, and read each frame, so it follows the phone turned; elsewhere as drawn.

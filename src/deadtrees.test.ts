@@ -171,8 +171,7 @@ describe("the wood's tips", () => {
     }
   })
 
-  it('leave wood laid any other way as it is', async () => {
-    expect(thinned(await woodIn('deadTrees.glb')).moved).toBe(0)
+  it('leave wood laid any other way as it is', () => {
     expect(thinned(new CylinderGeometry(0.2, 0.1, 2)).moved).toBe(0)
   })
 })

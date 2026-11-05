@@ -14,8 +14,7 @@
 // picks, laid as the floor is (ground.ts): a tile `scale` m wide, turned, its
 // colour lightened, saturated and its hue turned, its normal map's relief
 // deepened, through uniforms, so a slider recompiles nothing. They are laid by
-// the file's uvs, unwrapped again for the bark (scripts/generators/
-// deadtrees_uv.py): each island's v up its branch, as a bark set's grain runs,
+// the file's uvs: each island's v up its branch, as a bark set's grain runs,
 // a metre of the file a uv unit, so every island takes the bark at one size.
 // At its foot the bark gives way to the floor's own grass (GrassLook), in the
 // floor's colours and tile size, laid down onto it from above and onto its
@@ -213,11 +212,6 @@ interface TreeFile {
   leaves?: string
 }
 /**
- * The dead trees: five side by side, laid about as tall as they stand, so the strokes are the size of his; their
- * trunks measured 0.13 to 0.19 m out, 0.2 to 0.9 m up (2026-10-25).
- */
-const DEAD_TREES: TreeFile = { files: ['./models/deadTrees.glb'], laid: 2.6, trunk: 0.18, crown: 1.2, shortest: 3, tallest: 3.5, width: 1.25 }
-/**
  * The giant trees, under test (2026-10-26): four curled trees in leaf, the first 9.4 m tall, its foot about 0.55 m round
  * on the ground; each laid as tall as the first, and standing 8 m tall, as set from the panel on 2026-10-26. justASimpleTree's spooky trees (night theme, seeds 6964, 1759, 4843 and
  * 5197), as its own export writes them (scripts/generators/giant_tree.mjs), nothing between: their leaves each one cell
@@ -249,8 +243,8 @@ export function loadLeafMap(): Promise<Texture> {
   })
   return leafMap
 }
-/** The trees laid: the giant one, for the test; the dead trees under `?deadtrees`. */
-const TREES = typeof location !== 'undefined' && new URLSearchParams(location.search).has('deadtrees') ? DEAD_TREES : GIANT_TREE
+/** The trees laid. */
+const TREES = GIANT_TREE
 /** How long a body the shell's painted strokes count along, m: the goose's, as the scenes' (goosescenes.ts). */
 const STROKE_BODY = 0.9
 
@@ -887,7 +881,7 @@ export function createBark(foot: FootGrass): Bark {
   const lean = relief.mul(textured).mul(across).mul(mix(float(1), foot.relief, foot.amount))
   const normal = alongU.mul(m.x.mul(lean)).add(alongV.mul(m.y.mul(lean))).add(face.mul(m.z)).normalize()
   const colour = mix(materialColor, saturation(hue(colourTexel.rgb, turned), saturated).mul(lightness), textured.mul(plain.oneMinus()))
-  const lay = setLayer<BarkName>('./textures/bark', { colours: [colourTexel], normals: [normalTexel], textured, plain })
+  const lay = setLayer<BarkName>('./textures/bark', { normals: [normalTexel], textured, plain })
   return {
     colour,
     normal,
@@ -899,8 +893,8 @@ export function createBark(foot: FootGrass): Bark {
       relief.value = look.relief
       const angle = (look.rotation * Math.PI) / 180
       turn.value.set(Math.cos(angle), Math.sin(angle))
-      // Another set: its maps swapped into the same nodes once loaded, its colour only once some of it shows.
-      lay(look.texture, look.wood)
+      // Another set: its map swapped into the same nodes once loaded.
+      lay(look.texture)
     },
   }
 }
