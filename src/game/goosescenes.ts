@@ -400,7 +400,7 @@ const shownScale = new Vector3()
  * `object` drawn `shown.y` m up and `shown.size` times as big about its own place: its children gathered into a group
  * inside it the first time, so whatever places `object` itself goes on placing it. Drawn as played, it is left alone.
  */
-export function layShown(object: Object3D, shown: Readonly<Shown>) {
+function layShown(object: Object3D, shown: Readonly<Shown>) {
   let inner = shownGroups.get(object)
   if (!inner) {
     if (shown.y === 0 && shown.size === 1) return

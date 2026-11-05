@@ -19,7 +19,7 @@ export const RAT_LENGTH = 0.46
 /** How much bigger the fastest rat is drawn than the slowest: each as big as it is fast, the mean rat the usual size. */
 export const SIZE_BY_SPEED = 1.2
 /** How big a rat is against the swarm's own: three quarters again, saved from the panel on 2026-10-05. */
-export const RAT_SIZE = 1.75
+const RAT_SIZE = 1.75
 
 /**
  * The crowd as it was with the goose, 2026-10-08, brought back on 2026-10-11:

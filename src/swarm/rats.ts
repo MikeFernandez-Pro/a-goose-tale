@@ -161,7 +161,7 @@ const UP = new Vector3(0, 1, 0)
 const RIGHT = new Vector3(1, 0, 0)
 
 /** How many variants the rats come in. */
-export const VARIANTS = 4
+const VARIANTS = 4
 
 /** A variant: the tint its rats wear over every part but the eyes, and its share of the swarm, against the others'. */
 export interface Variant {

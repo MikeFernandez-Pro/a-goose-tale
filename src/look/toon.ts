@@ -16,7 +16,7 @@ export interface ToonLook {
 }
 
 /** Three steps to start: shade, half-light, full light. Five, evenly up from a deeper shade. */
-export const defaultToon = (): ToonLook => ({ steps: 3, three: [0.35, 0.65, 1], five: [0.2, 0.4, 0.6, 0.8, 1] })
+const defaultToon = (): ToonLook => ({ steps: 3, three: [0.35, 0.65, 1], five: [0.2, 0.4, 0.6, 0.8, 1] })
 
 /** A gradient a material reads by how squarely the light falls on it, at the default steps. */
 export function createToonGradient(): DataTexture {

@@ -79,7 +79,7 @@ export function turnBy(trig: Node<'vec4'>, v: Node<'vec3'>): Node<'vec3'> {
 }
 
 /** The ground's height at (x, z), read off `heights`, `grid`'s points, between the four round it, as `grid.at` reads it. */
-export function heightOn(grid: HeightGrid, heights: StorageBufferAttribute): (x: Node<'float'>, z: Node<'float'>) => Node<'float'> {
+function heightOn(grid: HeightGrid, heights: StorageBufferAttribute): (x: Node<'float'>, z: Node<'float'>) => Node<'float'> {
   const read = storage(heights, 'float', grid.heights.length).toReadOnly()
   return (x, z) => {
     const fx = x.sub(grid.minX).div(grid.cell).clamp(0, grid.nx - 1)

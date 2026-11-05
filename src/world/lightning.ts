@@ -122,7 +122,7 @@ export interface LightningLook {
 }
 
 /** The look as folio-2025 has it. */
-export const defaultLightningLook = (): LightningLook => ({
+const defaultLightningLook = (): LightningLook => ({
   bolt: { foot: COLOURS.ground, top: COLOURS.sky, fade: 8, brightness: INTENSITY, thickness: BOLT.thickness, height: 1, jagged: 1, seconds: BOLT.seconds, drift: BOLT.drift, ease: BOLT.ease },
   sparks: { near: COLOURS.ground, far: COLOURS.sky, fade: 4, brightness: INTENSITY, count: BURST.count, size: BURST.scale, seconds: BURST.seconds, reach: BURST.reach, ease: BURST.ease, fall: BURST.fall, round: false },
   flash: 1,

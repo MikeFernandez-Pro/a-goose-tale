@@ -170,7 +170,7 @@ export function islandShoreAt(island: IslandLook, angle: number): number {
  * The island's height `s` of the way out from its middle to its waterline, m: a crown `height` over the water,
  * rounding down to the water at its waterline, and on under it down past the bed at its foot.
  */
-export function islandRise(look: PondLook, s: number): number {
+function islandRise(look: PondLook, s: number): number {
   const { height, foot } = look.island
   if (s <= 1) return look.water + height * (1 - s * s)
   const t = Math.min(1, (s - 1) / Math.max(0.01, foot))
@@ -178,7 +178,7 @@ export function islandRise(look: PondLook, s: number): number {
 }
 
 /** How high the island of `look` is at (x, z), m; nothing where there is no island. */
-export function islandHeight(look: PondLook, x: number, z: number): number {
+function islandHeight(look: PondLook, x: number, z: number): number {
   if (!look.island.show) return -Infinity
   const middle = islandMiddle(look)
   const dx = x - middle.x
@@ -260,7 +260,7 @@ export function floorAround(box: Bounds, look: PondLook): ShapeGeometry {
  * round the shore, as `floorAround` lays it, meeting the grid's cells at the
  * square's sides.
  */
-export function rollingFloorAround(rolling: HeightGrid, look: PondLook): BufferGeometry {
+function rollingFloorAround(rolling: HeightGrid, look: PondLook): BufferGeometry {
   const { geometry, cut } = rollingFloor(rolling, pondSquare(look.x, look.z, widestShore(look), POND_PAD - ROLLING_CELL))
   const flat = floorAround(cut, look)
   const floor = mergeGeometries([geometry, flat])

@@ -106,7 +106,7 @@ export function afterglow(t: number): number {
 export const ratsOut = (t: number): boolean => t >= INTRO.rush
 
 /** How far through his jump of fright at the strike he is, 0 to 1; none before it or once it is over, over STARTLE s. */
-export const STARTLE = 1.33
+const STARTLE = 1.33
 export function startled(t: number): number | undefined {
   const share = (t - INTRO.strike) / STARTLE
   return share >= 0 && share < 1 ? share : undefined

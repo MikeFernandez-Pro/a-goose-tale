@@ -63,7 +63,7 @@ export interface CandleLook {
 }
 
 /** The candles to start (2026-10-31): a hand tall, up to six round every grave, a good step apart, pale wax, a warm flame glowing. */
-export const defaultCandleLook = (): CandleLook => ({
+const defaultCandleLook = (): CandleLook => ({
   show: true,
   scale: 0.35,
   share: 1,

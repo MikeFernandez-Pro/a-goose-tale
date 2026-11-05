@@ -122,7 +122,7 @@ function willow(ctx: CanvasRenderingContext2D, length: number, look: NeedleLook)
 }
 
 /** One of justASimpleTree's textures onto `canvas`: four cells of 256 px, each its sprigs or leaves, thicker toward its middle, white on black. */
-export function paintNeedles(canvas: HTMLCanvasElement, look: NeedleLook): void {
+function paintNeedles(canvas: HTMLCanvasElement, look: NeedleLook): void {
   canvas.width = canvas.height = 512
   const ctx = canvas.getContext('2d')!
   ctx.fillStyle = '#000'
@@ -150,7 +150,7 @@ export function paintNeedles(canvas: HTMLCanvasElement, look: NeedleLook): void 
 }
 
 /** The nest's cards as `look` has them, round its middle on the ground at 0. */
-export function nestGeometry(look: NestLook): BufferGeometry {
+function nestGeometry(look: NestLook): BufferGeometry {
   const next = random(look.seed)
   const positions: number[] = []
   const normals: number[] = []

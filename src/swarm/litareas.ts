@@ -21,7 +21,7 @@ export const MAX_LIGHTS = 16
 /** Directions a table holds round its light. */
 export const ANGLES = 512
 /** How far a table reads, m: past every reach a light is given and the torch's lamp at full strength. */
-export const SEEN_CAP = 8
+const SEEN_CAP = 8
 /** The torch's row, then one a light the level places. */
 export const LIT_ROWS = 1 + MAX_LIGHTS
 

@@ -55,7 +55,7 @@ const KEYS: readonly { at: number; ease: Ease; pose: Partial<Pose> }[] = [
 ]
 
 /** The rats tugging at him as he lies: when, s into his fall, how hard, 0 to 1, and which way his body is jerked round. */
-export const DEATH_TUGS: readonly { at: number; hard: number; turn: 1 | -1 }[] = [
+const DEATH_TUGS: readonly { at: number; hard: number; turn: 1 | -1 }[] = [
   { at: 2.15, hard: 1, turn: 1 },
   { at: 2.5, hard: 0.6, turn: -1 },
   { at: 2.72, hard: 0.85, turn: 1 },

@@ -223,7 +223,7 @@ function roomOf(context: BaseAudioContext): AudioBuffer {
 }
 
 /** The music on a context of its own: laid by its clock, so a page plays it live and an offline context renders it. */
-export interface Music {
+interface Music {
   /** Resolves once its piano is made: it starts no sooner. */
   readonly ready: Promise<void>
   /** Starts at `at` s of the context, fading in. */
@@ -236,7 +236,7 @@ export interface Music {
   volume: number
 }
 
-export function createMusic(context: BaseAudioContext, out: AudioNode, random: () => number = Math.random): Music {
+function createMusic(context: BaseAudioContext, out: AudioNode, random: () => number = Math.random): Music {
   const whole = new GainNode(context, { gain: 0 })
   const tone = new BiquadFilterNode(context, { type: 'lowpass', frequency: 4500, Q: 0.4 })
   whole.connect(tone).connect(out)

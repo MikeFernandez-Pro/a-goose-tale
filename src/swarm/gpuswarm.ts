@@ -141,7 +141,7 @@ export const MOST_STEPS = 4
 /** The most time a frame can catch the swarm up by, s: past it the rats fall behind the clock. */
 export const MOST_FRAME = MOST_STEPS * STEP
 /** Vectors a rat's motion takes: (vx, vz, sx, sz), (flinch, burn, whim, gait since), (side, gait, tolerance, timid), (dash left, 0, 0, 0). */
-export const MOTION = 4
+const MOTION = 4
 /** The grid's most cells a side: past it the cells grow wider than the feel, which only adds candidates. */
 const GRID_MAX = 512
 const CELLS_MAX = GRID_MAX * GRID_MAX + 1

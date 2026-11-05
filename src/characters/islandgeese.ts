@@ -53,7 +53,7 @@ export interface IslandGeeseLook {
 }
 
 /** As big as the goose, facing the camera; four goslings in front of the tent, out to the water's edge. */
-export function defaultIslandGeeseLook(): IslandGeeseLook {
+function defaultIslandGeeseLook(): IslandGeeseLook {
   return {
     mother: { show: true, x: 0, z: 0, y: 0, turn: 0, size: 1 },
     goslings: { count: 4, x: -0.4, z: 2.4, radius: 2.6, speed: 0.9, rest: 2 },

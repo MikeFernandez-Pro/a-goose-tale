@@ -38,7 +38,7 @@ export interface InscriptionLook {
   wear: number
 }
 
-export const defaultInscriptionLook = (): InscriptionLook => ({
+const defaultInscriptionLook = (): InscriptionLook => ({
   show: true,
   lines: 4,
   spacing: 0.09,

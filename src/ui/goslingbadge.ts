@@ -19,12 +19,12 @@ const PORTRAIT = `${import.meta.env.BASE_URL}ui/gosling-badge.webp`
  * picture across the badge; the point of the picture at the badge's middle, 0 to 1 across and down: all of him in
  * the ring, his feet clear of it.
  */
-export const portraitLook = { zoom: 0.82, x: 0.5, y: 0.5 }
+const portraitLook = { zoom: 0.82, x: 0.5, y: 0.5 }
 /**
  * The one flat colour behind each gosling's portrait, one gosling's from another's at a glance, as its
  * panel sets them. More goslings than these go round them again.
  */
-export const kidBackgrounds = [
+const kidBackgrounds = [
   { colour: '#8861a8' },
   { colour: '#8861a8' },
   { colour: '#ae1e33' },

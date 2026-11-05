@@ -32,11 +32,11 @@ const SIDES = 10
 const RINGS = 40
 
 /** Bark, set from the panel on 2026-11-02, and its char, a burnt black. */
-export const BARK = 0xf5ccff
-export const CHAR = 0x2a1f1f
+const BARK = 0xf5ccff
+const CHAR = 0x2a1f1f
 /** Its tip's glow: a little red, and as bright as the grave candles' flames glow (gravecandles.ts). */
-export const EMBER = 0xc4452c
-export const EMBER_GLOW = 4
+const EMBER = 0xc4452c
+const EMBER_GLOW = 4
 
 const UP = new Vector3(0, 1, 0)
 

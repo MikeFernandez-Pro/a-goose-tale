@@ -39,7 +39,7 @@ export const defaultEmbers = (): EmberLook => ({
 
 export const MAX_EMBERS = 32
 /** Sparks in a burst at most. */
-export const BURST_EMBERS = 24
+const BURST_EMBERS = 24
 
 /** How fast a burst's sparks slow, a second: a share of their speed lost; how long one lives, of a steady spark's life. */
 const BURST_DRAG = 4

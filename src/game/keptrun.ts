@@ -7,7 +7,7 @@ const isPoint = (p: unknown): boolean => typeof p === 'object' && p !== null && 
 const isNumbers = (list: unknown): boolean => Array.isArray(list) && list.every(Number.isInteger)
 
 /** Whether `run` has a kept run's shape: storage is no place to trust. */
-export function isPlaySave(run: unknown): run is PlaySave {
+function isPlaySave(run: unknown): run is PlaySave {
   if (typeof run !== 'object' || run === null) return false
   const { found, keys, armed, restAt } = run as Record<string, unknown>
   return isNumbers(found) && isNumbers(keys) && typeof armed === 'boolean' && isPoint(restAt)

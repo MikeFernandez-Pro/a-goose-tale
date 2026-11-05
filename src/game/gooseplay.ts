@@ -356,12 +356,12 @@ const GUIDE_STILL = 0.1
 /** How far behind his place the guide may fall before he is put there at once, m: only when the goose is moved by a debug key. */
 const GUIDE_LOST = 12
 /** How long a full torch burns, s, unless the settings say otherwise. */
-export const TORCH = 13
+const TORCH = 13
 /**
  * The torch: burns out in TORCH s, its reach with the fuel in it, in a straight line, from 3 m full, the light at
  * its full strength as set from the panel on 2026-10-26, to nothing as it goes out; filled, it grows back the same way.
  */
-export const gooseRunTuning = () => ({ ...defaultRunTuning(), burnRate: 1 / TORCH, fade: 1, fadeCurve: 1, torchReach: 3, torchLeast: 0 })
+const gooseRunTuning = () => ({ ...defaultRunTuning(), burnRate: 1 / TORCH, fade: 1, fadeCurve: 1, torchReach: 3, torchLeast: 0 })
 
 const SEED = 1
 /**
@@ -392,7 +392,7 @@ const SEARCH_ARC = 1.1
 const SEARCH_PACE = 1.3
 const SEARCH_STANDS = [1.4, 2.6] as const
 const SEARCH_GLANCE = 0.55
-export const SEARCH_SEES = 2.5
+const SEARCH_SEES = 2.5
 /** How far behind the ghost he follows a ghost's gosling walks, s of its walk. */
 export const FOLLOW_LAG = 0.7
 /** A searching gosling's stop `n`: how far round his light's edge from where he waits, m, a golden-ratio spread, the same every run. */
@@ -456,7 +456,7 @@ const FALL_PLACE = 0.24
 const FALL_ROUND = Math.PI * 1.9
 const FALL_SPACE = 0.22
 export const RISE = 2.2
-export const RISE_CATCH = [0.9, 1.4] as const
+const RISE_CATCH = [0.9, 1.4] as const
 /** 0 to 1 over [from, to], eased in and out. */
 export const eased = (at: number, from: number, to: number) => {
   if (to <= from) return at >= to ? 1 : 0
@@ -470,7 +470,7 @@ export const eased = (at: number, from: number, to: number) => {
  * and lands beyond it, m.
  */
 export const HOP = 1
-export const HOP_AIR = [0.27, 0.6] as const
+const HOP_AIR = [0.27, 0.6] as const
 const RIM = WELL_RADIUS - 0.12
 const LANDS = WELL_RADIUS + 0.35
 /** How far round its middle a gosling keeps off the well's wall, m, as the goose keeps HOLDER_RADIUS off it. */
@@ -508,7 +508,7 @@ const CLEAR_TURN = 0.1
  * +x toward +z, m: the shore the swarm holds rats off. Every way out of its
  * middle crosses the outline once.
  */
-export function shoreOf({ outline, middle }: WellBody): (angle: number) => number {
+function shoreOf({ outline, middle }: WellBody): (angle: number) => number {
   return (angle) => {
     const dx = Math.cos(angle)
     const dz = Math.sin(angle)
@@ -605,7 +605,7 @@ export const CAGE = 0.3
 /** How close to a flame he fills his torch at it, m from the flame: a fire's dip. */
 export const DIP = 0.8
 /** How close to the cage's key he stands on it, m: the key's zone. */
-export const KEY_REACH = 0.6
+const KEY_REACH = 0.6
 /**
  * The burning branch lying on the ground: how far its light reaches, m, holding the rats off round it, a little
  * fire, short of a brazier's; and how close to it, m, its burning end where its light is, he picks it up.
@@ -613,7 +613,7 @@ export const KEY_REACH = 0.6
 export const BRANCH_REACH = 1.4
 export const BRANCH_ZONE = 0.6
 /** How close to the cage or the dead tree's trunk he works it, m, past its body: the scenes' zones. */
-export const WORK_REACH = 0.8
+const WORK_REACH = 0.8
 /**
  * The cage's door, in the face of its bars toward +z, unturned: how far along x its middle is from the cage's, m
  * (`public/models/cage.glb`'s door at its scale). Unlocked, its gosling waits CAGE_DOOR_OPENS s for
@@ -622,7 +622,7 @@ export const WORK_REACH = 0.8
  */
 export const CAGE_DOOR_X = 0.005
 export const CAGE_DOOR_OPENS = 0.9
-export const CAGE_WALK = 0.9
+const CAGE_WALK = 0.9
 const CAGE_STEP_OUT = 0.4
 /**
  * The cage's set as the page draws it (goosescenes.ts, `public/models/cage.glb`
@@ -631,7 +631,7 @@ const CAGE_STEP_OUT = 0.4
  * bed and shaft, round its middle.
  */
 export const CAGE_CAMPFIRE: Point = { x: -1.234, z: 1.834 }
-export const CART_OUTLINE: readonly Point[] = [
+const CART_OUTLINE: readonly Point[] = [
   { x: -2.606, z: -0.496 },
   { x: -2.38, z: -0.93 },
   { x: -1.134, z: -2.218 },
@@ -739,10 +739,10 @@ const STILL_ZONE: ZoneSetting = { x: 0, z: 0, scaleX: 1, scaleY: 1 }
 const CAMPFIRE_ZONE: ZoneSetting = { x: 0, z: 0, scaleX: 1.5, scaleY: 1.5 }
 const TREE_FIRE_OUT = BRAZIER_REACH * (1 + FLICKER) + TRUNK + TREE_DARK
 /** How far from a well's middle its fire pit stands, m, across it from its brazier's place: clear of its stone and its winch. */
-export const WELL_FIRE = 2.2
+const WELL_FIRE = 2.2
 /** How far the spawn's brazier lights and holds the rats off, m: 3 since 2026-10-27. */
 const SPAWN_REACH = 3
-export const TREE_FIRE: Point = { x: TREE_FIRE_OUT * Math.cos(TREE_FIRE_AHEAD), z: -TREE_FIRE_OUT * Math.sin(TREE_FIRE_AHEAD) }
+const TREE_FIRE: Point = { x: TREE_FIRE_OUT * Math.cos(TREE_FIRE_AHEAD), z: -TREE_FIRE_OUT * Math.sin(TREE_FIRE_AHEAD) }
 
 export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
   readonly settings: GooseSettings

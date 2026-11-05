@@ -158,7 +158,7 @@ function pathOf(points: P[]): Path {
 }
 
 /** The point `s` m along `path`, round and round. */
-export function along(path: Path, s: number): P {
+function along(path: Path, s: number): P {
   const { points, at, length } = path
   const d = ((s % length) + length) % length
   let lo = 0

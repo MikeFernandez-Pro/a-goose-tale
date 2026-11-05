@@ -20,7 +20,7 @@ const handPainted = (set: string) => ({ map: `./textures/floors/${set}/color.web
 const reliefOnly = (set: string) => ({ normals: `./textures/floors/${set}/normal.webp` })
 
 /** The floors there are: each a painting and its normal map, in public/textures, or the normal map alone. */
-export const FLOORS: Record<`stylized_${'grass_01' | 'sand_01' | 'stones_02'}`, { map?: string; normals: string }> = {
+const FLOORS: Record<`stylized_${'grass_01' | 'sand_01' | 'stones_02'}`, { map?: string; normals: string }> = {
   // The goose game's hand-painted sets, 2026-10-21, the only floors its folder offers: the Stylized_GrassAndDirt pack's
   // colour and OpenGL normal maps, cut from 4096 to 2048, then to 1024 in WebP (2026-10-30), the sand and the stones to
   // 512 (2026-11-05). Its plain starts on the grass.
@@ -119,7 +119,7 @@ export function defaultRoadLook(): RoadLook {
 }
 
 /** How many wells the floor lays its ground under. */
-export const WELLS = 4
+const WELLS = 4
 
 /**
  * The ground under a well (gooseplay.ts): another set, the grass, all of it out
@@ -688,7 +688,7 @@ function roadTexture(texels: Float32Array, columns: number, rows: number): DataT
 export const loadRoad = (): Promise<[Texture, Texture]> => Promise.all([loadMap(`${ROAD_SET}/color.webp`, true), loadMap(`${ROAD_SET}/normal.webp`, false)])
 
 /** The normal in a road map's texel, its blue rebuilt from its red and green: the blue holds the height. */
-export const rebuiltNormal = (texel: Node<'vec4'>): Node<'vec3'> => {
+const rebuiltNormal = (texel: Node<'vec4'>): Node<'vec3'> => {
   const lean = texel.xy.mul(2).sub(1)
   return vec3(lean, sqrt(max(float(1).sub(dot(lean, lean)), 0)))
 }

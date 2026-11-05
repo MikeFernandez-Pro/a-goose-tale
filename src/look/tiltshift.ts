@@ -38,7 +38,7 @@ export interface TiltLook {
 }
 
 // As the panel was set on 2026-10-25, on theme 21; the band and the blur again on 2026-10-30, with the cheap bloom; the blur halved on 2026-11-02.
-export const defaultTilt = (): TiltLook => ({
+const defaultTilt = (): TiltLook => ({
   enabled: true,
   centre: 0.46,
   width: 0.165,
@@ -57,7 +57,7 @@ export const defaultTilt = (): TiltLook => ({
 export const TILT_TAPS = 32
 
 /** Where the diorama's camera stands and looks, m from his feet, as a captured camera has it. */
-export interface TiltCamera {
+interface TiltCamera {
   camera: [number, number, number]
   target: [number, number, number]
   lag: number

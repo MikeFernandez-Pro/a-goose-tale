@@ -367,7 +367,7 @@ export function createPanel(settings: Settings, crowd: CrowdTuning, look: Look, 
 type NumberController = ReturnType<GUI['add']>
 
 /** Keeps `low` at or under `high`: moving either past the other drags the other along. Then `changed`, if given. */
-export function keepOrdered(low: NumberController, high: NumberController, changed?: () => void): void {
+function keepOrdered(low: NumberController, high: NumberController, changed?: () => void): void {
   low.onChange((value: number) => {
     if (high.getValue() < value) high.setValue(value)
     changed?.()
@@ -1135,7 +1135,7 @@ function addPond(gui: GUI, { look, changed, water, waterChanged, bed, bedChanged
 }
 
 /** The crowd folder: each control moves the running swarm. Without `notice`, the holder's notice is left to a folder of its own. */
-export function addCrowd(gui: GUI, crowd: CrowdTuning, notice = true): void {
+function addCrowd(gui: GUI, crowd: CrowdTuning, notice = true): void {
   const folder = gui.addFolder('crowd')
   folder.add(crowd, 'agitation', 0, 2, 0.05).name('writhes m/s')
   folder.add(crowd, 'lookAhead', 0, 2, 0.1).name('reads the light s')
@@ -1313,13 +1313,13 @@ function addLook(gui: GUI, settings: Settings, look: Look, changed: PanelEvents,
 }
 
 /** The look of the rats as the rats folder and the levels of detail folder edit it: their colours, variants, eyes, shell, strokes, steps and levels. */
-export type RatsLook = Look['rats']
+type RatsLook = Look['rats']
 
 /**
  * The rats folder: each part's colour and the tint, the variants, the eyes and their trails, the shell, the painted
  * normals, the toon steps and the far crowd's staggered steps. The folder, for the page to add its own to and to wire.
  */
-export function addRatsFolder(gui: GUI, look: RatsLook, trailLook: TrailLook): GUI {
+function addRatsFolder(gui: GUI, look: RatsLook, trailLook: TrailLook): GUI {
   const rats = gui.addFolder('rats')
   // The eyes have a folder of their own in here, with their trails.
   for (const part of look.parts) if (part.name !== 'eyes') rats.addColor(part, 'color').name(part.name)
@@ -1373,7 +1373,7 @@ export function addRatsFolder(gui: GUI, look: RatsLook, trailLook: TrailLook): G
  * pixels long it stands. A folder a level, nearest first: its shares of the triangles, from how many pixels long it is
  * drawn (the last, below the one before), its rim. The folder, for the page to wire.
  */
-export function addLevelsFolder(gui: GUI, look: RatsLook['levels']): GUI {
+function addLevelsFolder(gui: GUI, look: RatsLook['levels']): GUI {
   const levels = gui.addFolder('levels of detail')
   levels.add(look, 'on')
   levels.add(look, 'show').name('tint by level (green, amber, red)')
@@ -1397,7 +1397,7 @@ export function addLevelsFolder(gui: GUI, look: RatsLook['levels']): GUI {
  * The post's frame effects, each a folder: the ambient occlusion, the outlines, hatching, palette, grain and paper, vignette;
  * the screen's saturation, where the look has it. `few`, the outlines and the palette hidden.
  */
-export function addFrameEffects(gui: GUI, look: Pick<PostLook, 'ao' | 'outline' | 'hatch' | 'palette' | 'grain' | 'vignette' | 'screen'>, few = false): GUI[] {
+function addFrameEffects(gui: GUI, look: Pick<PostLook, 'ao' | 'outline' | 'hatch' | 'palette' | 'grain' | 'vignette' | 'screen'>, few = false): GUI[] {
   const occlusion = gui.addFolder('ambient occlusion')
   occlusion.add(look.ao, 'enabled').name('on')
   occlusion.add(look.ao, 'show').name('show ao only')
@@ -1456,7 +1456,7 @@ export function addFrameEffects(gui: GUI, look: Pick<PostLook, 'ao' | 'outline' 
 }
 
 /** The post's lens, each a folder: the depth of field and the bloom. `few`, the depth of field hidden. */
-export function addLens(gui: GUI, look: Pick<PostLook, 'dof' | 'bloom'>, few = false): GUI[] {
+function addLens(gui: GUI, look: Pick<PostLook, 'dof' | 'bloom'>, few = false): GUI[] {
   const depth = gui.addFolder('depth of field').show(!few)
   depth.add(look.dof, 'enabled').name('on')
   depth.add(look.dof, 'onLight').name('focus on the light')
@@ -1478,7 +1478,7 @@ export function addLens(gui: GUI, look: Pick<PostLook, 'dof' | 'bloom'>, few = f
 
 
 /** The character's folder: on, its size and clips, its parts' colours, shell, strokes and steps. */
-export function addCharacterFolder(gui: GUI, look: GooseLook): GUI {
+function addCharacterFolder(gui: GUI, look: GooseLook): GUI {
   const goose = gui.addFolder(characterLabel)
   goose.add(look, 'enabled').name('on')
   goose.add(look, 'height', 0.1, 2, 0.01).name('scale (height m)')
@@ -1518,7 +1518,7 @@ export function addCharacterFolder(gui: GUI, look: GooseLook): GUI {
  * burn in, the fires' intensity and their lamps' colour, then the torch's own intensity, size and place, embers and
  * smoke, and each fire's, in folders.
  */
-export function addFlameFolder(gui: GUI, look: FlameLook, fires?: FiresPanel): GUI {
+function addFlameFolder(gui: GUI, look: FlameLook, fires?: FiresPanel): GUI {
   const flame = gui.addFolder(fires ? 'flames' : 'torch flame')
   flame.add(look, 'enabled').name('on')
   flame.addColor(look, 'color').name('edge colour')
@@ -1588,7 +1588,7 @@ export function addFlameFolder(gui: GUI, look: FlameLook, fires?: FiresPanel): G
 
 
 /** A shell's sheen, highlight and rim, in `folder`. */
-export function addShell(folder: GUI, shell: ShellLook): void {
+function addShell(folder: GUI, shell: ShellLook): void {
   folder.add(shell, 'sheen', 0, 1, 0.01).name('sheen (light on black)')
   addShine(folder, shell)
 }
@@ -1616,7 +1616,7 @@ function addPaint(folder: GUI, paint: PaintLook, densityName: string): void {
 }
 
 /** A shell's toon steps, as a `toon` folder under `folder`: none, three or five, and each step's brightness. */
-export function addToon(folder: GUI, toon: ToonLook): void {
+function addToon(folder: GUI, toon: ToonLook): void {
   const sub = folder.addFolder('toon')
   sub.add(toon, 'steps', [0, 3, 5]).name('steps (0 = smooth)')
   const three = sub.addFolder('3 steps')

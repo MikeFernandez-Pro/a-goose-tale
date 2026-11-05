@@ -102,9 +102,9 @@ function perlin(x: number, y: number, z: number, channel: (hash: number) => numb
   return 0.982 * lerp(near, far, r)
 }
 /** three's mx_noise_float of a vec3, on the CPU. */
-export const noiseFloat = (x: number, y: number, z: number): number => perlin(x, y, z, (h) => h)
+const noiseFloat = (x: number, y: number, z: number): number => perlin(x, y, z, (h) => h)
 /** three's mx_noise_vec3 of a vec3, on the CPU, into `out`. */
-export function noiseVec3(x: number, y: number, z: number, out: Vector3): Vector3 {
+function noiseVec3(x: number, y: number, z: number, out: Vector3): Vector3 {
   return out.set(perlin(x, y, z, (h) => h & 0xff), perlin(x, y, z, (h) => (h >>> 8) & 0xff), perlin(x, y, z, (h) => (h >>> 16) & 0xff))
 }
 

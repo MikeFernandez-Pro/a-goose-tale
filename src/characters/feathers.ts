@@ -30,7 +30,7 @@ export interface FeatherLook {
   glow: number
 }
 
-export const defaultFeathers = (): FeatherLook => ({
+const defaultFeathers = (): FeatherLook => ({
   count: 5,
   size: 0.09,
   out: 1.4,

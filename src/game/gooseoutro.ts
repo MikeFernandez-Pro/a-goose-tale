@@ -101,7 +101,7 @@ const CLIMB = 0.6
 const BROOD_STAGGER = 0.2
 /** How long a gosling's shake takes, s (baby_shake_dry), and his hop (baby_jump), the share of the hop his feet are off the ground, and how high he goes, m. */
 export const SHAKE = 1.67
-export const HOP = 1.29
+const HOP = 1.29
 const HOP_AIR = [0.27, 0.6] as const
 const HOP_HEIGHT = 0.12
 /** When each gosling hops after he reaches the ring, s, and how much later each of his hops at the most. */
@@ -129,7 +129,7 @@ const HEART_DONE = 1
 /** How fast the mother runs at the least, m/s, so she never dawdles. */
 const MOTHER_LEAST = 0.8
 /** How far the camera draws back by the end, m. */
-export const PULL = 3
+const PULL = 3
 /** How far the dawn's light reaches by the end, m: the rats drain off out of it. */
 export const DRAIN = 40
 
@@ -540,7 +540,7 @@ function ringReached(stage: Stage, brood: boolean, k: number): number {
 }
 
 /** A hop `share` of the way through, 0 to 1: its clip held there, and off the ground, as high as HOP_HEIGHT, while its feet are. */
-export function hopAt(share: number): Act {
+function hopAt(share: number): Act {
   const air = (share - HOP_AIR[0]) / (HOP_AIR[1] - HOP_AIR[0])
   return { clip: 'jump', share, lift: air > 0 && air < 1 ? HOP_HEIGHT * Math.sin(Math.PI * air) : 0 }
 }

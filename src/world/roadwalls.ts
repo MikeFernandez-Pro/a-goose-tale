@@ -23,7 +23,7 @@ import type { RoadLine } from './road'
 import { random } from '../swarm/swarm'
 import { WALL_THICKNESS, type Wall } from '../swarm/walls'
 
-export type RoadWallStyle = 'field' | 'lane' | 'ruins' | 'tumbled'
+type RoadWallStyle = 'field' | 'lane' | 'ruins' | 'tumbled'
 
 /** The kinds of wall the walls folder offers, and none. */
 export const ROAD_WALL_STYLES = ['none', 'field', 'lane', 'ruins', 'tumbled'] as const

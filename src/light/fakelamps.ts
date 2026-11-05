@@ -19,7 +19,7 @@ import { AnalyticLightNode, Color, Light, Matrix4, Object3D, Vector3, type Mater
 import { Break, cameraViewMatrix, cameraWorldMatrix, float, getDistanceAttenuation, If, Loop, max, mix, positionView, select, texture, uniform, uniformArray, vec2, vec3, vec4 } from 'three/tsl'
 
 /** How many lamps light at once, the loop's length: past it the furthest down the list are left dark. */
-export const MAX_FAKE_LAMPS = 32
+const MAX_FAKE_LAMPS = 32
 
 /** A lamp: where it stands is its own place in the scene, a point light's colour, strength, reach and falloff. */
 export class FakeLamp extends Object3D {

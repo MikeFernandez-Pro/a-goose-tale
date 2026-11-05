@@ -273,7 +273,7 @@ export interface ViewPlane {
 }
 
 /** Whether (x, z) is seen: nearer the dark's centre than its radius, and inside every plane of its view. */
-export function inSight(dark: Dark, x: number, z: number): boolean {
+function inSight(dark: Dark, x: number, z: number): boolean {
   const dx = x - dark.x
   const dz = z - dark.z
   if (dx * dx + dz * dz > dark.radius * dark.radius) return false
@@ -305,7 +305,7 @@ export interface StepReport {
 }
 
 /** The holder's walking pace, m/s. */
-export const WALK_SPEED = 1.6
+const WALK_SPEED = 1.6
 
 /** A rat's gait: what its feet play, read from how fast it really moves. */
 export const RUN = 0
@@ -330,7 +330,7 @@ export const GAIT_DWELL = 0.3
 /** Seconds the real speed is smoothed over, so jostling back and forth cancels out. */
 export const SEEN = 0.3
 /** The light's own walk is read smoothed over this many seconds for its path ahead, and counts as walking from this pace, m/s, smoothed or as stepped. */
-export const LIGHT_SMOOTHING = 0.2
+const LIGHT_SMOOTHING = 0.2
 export const LIGHT_WALKING = 0.2
 /**
  * How hard two overlapping bodies push apart, m/s², at full overlap, falling
@@ -418,8 +418,8 @@ const WALL_MARGIN = 0.15
  * nothing. Dying, it stands where it is this many seconds, as the page draws its death, and is set
  * down again out of sight.
  */
-export const TRAPPED = 1
-export const DIE = 0.6
+const TRAPPED = 1
+const DIE = 0.6
 
 /** The arena's radius: sized to the count, so the swarm is under the same pressure at any count. */
 export const arenaRadiusFor = (count: number) => 7 + Math.sqrt(count / Math.PI) * 0.32
@@ -453,7 +453,7 @@ export function walkLight(arena: number, light: { x: number; z: number }, target
 }
 
 /** A point on the fixed loop the benchmark walks the light round an arena of radius `arena`, at `t` seconds. */
-export const loopPoint = (arena: number, t: number) => ({ x: Math.sin(t * 0.12) * arena * 0.45, z: Math.sin(t * 0.24) * arena * 0.25 })
+const loopPoint = (arena: number, t: number) => ({ x: Math.sin(t * 0.12) * arena * 0.45, z: Math.sin(t * 0.24) * arena * 0.25 })
 
 /** The light's hard radius. Out, it is zero, and the swarm closes on the holder. */
 export const hardRadius = (light: Light, tuning: Tuning) => (light.on ? tuning.ringMax * light.strength : 0)

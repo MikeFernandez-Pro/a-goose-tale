@@ -81,7 +81,7 @@ export function padsOf(plain: Plain, look: RollingLook): Pad[] {
 }
 
 /** The plain's swells at (x, z) as `look` has them, before any pad flattens them, 0 to its height, m. */
-export function swellAt(look: RollingLook, x: number, z: number): number {
+function swellAt(look: RollingLook, x: number, z: number): number {
   const { height, size, detail, detailWeight } = look
   const n = noise.noise(x / size, z / size, NOISE_Z) + detailWeight * noise.noise((x * detail) / size, (z * detail) / size, NOISE_Z + 11.3)
   return height * ease(0.5 + n * 0.8)

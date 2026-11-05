@@ -43,7 +43,7 @@ const STROKE_BODY = 0.9
  * The stone sets, kept from the stoneTexture download of 2026-10-27: each its colour and OpenGL normal map, in
  * public/textures/stone/`set`/, in WebP; `none` the plain stone colour, no relief.
  */
-export const STONES = ['none', 'desert_rocks_01'] as const
+const STONES = ['none', 'desert_rocks_01'] as const
 export type StoneName = (typeof STONES)[number]
 
 interface P {
@@ -85,7 +85,7 @@ export interface GraveLook {
 }
 
 /** As set from the panel on 2026-10-27, scattered over the ground since 2026-10-28: big lilac stones, desert_rocks_01's relief on them, a lilac rim. */
-export const defaultGraveStoneLook = (): GraveLook => ({
+const defaultGraveStoneLook = (): GraveLook => ({
   colour: 0xc7b8ff,
   size: 1.38,
   lean: 0.05,
@@ -173,7 +173,7 @@ export interface GraveGround {
 }
 
 /** One grave as scattered: where it stands, which stone it is, which way it faces, and its lean's two ways, -1 to 1. */
-export interface GraveStone {
+interface GraveStone {
   at: P
   kind: number
   face: number
@@ -202,7 +202,7 @@ function outside(outline: readonly P[], p: P): number {
  * hardly another fits; of those, `amount` of them. Every throw draws as many numbers whatever comes of it, so a change
  * to one rule moves no grave the rule leaves standing.
  */
-export function scatterGraves(where: GraveGround, look: Pick<GraveLook, 'apart' | 'amount' | 'clear' | 'spread' | 'seed'>, feet: readonly number[]): GraveStone[] {
+function scatterGraves(where: GraveGround, look: Pick<GraveLook, 'apart' | 'amount' | 'clear' | 'spread' | 'seed'>, feet: readonly number[]): GraveStone[] {
   const { paths, ground, keepClear, wet, onRoad } = where
   if (ground.length < 3 || feet.length === 0) return []
   const roll = random(look.seed)
