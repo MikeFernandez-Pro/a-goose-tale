@@ -4,11 +4,10 @@
 // shaft on a rope from the winch's axle as the interact key is held, the crank turning,
 // and drops back down it, let go early, the crank spinning back. The model is
 // one mesh: its winch, the axle, the crank and the rope coiled on the axle, is
-// split off it as it loads, to turn; its own rope, hanging fixed, is dropped,
-// and so are its colliders, the play keeping its own bodies (gooseplay.ts).
-// Its lantern is taken off it as it loads: the fire pit by
-// it is its light (gooseplay.ts), and its brazier's place, where the lantern
-// stood, draws nothing (`WELL_LIGHT`).
+// split off it as it loads, to turn; its own rope, hanging fixed, is dropped.
+// Its colliders and its lantern are gone from the file (tools/slim-models.mjs):
+// the play keeps its own bodies (gooseplay.ts), the fire pit by it is its light,
+// and its brazier's place, where the lantern stood, draws nothing (`WELL_LIGHT`).
 // The dead tree: justASimpleTree's bare spooky tree, seed 663
 // (`public/models/spookyTrees/spooky-663.glb`), drawn by the plain's dead
 // trees as one of their own (deadtrees.ts, `treeWood`): their bark, shell,
@@ -78,12 +77,8 @@ const MODEL_ROPE = 'Material.003'
 /** The file's mesh, MODEL_MESH, stood MODEL_LIFT up in it: the ring, the axle and the winch above are the mesh's own, under it. */
 const MODEL_MESH = 'Weel'
 const MODEL_LIFT = 0.155
-/** The lantern whole, its post with the lantern hanging from it: the file's object MODEL_LAMP_POST, taken off it. */
-const MODEL_LAMP_POST = 'LanternWeel'
 /** How long a body the shells' painted strokes count along, m: the goose's, so a stroke on it is the size of one on him. */
 const STROKE_BODY = 0.9
-/** The file's colliders, the well's and its lantern's, not drawn. */
-const MODEL_COLLIDERS = ['ColliderWeel', 'ColliderLantern']
 /** The well's materials that glow, in their own colour: the carved faces of its pumpkins. */
 const MODEL_GLOWS = ['Material.011']
 /**
@@ -733,8 +728,7 @@ async function loadBurningTree(): Promise<{ wood: BufferGeometry; top: number; c
  */
 async function loadCageSet(gradient: Texture): Promise<{ set: Group; cart: Group; campfire: Group; corpse: Group; key: Group; materials: Map<string, MeshToonNodeMaterial>; palette: Palette; shells: { cart: ShellToonMaterial[]; corpse: ShellToonMaterial[] }; wood: CartWood }> {
   const [file, skeleton] = await Promise.all([CAGE_MODEL, SKELETON_MODEL].map(async (model) => (await modelLoader().loadAsync(model)).scene))
-  // The skeleton in place of the set's corpse, its skull on the corpse's.
-  const corpse = file.getObjectByName(MODEL_SET.corpse)!
+  // The skeleton in place of the set's corpse, gone from the file (tools/slim-models.mjs), its skull on the corpse's.
   const bones = skeleton.getObjectByProperty('isMesh', true) as Mesh
   bones.removeFromParent()
   bones.name = MODEL_SET.corpse
@@ -743,8 +737,7 @@ async function loadCageSet(gradient: Texture): Promise<{ set: Group; cart: Group
   bones.material = bone
   bones.scale.setScalar(SKELETON_SCALE)
   bones.position.set(MODEL_SKULL.x - SKELETON_SKULL.x * SKELETON_SCALE, 0, MODEL_SKULL.z - SKELETON_SKULL.z * SKELETON_SCALE)
-  corpse.parent!.add(bones)
-  corpse.removeFromParent()
+  file.add(bones)
   file.updateMatrixWorld(true)
   const materials = new Map<string, MeshToonNodeMaterial>()
   const shells = { cart: [] as ShellToonMaterial[], corpse: [] as ShellToonMaterial[] }
@@ -850,14 +843,12 @@ export async function createGooseScenes(
 ): Promise<GooseScenes> {
   const object = new Group()
   const gradient = createToonGradient()
-  // The well's model, its bucket taken off it, its lantern dropped and its winch split off it, its
+  // The well's model, its bucket taken off it and its winch split off it, its
   // materials' colours one texel each of a palette: what stands, the winch and the bucket each one mesh.
   const well = (await modelLoader().loadAsync(WELL_MODEL)).scene
   const bucketModel = well.getObjectByName(MODEL_BUCKET)!
   bucketModel.removeFromParent()
   bucketModel.position.set(0, 0, 0)
-  for (const name of MODEL_COLLIDERS) well.getObjectByName(name)?.removeFromParent()
-  well.getObjectByName(MODEL_LAMP_POST)?.removeFromParent()
   splitWinch(well)
   const shells: ShellToonMaterial[] = []
   const fileColours = new Map<string, number>()

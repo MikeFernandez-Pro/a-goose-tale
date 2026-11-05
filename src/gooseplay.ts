@@ -476,8 +476,8 @@ const LANDS = WELL_RADIUS + 0.35
 /** How far round its middle a gosling keeps off the well's wall, m, as the goose keeps HOLDER_RADIUS off it. */
 export const GOSLING_RADIUS = 0.12
 /**
- * The well's body on the ground: the outline of the model's collider
- * (`ColliderWeel`) round its ring, its posts, its crank and the pumpkins at its
+ * The well's body on the ground: the outline of the collider its model came
+ * with (`ColliderWeel`) round its ring, its posts, its crank and the pumpkins at its
  * foot, closed over its notches so no body is caught in one, as the page
  * stands the well, side on to the plain's way, and at its scale
  * (goosescenes.ts): from the well's middle, m.

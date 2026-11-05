@@ -1,7 +1,9 @@
 // Slims the game's GLBs in place, from the repo root: `pnpm models` for
 // every file under public/models (not the baked rat), or `pnpm models
 // public/models/geese.glb ...` for some. A file already packed is left as it
-// is: packing again would round its normals and keys again.
+// is, packing again would round its normals and keys again, but for what the
+// game throws away as it loads it (DROP_UVS, DROP_NODES): that goes from any
+// file, and what stays keeps its values.
 //
 // It drops the clips the game never plays (KEEP_CLIPS), the hidden preview
 // scenes, the vertex channels nothing reads, and the keyframes a straight
@@ -37,6 +39,11 @@ const KEEP_CLIPS = {
 const DROP_SCENES = ['Lady Goose - Preview']
 // Read by nothing: three names them color_1.. and uv1, and no material here samples them.
 const DROP_ATTRIBUTES = /^(COLOR_[1-9]|TEXCOORD_[1-9])$/
+// Uvs nothing reads: palette.merge lays its own on the well and the cage's pieces, no map is laid on the rest of the
+// cage, and graves.ts lays its own by the stones' boxes. A file that starts reading its uvs comes off this list.
+const DROP_UVS = ['well.glb', 'cage.glb', 'graves.glb']
+// Nodes never drawn, and what hangs under them: the well's colliders and lantern; the corpse the skeleton stands in for.
+const DROP_NODES = { 'well.glb': ['ColliderWeel', 'ColliderLantern', 'LanternWeel'], 'cage.glb': ['Corpse'] }
 // Read in their vertices' order: deadtrees.ts's thinTips walks justASimpleTree's rings one after the next.
 const KEEP_ORDER = /^(spooky|oak)-\d+\.glb$/
 
@@ -56,13 +63,57 @@ await MeshoptDecoder.ready
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder })
 let before = 0
 let after = 0
+/** `nodes` gone, and their meshes where no node left draws them, with their primitives, which hold the accessors. */
+const dropNodes = (nodes) => {
+  const meshes = new Set(nodes.map((n) => n.getMesh()).filter(Boolean))
+  for (const n of nodes) n.dispose()
+  for (const mesh of meshes) {
+    if (mesh.listParents().some((p) => p.propertyType === PropertyType.NODE)) continue
+    for (const prim of mesh.listPrimitives()) prim.dispose()
+    mesh.dispose()
+  }
+}
+/** What the game throws away out of `top`, by the file's `name`: what went, for the log. */
+const dropThrownAway = (name, top) => {
+  const gone = []
+  for (const dropping of DROP_NODES[name] ?? []) {
+    const node = top.listNodes().find((n) => n.getName() === dropping)
+    if (!node) continue
+    const nodes = []
+    node.traverse((n) => nodes.push(n))
+    dropNodes(nodes)
+    gone.push(dropping)
+  }
+  if (DROP_UVS.includes(name)) {
+    let uvs = false
+    for (const mesh of top.listMeshes())
+      for (const prim of mesh.listPrimitives())
+        if (prim.getAttribute('TEXCOORD_0')) {
+          prim.setAttribute('TEXCOORD_0', null)
+          uvs = true
+        }
+    if (uvs) gone.push('TEXCOORD_0')
+  }
+  return gone
+}
 for (const path of files) {
   const name = basename(path)
   const size = statSync(path).size
   const doc = await io.read(path)
   const top = doc.getRoot()
+  const thrownAway = dropThrownAway(name, top)
   if (top.listExtensionsUsed().some((e) => e.extensionName === 'EXT_meshopt_compression')) {
-    console.log(`${relative(MODELS, path).padEnd(32)} packed already`)
+    if (thrownAway.length === 0) {
+      console.log(`${relative(MODELS, path).padEnd(32)} packed already`)
+      continue
+    }
+    // Written with the encoder as read, no filter: the rest keeps the values it has, its normals not rounded again.
+    await doc.transform(prune({ keepAttributes: true, keepLeaves: true, keepExtras: true, propertyTypes: [PropertyType.ACCESSOR, PropertyType.MESH, PropertyType.MATERIAL] }))
+    await io.write(path, doc)
+    const now = statSync(path).size
+    before += size
+    after += now
+    console.log(`${relative(MODELS, path).padEnd(32)} ${(size / 1024).toFixed(0).padStart(5)} KB -> ${(now / 1024).toFixed(0).padStart(5)} KB  ${thrownAway.join(' ')}`)
     continue
   }
 
@@ -85,14 +136,7 @@ for (const path of files) {
     const nodes = []
     scene.traverse((n) => nodes.push(n))
     scene.dispose()
-    // Its meshes too, where no node left draws them, and their primitives, which hold the accessors.
-    const meshes = new Set(nodes.map((n) => n.getMesh()).filter(Boolean))
-    for (const n of nodes) n.dispose()
-    for (const mesh of meshes) {
-      if (mesh.listParents().some((p) => p.propertyType === PropertyType.NODE)) continue
-      for (const prim of mesh.listPrimitives()) prim.dispose()
-      mesh.dispose()
-    }
+    dropNodes(nodes)
   }
 
   const attributes = new Set()
