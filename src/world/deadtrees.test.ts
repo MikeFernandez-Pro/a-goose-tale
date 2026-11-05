@@ -1,4 +1,4 @@
-// The goose game's dead trees: either side of the old road, never on it, behind its walls where by one.
+// The game's dead trees: either side of the old road, never on it, behind its walls where by one.
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { Box3, BufferGeometry, CylinderGeometry, Sphere, Vector3, type Mesh, type Object3D } from 'three/webgpu'
@@ -16,7 +16,7 @@ const walls = roadWallsOf(plain, { points: road }, defaultRoadWallLook())
 const trees = deadTrees(plain, road, 5, shape, walls)
 const distance = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z)
 
-describe("the goose game's dead trees", () => {
+describe("the game's dead trees", () => {
   it('stand in a band either side of the road, never on it', () => {
     expect(trees.length).toBeGreaterThan(40)
     for (const t of trees) {

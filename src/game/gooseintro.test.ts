@@ -5,7 +5,7 @@ const AT = { x: 0, z: 0 }
 const UP = { x: 0, z: -1 }
 const HOME = { x: 3, z: -20 }
 
-describe('the goose game opening', () => {
+describe('the opening', () => {
   it('walks him up the road to where he starts, from as far back as he walks', () => {
     const start = { x: 2, z: 50 }
     const road = [

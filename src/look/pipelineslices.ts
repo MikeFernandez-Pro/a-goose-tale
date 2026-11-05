@@ -1,7 +1,7 @@
 // The scene drawn a slice at a time behind the loading screen, so its pipelines
 // are built a few a frame (2026-10-27). Chrome's GPU process compiles a
 // pipeline the first time a frame draws with it, and shows no frame of the
-// page at all until it is done: drawn whole, the goose game stood ten seconds
+// page at all until it is done: drawn whole, the game stood ten seconds
 // with nothing on screen, no count on a loading screen either. A slice a frame,
 // each frame builds a couple and is shown, and the loading screen counts them.
 import type { Material, Object3D } from 'three/webgpu'

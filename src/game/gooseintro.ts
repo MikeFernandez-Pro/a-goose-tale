@@ -1,4 +1,4 @@
-// The goose game's opening: no one plays it, every run, any key skipping it,
+// The game's opening: no one plays it, every run, any key skipping it,
 // seen through the game's own camera. He walks calmly up the old road in the
 // dark, his goslings round his back, peeping at him as they go and he
 // answering them, nothing else about. Lightning strikes the foot of a tree

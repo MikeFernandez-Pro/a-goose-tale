@@ -1,4 +1,4 @@
-// LOOK TRIALS (2026-10-25): ten moods for the goose game's night, to film side
+// LOOK TRIALS (2026-10-25): ten moods for the game's night, to film side
 // by side and pick from (tools/look-trials/). `#goose?theme=<name>` lays one
 // over the page's own look as it starts; without it, the page's default theme
 // (GOOSE_THEME in startinglook.ts), and `00-current` the look before themes.

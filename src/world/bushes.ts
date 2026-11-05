@@ -1,4 +1,4 @@
-// The goose game's bushes: scattered as the dead trees are (deadtrees.ts),
+// The game's bushes: scattered as the dead trees are (deadtrees.ts),
 // either side of the old road, behind its walls where by one, out of the
 // lights, off the scenes' pieces and the arches, in groves thinning into the
 // dark; low enough to stand a little nearer the road than the trees, and never

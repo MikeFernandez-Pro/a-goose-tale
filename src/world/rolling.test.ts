@@ -1,4 +1,4 @@
-// The goose game's rolling plain: low swells, never below the flat ground,
+// The game's rolling plain: low swells, never below the flat ground,
 // flat where the scenes, the fires and the pond stand, and the floor laid on
 // the grid the rats are stood on.
 import { describe, expect, it } from 'vitest'
@@ -12,7 +12,7 @@ const look = defaultRollingLook()
 const pads = padsOf(plain, look)
 const at = (x: number, z: number) => rollingAt(look, pads, square, x, z)
 
-describe("the goose game's rolling plain", () => {
+describe("the game's rolling plain", () => {
   it('rolls between the flat ground and its height, and somewhere on the plain rises most of the way', () => {
     const { minX, maxX, minZ, maxZ } = plain.bounds
     let highest = 0

@@ -1,4 +1,4 @@
-// The goose game's call: the nearest gosling still waiting calls him, now
+// The game's call: the nearest gosling still waiting calls him, now
 // and then, a word in Gaegu popping up over the gosling where the camera sees him, or,
 // out of view, at the edge of the screen on his side, so the word says which
 // way to go. Each grows out of the top of his head and rises off it. The

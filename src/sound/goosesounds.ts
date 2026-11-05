@@ -1,4 +1,4 @@
-// The goose game's sounds (public/sounds/goose/: the ElevenLabs takes cut by _sfx/build.py, the fires and the pond
+// The game's sounds (public/sounds/goose/: the ElevenLabs takes cut by _sfx/build.py, the fires and the pond
 // cut to 20 s loops by _sfx/ambience.py, the wind and the leaves the justASimpleTree page's): three's AudioListener
 // on the camera and plain Web Audio under it, each sound panned and fading from where it is made, so a gosling
 // calling out of view is heard from his side. Every sound has a few takes, never the same one twice running, each

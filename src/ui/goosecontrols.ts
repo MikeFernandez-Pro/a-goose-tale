@@ -1,4 +1,4 @@
-// The goose game's controls (#194): the keys held, the pads connected and,
+// The game's controls (#194): the keys held, the pads connected and,
 // since #198, the thumbs on a touch screen (goosetouch.ts), turned once a
 // frame into what the player asks of the game, whatever the device: walk, interact, skip and confirm, each let through only where the
 // game takes it. Written for this game on the model of Bruno Simon's

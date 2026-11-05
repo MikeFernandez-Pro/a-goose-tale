@@ -14,7 +14,7 @@
 // burns on it, carried on the bone that carries it. Made torchless, its own
 // torch is drawn into a point, gone, where its character can go without one,
 // and where it lay is read for a torch of the page's own to lie in its stead:
-// the goose game's burning branch.
+// the game's burning branch.
 import {
   AnimationClip,
   AnimationMixer,

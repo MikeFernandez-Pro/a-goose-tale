@@ -1,4 +1,4 @@
-// The goose game's hold indicator (#190): over the goose while he stands at
+// The game's hold indicator (#190): over the goose while he stands at
 // the well with its gosling down it, in Gaegu, Google's hand-drawn font,
 // "hold" over the space bar's key, the key filling from the left as the bucket
 // comes up. Let go, it empties with the bucket; the gosling out, it is gone.

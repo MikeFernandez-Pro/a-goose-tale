@@ -1,4 +1,4 @@
-// The goose game's pond, drawn: a hollow in the floor inside a wandering
+// The game's pond, drawn: a hollow in the floor inside a wandering
 // shore, the floor's own grass running down its bank to a bed under still
 // water. The shore strays in and out of the pond's radius by Perlin noise read
 // round a circle, so it closes on itself, a different stretch of the noise for

@@ -615,7 +615,7 @@ export class Swarm {
    */
   weave = 0
   /**
-   * The wander (2026-10-26, the goose game): a rat too far off to notice the holder runs off where its whim points,
+   * The wander (2026-10-26): a rat too far off to notice the holder runs off where its whim points,
    * at this share of its pace, facing where it runs: as busy as a rat that has noticed him, but never his way more
    * than another. 0 and it seethes where it is, at `agitation`.
    */

@@ -1,4 +1,4 @@
-// The goose play (#187): the goose game, one frame at a time, headless, as the
+// The goose play (#187): the game, one frame at a time, headless, as the
 // 3D page drives it at `#goose`. The page builds one, hands it its swarm,
 // feeds it the keys and draws what it reports: the goose, his torch, the
 // braziers, the goslings waiting or in his circle, and the pond. Nothing

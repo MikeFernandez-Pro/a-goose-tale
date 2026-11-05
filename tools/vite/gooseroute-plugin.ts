@@ -1,4 +1,4 @@
-// The goose game's route, saved from its edit mode (gooseedit.ts): the dev
+// The game's route, saved from its edit mode (gooseedit.ts): the dev
 // server takes the route the page posts to /goose-route and writes it over
 // src/world/gooseroute.json, which the game reads, so a saved route is the one it
 // plays on its next load. Nothing ships: a build has no such address.

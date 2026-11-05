@@ -1,4 +1,4 @@
-// The goose game's goslings and pond, drawn (#187). A gosling is his own
+// The game's goslings and pond, drawn (#187). A gosling is his own
 // armature in the goose's file, `public/models/geese.glb`, a third of the goose's
 // height, in his own colours, each with a mixer of his own playing the file's
 // baby idle while he stands and his run whenever he moves at all, however

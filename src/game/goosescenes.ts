@@ -1,4 +1,4 @@
-// The goose game's scenes, drawn where the goose play has them (#190). The
+// The game's scenes, drawn where the goose play has them (#190). The
 // well: `public/models/well.glb`, a ring of stone under a roof and a winch,
 // turned side on to the camera; its bucket, the file's own, rises out of its
 // shaft on a rope from the winch's axle as the interact key is held, the crank turning,

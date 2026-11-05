@@ -1,4 +1,4 @@
-// The goose game's pond, drawn: its noisy shore, the floor cut round it, and the bank down to the bed.
+// The game's pond, drawn: its noisy shore, the floor cut round it, and the bank down to the bed.
 import { describe, expect, it } from 'vitest'
 import { ROUTE, laid } from './plain'
 import { bankGeometry, islandGeometry, islandMiddle, islandShoreAt, SHORE_FIELD, SHORE_REACH, shoreField, swimmingIn, bankHeight, defaultPondLook, groundOf, standingIn, floorAround, FROM_SHORE, FURTHEST, NEAREST, SEGMENTS, shoreAt, shoreline, waterGeometry, waterline } from './pond'
@@ -9,7 +9,7 @@ const pondOf = (seed: number) => {
   return { ...look, island: { ...look.island, show: false } }
 }
 
-describe("the goose game's pond", () => {
+describe("the game's pond", () => {
   it('has a shore that wanders in and out of its radius, within its bounds, and closes on itself', () => {
     for (let seed = 1; seed <= 20; seed++) {
       const pond = pondOf(seed)

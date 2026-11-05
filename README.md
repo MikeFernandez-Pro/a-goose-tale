@@ -37,7 +37,7 @@ pnpm build      # bakes the rat, then dist/, as deployed
 first, so the baked file is never committed.
 
 The route is saved in `src/world/gooseroute.json`, which the game plays. Under
-`pnpm dev`, E on the game's page edits it in 3D: the play paused, a click picks a piece, a drag moves it,
+`pnpm dev`, with `#_debug` on the address, E edits it in 3D: the play paused, a click picks a piece, a drag moves it,
 the wheel turns it, and Save writes the route.
 
 ## Where things live

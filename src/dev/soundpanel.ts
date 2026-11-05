@@ -1,4 +1,4 @@
-// The goose game's sound panel, a small one of its own at the screen's left edge: the mix's volume, and a folder for
+// The game's sound panel, a small one of its own at the screen's left edge: the mix's volume, and a folder for
 // each sound (goosesounds.ts) with its volume, speed and pitch, if heard from a place how far off at full level and
 // where silent, muted or not, played, looped and stopped, put back as
 // saved; and in it a folder of its takes, each to hear alone and to keep or discard, a discarded take never played.

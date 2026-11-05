@@ -36,7 +36,7 @@
       canvas { display: block; cursor: crosshair; }
       /* ?film: no cursor anywhere on the page, whatever the orbit controls set on the canvas. */
       html.film, html.film * { cursor: none !important; }
-      /* The goose game: the black his fall goes to and his wake comes up out of. */
+      /* The black his fall goes to and his wake comes up out of. */
       #fallen { position: fixed; inset: 0; pointer-events: none; background: #000; opacity: 0; }
       #readouts {
         position: fixed; top: 8px; left: 10px;
@@ -108,8 +108,8 @@
           share.style.display = 'none'
           tryAgain("The game couldn't load.").focus()
         }
-        // A fetch's own words, in Chrome, Firefox and Safari; three's for a file refused; a dynamic import's; an image's bare event.
-        const isLostFile = (reason) => reason?.type === 'error' || /failed to fetch|networkerror|load failed|responded with|imported module|importing a module/i.test(String(reason?.message ?? reason))
+        // A fetch's own words, in Chrome, Firefox and Safari, a download cut off part way among them; three's for a file refused; a dynamic import's; an image's bare event.
+        const isLostFile = (reason) => reason?.type === 'error' || /failed to fetch|network ?error|input stream|load failed|responded with|imported module|importing a module/i.test(String(reason?.message ?? reason))
         addEventListener('error', (event) => (event.target?.tagName === 'SCRIPT' || isLostFile(event.error ?? event.message)) && fileLost(), true)
         addEventListener('unhandledrejection', (event) => isLostFile(event.reason) && fileLost())
         let was = share.textContent

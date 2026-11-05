@@ -1,4 +1,4 @@
-// The goose game's plain (#187): a night plain crossed one way, laid by hand
+// The game's plain (#187): a night plain crossed one way, laid by hand
 // (gooseroute.json). The goose starts at
 // its south end with a full torch, or, the start `unlit`, with it out, to
 // light at the first brazier, or, by a burning `branch`, with none, the branch

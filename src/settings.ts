@@ -38,7 +38,7 @@ export interface Settings {
   paused: boolean
   /** Rats left behind in the fog are brought round ahead of a walking light, in the fog still: the crowd it walks into never thins. */
   bringRound: boolean
-  /** How far off a rat out of the camera's view is still near enough not to be brought round, m, the fog nearer where it is on: the goose game's. */
+  /** How far off a rat out of the camera's view is still near enough not to be brought round, m, the fog nearer where it is on: the game's. */
   roundPast?: number
   /** The character drawn, with the torch it carries: its flame, embers and smoke. Off, the light alone stays, burning where the flame would. */
   character: boolean
@@ -163,7 +163,7 @@ export interface StopMotionLook {
 }
 
 /**
- * How the goose game's father feels to play: how long his walk takes to all but reach the keys' pace, or a stop, s;
+ * How the game's father feels to play: how long his walk takes to all but reach the keys' pace, or a stop, s;
  * and a rat's bite on him: what it sounds as, at most one heard and seen a `gap` s however many bite him at once, all
  * at the hardest: his flinch, squashed down `squash` of his height, springing back over `lasts` s; his body flashing
  * `flash` of `flashColour`, fading over `flashLasts` s, and the frame's edges closing in `edge` of `edgeColour` with

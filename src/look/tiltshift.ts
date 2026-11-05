@@ -131,7 +131,7 @@ export function createTiltShift() {
       const contrasted = pow(max(lit, 0).div(pivot), contrast).mul(pivot)
       return mix(rgb, saturation(contrasted, richness), on) as unknown as Node<'vec3'>
     },
-    /** The diorama's camera, the follow's lag as the goose game's own. */
+    /** The diorama's camera, the follow's lag as the game's own. */
     camera(lag: number): TiltCamera {
       return { camera: [0, look.up, look.back], target: [0, 0.3, 0], lag, fov: look.fov }
     },

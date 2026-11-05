@@ -77,14 +77,14 @@ export interface RunPanel {
   tuning: RunTuning
   level: Level
   /**
-   * The goose game's knobs: its holds, read live, and the rats' seed, set again by `reseed`; and
+   * The game's knobs: its holds, read live, and the rats' seed, set again by `reseed`; and
    * its pond's look, laid again by `changed`.
    */
   goose: { settings: GooseSettings; reseed(seed: number): void; refillZones?: { show: boolean }; dark?: DarkLook; feel?: GooseFeel; introLight?: { show: boolean; color: number; intensity: number; reach: number; height: number; fadeIn: number; fadeOut: number }; goslings?: GoslingSpeeds; goslingSize?: { height: number }; road?: { shape: RoadShape; shapeChanged(): void; look: RoadLook; changed(): void; arches?: { look: ArchLook; countChanged(): void } }; doors?: { stone: ArchStone; stoneChanged(): void; shell: ArchShell; shellChanged(): void }; walls?: { look: RoadWallLook; changed(): void; stone: ArchStone & { offsetX: number; offsetY: number }; stoneChanged(): void; shell: ArchShell; shellChanged(): void }; trees?: { look: { show: boolean; wood: number; saturation: number; y: number; trunk: number; rings: number }; shape: DeadTreeShape; changed(): void; woodChanged(): void; yChanged(): void; trunkChanged(): void; bark: BarkLook; barkChanged(): void; grass: GrassLook; grassChanged(): void; leaves?: LeafLook; leavesChanged(): void; wind: TreeWindLook; windChanged(): void; shine: ShineLook; shineChanged(): void }; bushes?: { look: { show: boolean; y: number }; shape: DeadTreeShape; changed(): void; leaves: LeafLook; leavesChanged(): void; yChanged(): void }; well?: { colours: Record<string, number>; glows: Record<string, number>; changed(): void; bucket?: { x: number; y: number; z: number }; ground?: { look: WellGroundLook; changed(): void }; fire?: { x: number; z: number }; reach?: { wellFireReach: number }; shine?: { look: ShineLook; changed(): void }; pit?: { look: { colour: number }; changed(): void; shine: ShineLook; shineChanged(): void } }; spawn?: { spawnReach: number; spawnFear: number }; branch?: { colours: BranchColours; changed(): void }; fires?: FiresPanel; tree?: { look: TreeLook; landing?: { x: number; z: number }; jump?: { treeJump: number }; fire?: SceneFirePanel & { at: { x: number; z: number } } }; cage?: { hold: { cageHold: number }; key: { beside: { x: number; z: number }; inWing?: KeyInWing; bones: readonly string[] }; fire: SceneFirePanel & { at: { x: number; z: number }; lamp: { intensity: number } }; look?: CageLook; colours?: { colours: Record<string, number>; glows?: Record<string, number>; changed(): void }; shine?: { cart: ShineLook; skull: ShineLook; changed(): void }; wood?: { look: CartWoodLook; changed(): void } }; pond?: { look: PondLook; changed(): void; water: WaterLook; waterChanged(): void; bed: BedLook; bedChanged(): void; nest?: { look: NestLook; changed(): void; needles: NeedleLook; needlesChanged(): void; leaves: LeafLook; leavesChanged(): void }; tree?: { look: IslandTreeLook; changed(): void; woodChanged(): void; leavesChanged(): void; windChanged(): void; fallChanged(): void; barkChanged(): void; grassChanged(): void }; tent?: { look: TentLook; changed(): void; recolour(): void; shineChanged(): void }; picnic?: { look: PicnicLook; changed(): void; shineChanged(): void }; bonfire?: { look: { show: boolean; x: number; z: number; y: number; turn: number; size: number; flame: number; intensity: number; reach: number }; changed(): void }; geese?: IslandGeeseLook }; ground?: { look: RollingLook; changed(): void; arches?: { look: ArchLook; changed(): void } }; seeThrough?: { look: NoiseSeeThrough; changed(): void }; camera?: GooseCameraPanel }
 }
 
 /**
- * The goose game's camera folder: how far behind him the camera's follow runs, s, read live; the field of view; a button that captures where
+ * The game's camera folder: how far behind him the camera's follow runs, s, read live; the field of view; a button that captures where
  * the camera now is from him, its angle and its distance, returning it as text to show; and one that forgets it.
  */
 export interface GooseCameraPanel {
@@ -491,7 +491,7 @@ function addRun(gui: GUI, settings: Settings, run: RunPanel): { folder: GUI; rea
   return { folder, reach }
 }
 
-/** The goose game's camera folder: the follow's lag, the field of view, and the capture of where the camera is, shown to copy. */
+/** The game's camera folder: the follow's lag, the field of view, and the capture of where the camera is, shown to copy. */
 /** The see-through round the goose: its hole, its dither's Perlin noise. */
 function addGooseSeeThrough(gui: GUI, { look, changed }: { look: NoiseSeeThrough; changed(): void }): void {
   const folder = gui.addFolder('see-through (noise dithering)')
@@ -533,7 +533,7 @@ function addGoslingSpeeds(gui: GUI, speeds: GoslingSpeeds): void {
   folder.add(speeds, 'swim', 0, 3, 0.05).name('swim animation speed')
 }
 
-/** The goose game's well folder: a colour for each of its file's materials, the bucket's among them, by the names Blender gave them; how bright those that glow glow; how far the bucket is drawn off its place; and where he winches it. */
+/** The game's well folder: a colour for each of its file's materials, the bucket's among them, by the names Blender gave them; how bright those that glow glow; how far the bucket is drawn off its place; and where he winches it. */
 /** The old road: its way up the plain, how much of it is left where, and its stones on the floor. */
 function addRoad(gui: GUI, { shape, shapeChanged, look, changed, arches }: NonNullable<NonNullable<RunPanel['goose']>['road']>): void {
   const folder = gui.addFolder('road')
@@ -565,7 +565,7 @@ function addRoad(gui: GUI, { shape, shapeChanged, look, changed, arches }: NonNu
   folder.add(arches.look, 'count', 0, 40, 1).name('arches along it').onChange(arches.countChanged)
 }
 
-/** The goose game's doors folder, the road's arches (arches.ts): the road's slabs on them, painted and tiled as the road folder's are, and their own toon shell, its highlight, rim, painted strokes and steps. */
+/** The game's doors folder, the road's arches (arches.ts): the road's slabs on them, painted and tiled as the road folder's are, and their own toon shell, its highlight, rim, painted strokes and steps. */
 function addDoors(gui: GUI, { stone, stoneChanged, shell, shellChanged }: NonNullable<NonNullable<RunPanel['goose']>['doors']>): void {
   const folder = gui.addFolder('doors')
   addStone(folder, stone, stoneChanged, 'turn along the arch (degrees)')
@@ -605,7 +605,7 @@ function addStone(folder: GUI, stone: ArchStone, stoneChanged: () => void, turn?
   water.onChange(stoneChanged)
 }
 
-/** The goose game's walls folder, the road's broken walls (roadwalls.ts): which kind, how many, how far off the road, how tall, and their seed; their stone and shell the doors folder's. */
+/** The game's walls folder, the road's broken walls (roadwalls.ts): which kind, how many, how far off the road, how tall, and their seed; their stone and shell the doors folder's. */
 function addRoadWalls(gui: GUI, { look, changed, stone, stoneChanged, shell, shellChanged }: NonNullable<NonNullable<RunPanel['goose']>['walls']>): void {
   const folder = gui.addFolder('walls')
   folder.add(look, 'style', ROAD_WALL_STYLES).name('kind').onChange(changed)
@@ -623,7 +623,7 @@ function addRoadWalls(gui: GUI, { look, changed, stone, stoneChanged, shell, she
   addToonMaterial(folder, shell, shellChanged)
 }
 
-/** The goose game's dead trees folder (deadtrees.ts): shown or not, their wood and its saturation, how high all of them stand, their bark set laid as the floor's, and how they are scattered along the road, scattered again on release. */
+/** The game's dead trees folder (deadtrees.ts): shown or not, their wood and its saturation, how high all of them stand, their bark set laid as the floor's, and how they are scattered along the road, scattered again on release. */
 function addDeadTrees(gui: GUI, { look, shape, changed, woodChanged, yChanged, trunkChanged, bark, barkChanged, grass, grassChanged, leaves, leavesChanged, wind, windChanged, shine, shineChanged }: NonNullable<NonNullable<RunPanel['goose']>['trees']>): void {
   const folder = gui.addFolder('dead trees')
   folder.add(look, 'show').name('show').onChange(changed)
@@ -738,7 +738,7 @@ function addNest(island: GUI, nest: NonNullable<NonNullable<NonNullable<RunPanel
   addLeaves(folder, nest.leaves, nest.leavesChanged, false)
 }
 
-/** The goose game's bushes folder (bushes.ts): shown or not, their leaves, how high all of them stand, and how they are scattered as the trees are, scattered again on release. */
+/** The game's bushes folder (bushes.ts): shown or not, their leaves, how high all of them stand, and how they are scattered as the trees are, scattered again on release. */
 function addBushes(gui: GUI, { look, shape, changed, leaves, leavesChanged, yChanged }: NonNullable<NonNullable<RunPanel['goose']>['bushes']>): void {
   const folder = gui.addFolder('bushes')
   folder.add(look, 'show').name('show').onChange(changed)
@@ -823,7 +823,7 @@ function addWell(gui: GUI, { colours, glows, changed, bucket, ground, fire, reac
   }
 }
 
-/** The goose game's dead tree folder: its size, how high it stands and its turn, its look the dead trees' folders'; where and how each of its pumpkins stands; where its gosling perches on it, which way he faces, and where he lands jumping down; and where its brazier stands and how its flame burns; all read live. */
+/** The game's dead tree folder: its size, how high it stands and its turn, its look the dead trees' folders'; where and how each of its pumpkins stands; where its gosling perches on it, which way he faces, and where he lands jumping down; and where its brazier stands and how its flame burns; all read live. */
 function addTree(gui: GUI, { look: tree, landing, jump, fire }: NonNullable<NonNullable<RunPanel['goose']>['tree']>): void {
   const folder = gui.addFolder('dead tree')
   folder.add(tree, 'height', 0.5, 8, 0.05).name('height m')
@@ -850,7 +850,7 @@ function addTree(gui: GUI, { look: tree, landing, jump, fire }: NonNullable<NonN
   }
 }
 
-/** The goose game's cage folder: how long he takes to unlock the cage; where its key lies by the body and how it sits in his wing; and its campfire, where it stands off its brazier's place; all read live. */
+/** The game's cage folder: how long he takes to unlock the cage; where its key lies by the body and how it sits in his wing; and its campfire, where it stands off its brazier's place; all read live. */
 function addCage(gui: GUI, { hold, key, fire, look, colours, shine, wood }: NonNullable<NonNullable<RunPanel['goose']>['cage']>): void {
   const folder = gui.addFolder('cage')
   if (look) {
@@ -905,7 +905,7 @@ export interface SceneFirePanel {
 }
 
 /**
- * The goose game's interaction zones folder: whether they are drawn, and each place he works with the interact key, the
+ * The game's interaction zones folder: whether they are drawn, and each place he works with the interact key, the
  * opening's first, in its own folder; all read live.
  */
 function addZones(gui: GUI, settings: GooseSettings, shown?: { show: boolean }): void {
@@ -956,7 +956,7 @@ export interface FiresPanel {
   each: FireFolder[]
 }
 
-/** The goose game's ground folder: how the plain rolls (rolling.ts), each change laid at once; and how big the road's arches stand on it, and how high. */
+/** The game's ground folder: how the plain rolls (rolling.ts), each change laid at once; and how big the road's arches stand on it, and how high. */
 function addGround(gui: GUI, { look, changed, arches }: NonNullable<NonNullable<RunPanel['goose']>['ground']>): void {
   const folder = gui.addFolder('ground')
   folder.add(look, 'height', 0, 3, 0.01).name('swells rise to m')
@@ -972,7 +972,7 @@ function addGround(gui: GUI, { look, changed, arches }: NonNullable<NonNullable<
   folder.add(arches.look, 'y', -5, 5, 0.01).name('door position y m').onChange(arches.changed)
 }
 
-/** The goose game's pond folder: where it lies, its shore, its bank and its water, each change laid at once. */
+/** The game's pond folder: where it lies, its shore, its bank and its water, each change laid at once. */
 function addPond(gui: GUI, { look, changed, water, waterChanged, bed, bedChanged, nest, tree, tent, picnic, bonfire, geese }: NonNullable<NonNullable<RunPanel['goose']>['pond']>): void {
   const folder = gui.addFolder('pond')
   folder.add(look, 'x', look.x - 30, look.x + 30, 0.1).name('x m')
@@ -1143,7 +1143,7 @@ function addCrowd(gui: GUI, crowd: CrowdTuning, notice = true): void {
   folder.add(crowd, 'pile', 0, 3, 0.1).name('piles up (0 = flat)')
   folder.add(crowd, 'pileRamp', 0.25, 8, 0.25).name('pile rises over gaps')
   if (notice) folder.add(crowd, 'notice', 2, 40, 0.5).name('notices the holder within m')
-  // The wander, where the page's rats have it (the goose game's): what a rat that has not noticed the holder does.
+  // The wander, where the page's rats have it (the game's): what a rat that has not noticed the holder does.
   if (crowd.wander !== undefined) folder.add(crowd as Required<Pick<CrowdTuning, 'wander'>>, 'wander', 0, 1.5, 0.05).name('runs about unnoticed x its pace (0 = writhes)')
   if (crowd.roam !== undefined) folder.add(crowd as Required<Pick<CrowdTuning, 'roam'>>, 'roam', 0.5, 20, 0.5).name('roams past its notice m')
   // How quickly a rat answers: to come on, and to bolt or lunge, the swarm's own where the page sets none.
@@ -1155,7 +1155,7 @@ function addCrowd(gui: GUI, crowd: CrowdTuning, notice = true): void {
   reacts.add(answer, 'turnRate', 0.5, 20, 0.1).name('turns rad/s')
   reacts.add(answer, 'fleeReaction', 0.02, 2, 0.01).name('bolts or lunges over s')
   reacts.add(answer, 'fleeTurn', 0.5, 5, 0.1).name('turns bolting x')
-  // The lunges and the weave, where the page's rats have them (the goose game's).
+  // The lunges and the weave, where the page's rats have them (the game's).
   if (crowd.dashRate !== undefined) {
     const lunges = folder.addFolder('lunges')
     const dash = crowd as Required<Pick<CrowdTuning, 'dashRate' | 'dashSpeed' | 'dashTime' | 'weave'>>
@@ -1170,7 +1170,7 @@ function addCrowd(gui: GUI, crowd: CrowdTuning, notice = true): void {
 const ANYWHERE = 60
 
 /**
- * The goose game's pull folder: how far off a rat runs at the goose or a
+ * The game's pull folder: how far off a rat runs at the goose or a
  * gosling, one reach for them all; each rat runs at the nearest it notices.
  */
 function addPull(gui: GUI, crowd: CrowdTuning): void {

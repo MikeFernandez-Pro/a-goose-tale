@@ -1,4 +1,4 @@
-// The run (#173): the goose game's walk and torch, pure and stepped by input,
+// The run (#173): the game's walk and torch, pure and stepped by input,
 // with no renderer, no DOM and no swarm of its own, so it is tested in Node.
 // The goose play (gooseplay.ts) hands it a frame's input, where the keys send
 // the holder and how fast, and reads back where the holder stands, the way he

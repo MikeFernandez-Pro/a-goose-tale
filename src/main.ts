@@ -282,9 +282,9 @@ const swarmLight: Light = { x: light.x, z: light.z, strength: 0, on: false }
 const swarmTime = uniform(0)
 /** The burning branch's light: its lamp alone, as low over the ground as it lies, the page burning its flame. */
 const BRANCH_LIGHT: LightLook = { lampOnly: true, height: 0.35 }
-// The dead tree burns bare, high on its trunk (#190), the well's light in its lantern, the brazier by the tree, after
-// the braziers, on its own bowl, and the cage's over its campfire's logs: their lamps alone, the page burning the
-// torch's flame on each.
+// The dead tree burns bare, high on its trunk (#190), the brazier by the tree, after the braziers, on its own bowl, and
+// the cage's over its campfire's logs: their lamps alone, the page burning the torch's flame on each. The well's place
+// draws nothing, the fire pit by it its light.
 const looks = goosePlay.level.lights.map((_, k) => {
   const b = goosePlay.plain.braziers[k]
   if (goosePlay.wellFires.some(({ light }) => light === k)) return PIT_LIGHT

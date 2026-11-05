@@ -1,4 +1,4 @@
-// The goose game's sound mix, saved from its sound panel (src/dev/soundpanel.ts): the dev server takes the mix the page
+// The game's sound mix, saved from its sound panel (src/dev/soundpanel.ts): the dev server takes the mix the page
 // posts to /goose-sounds and writes it over src/sound/goosesounds.json, which the game's sounds start from
 // (src/sound/goosesounds.ts), so a saved mix is the one heard on the next load; saving reloads nothing, the page already
 // playing the mix it saved. Nothing ships: a build has no such address, and the panel downloads the file instead.

@@ -1,4 +1,4 @@
-// The goose game's plain (#187): the route laid by hand, as the play reads it.
+// The game's plain (#187): the route laid by hand, as the play reads it.
 import { describe, expect, it } from 'vitest'
 import { ROUTE, WADE, keptShown, laid, toSave, type Route } from './plain'
 import saved from './gooseroute.json'
@@ -14,7 +14,7 @@ const ROUTE_OF_THREE: Route = {
   pond: { x: 2, z: -30, radius: 5, shore: 0.3 },
 }
 
-describe("the goose game's plain", () => {
+describe("the game's plain", () => {
   it('takes the braziers in the order he meets them going up the plain, whatever order the route lists them in', () => {
     const p = laid(ROUTE_OF_THREE)
     expect(p.braziers.map((b) => b.z)).toEqual([15, 2, -10])

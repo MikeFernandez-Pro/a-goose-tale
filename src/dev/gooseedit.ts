@@ -1,4 +1,4 @@
-// The goose game's edit mode on the 3D page (E): the play paused and the camera
+// The game's edit mode on the 3D page (E): the play paused and the camera
 // free, a click picks a piece of a scene (the well, its brazier's place, the dead tree
 // and its brazier, the cage, its cart, campfire and dead body,
 // a plain brazier, a waiting gosling), a drag moves it over the ground, the

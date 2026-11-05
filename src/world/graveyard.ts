@@ -1,4 +1,4 @@
-// The graveyard, the goose game's fourth scene. The graves stretch back along the road from the last fire toward
+// The graveyard, the game's fourth scene. The graves stretch back along the road from the last fire toward
 // the cage; past the cage his torch dies on the way, and the only light is the ghosts'. Each ghost walks a closed path
 // of its own, round and round, slower than his walk, paying him no heed; where its path crosses the next ghost's, the
 // two pass, their lights meet, and he can go from one to the other. Their lights hold rats off and fill no torch.

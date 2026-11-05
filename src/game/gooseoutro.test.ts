@@ -26,7 +26,7 @@ const CAST: Cast = {
 const JOIN_TIME = 1.5
 const gap = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.z - b.z)
 
-describe('the goose game ending', () => {
+describe('the ending', () => {
   it('starts once he swims within reach of the island', () => {
     expect(outroDue(ISLAND, { x: 0, z: 4 + OUTRO.near - 0.1 })).toBe(true)
     expect(outroDue(ISLAND, { x: 0, z: 4 + OUTRO.near + 0.1 })).toBe(false)

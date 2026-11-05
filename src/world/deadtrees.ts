@@ -1,4 +1,4 @@
-// The goose game's dead trees: the plain's own trees, dead long since, drawn
+// The game's dead trees: the plain's own trees, dead long since, drawn
 // only, for the look. They stand either side of the old road, never on it:
 // none near its middle, none in a brazier's light, none by a scene's pieces,
 // the well, the dead tree's fire, the cage's cart and skull, nor by an
@@ -467,7 +467,7 @@ interface KindDrawn {
  * made as tall and as wide as `lay` has it, standing on the ground `groundAt` has under it.
  *
  * One instanced mesh a kind, the stretches drawn packed to its front. three r186 built a shader, and the GPU compiled
- * a pipeline, for each instanced mesh apart, and a mesh a kind a stretch made 56 to 210 of them: most of the goose
+ * a pipeline, for each instanced mesh apart, and a mesh a kind a stretch made 56 to 210 of them: most of the
  * game's start, a minute and more with nothing drawn (2026-10-26). Since r187 the kinds drawn in one material share
  * one shader, the mesh's matrices bound as an attribute whatever their count.
  */

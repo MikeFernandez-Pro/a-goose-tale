@@ -1,5 +1,5 @@
 // The ground's height read off a grid, for the GPU's rats to stand on as the
-// goose game's rolling plain has it (rolling.ts).
+// game's rolling plain has it (rolling.ts).
 import type { Bounds } from './swarm'
 
 /**

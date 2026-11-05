@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
   // certificate, since a phone gets WebGPU only in a secure context, and a
   // LAN address over http is not one. The browser warns once. Cast: vitest 2
   // types this config against vite 5, the plugin is typed against vite 7.
-  // The dev server also saves the goose game's route from its edit mode (tools/vite/gooseroute-plugin.ts) and its sound mix
+  // The dev server also saves the game's route from its edit mode (tools/vite/gooseroute-plugin.ts) and its sound mix
   // from the sound panel (tools/vite/goosesounds-plugin.ts), and keeps what `?bench` measures on a phone (tools/vite/phonelog-plugin.ts).
   plugins: [gooseRoute() as never, gooseSounds() as never, phoneLog() as never, stripComments() as never, ...(mode === 'phone' ? [basicSsl() as never] : [])],
   // Another project's dev server holds 5173 on this machine, and vite answers

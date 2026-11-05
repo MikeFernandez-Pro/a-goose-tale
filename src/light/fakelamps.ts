@@ -2,7 +2,7 @@
 // material's shader.
 //
 // Three writes a point light into every lit material's shader once over, its whole lighting a light: nine lamps made
-// each toon shader 62 KB, 43 of them the lamps, and the goose game's start a GPU-process compile of all of it
+// each toon shader 62 KB, 43 of them the lamps, and the game's start a GPU-process compile of all of it
 // (2026-10-27). Here the lamps are a list: each a place in the scene, a colour, a strength and a reach, gathered
 // every frame into uniform arrays, and one light in the scene, `FakeLamps`, that three hands to every lit material
 // as it would any light. Its node runs the material's own lighting, the shell's toon steps, highlight and rim or

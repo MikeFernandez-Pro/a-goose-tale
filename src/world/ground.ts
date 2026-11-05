@@ -1,7 +1,7 @@
 // The ground: one flat plane under a tiled floor, one of the hand-painted stylized sets in `floors/`, which starts on
 // the grass, one set of coordinates reading its painting and its normal map. The panel's floor folder picks which, and sets how light it is,
 // how saturated, which way its hue turns, how big a tile is on the ground, which way it is turned, and how deep its relief,
-// through uniforms, so a slider recompiles nothing. In the goose game the old road (road.ts) is laid over it in stone,
+// through uniforms, so a slider recompiles nothing. The old road (road.ts) is laid over it in stone,
 // its slabs laid along it and across, so they follow it round its bends.
 import { BufferAttribute, Color, DataTexture, DataUtils, FloatType, HalfFloatType, LinearFilter, Mesh, NearestFilter, RedFormat, RepeatWrapping, RGFormat, RGBAFormat, Vector4, type Node, PlaneGeometry, Vector2, Vector3, type Texture } from 'three/webgpu'
 import { abs, cameraViewMatrix, clamp, dot, float, hue, ivec2, max, min, mix, mx_noise_float, normalWorld, positionWorld, pow, renderGroup, saturation, smoothstep, sqrt, step, texture, uniform, vec2, vec3, vec4 } from 'three/tsl'
@@ -21,7 +21,7 @@ const reliefOnly = (set: string) => ({ normals: `./textures/floors/${set}/normal
 
 /** The floors there are: each a painting and its normal map, in public/textures, or the normal map alone. */
 const FLOORS: Record<`stylized_${'grass_01' | 'sand_01' | 'stones_02'}`, { map?: string; normals: string }> = {
-  // The goose game's hand-painted sets, 2026-10-21, the only floors its folder offers: the Stylized_GrassAndDirt pack's
+  // The game's hand-painted sets, 2026-10-21, the only floors its folder offers: the Stylized_GrassAndDirt pack's
   // colour and OpenGL normal maps, cut from 4096 to 2048, then to 1024 in WebP (2026-10-30), the sand and the stones to
   // 512 (2026-11-05). Its plain starts on the grass.
   stylized_grass_01: handPainted('stylized_grass_01'),
@@ -30,9 +30,9 @@ const FLOORS: Record<`stylized_${'grass_01' | 'sand_01' | 'stones_02'}`, { map?:
   stylized_stones_02: handPainted('stylized_stones_02'),
 }
 export type FloorName = keyof typeof FLOORS
-/** The sets the goose game's bed offers, for its relief: the stylized sets. */
+/** The sets the game's bed offers, for its relief: the stylized sets. */
 export const STYLIZED_FLOORS = (Object.keys(FLOORS) as FloorName[]).filter((name) => name.startsWith('stylized_'))
-/** The floors the goose game's floor and well ground folders offer: the stylized sets with a painting. */
+/** The floors the game's floor and well ground folders offer: the stylized sets with a painting. */
 export const PAINTED_FLOORS = STYLIZED_FLOORS.filter((name) => FLOORS[name].map !== undefined)
 
 /** What the floor folder edits. */

@@ -1,4 +1,4 @@
-// The old road: the goose game's way up the plain, an old road the braziers
+// The old road: the game's way up the plain, an old road the braziers
 // stand along as its beacons, long given up, its stones mostly sunk under the
 // dirt. Near a fire it is whole, its slabs laid edge to edge; out in the dark
 // between two it thins to the odd slab, so the way still reads under the

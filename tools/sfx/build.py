@@ -1,4 +1,4 @@
-# The goose game's sounds, cut from the ElevenLabs takes in src/ (folded to mono in mono/) into
+# The game's sounds, cut from the ElevenLabs takes in src/ (folded to mono in mono/) into
 # ../public/sounds/goose, each file named by its take's number as ElevenLabs gave it (call_3 is call take #3), and the
 # takes each sound has written to ../src/sound/goosetakes.json for the game. A take banned in ../src/sound/goosebans.json (the
 # page's takes panel saves it) is left out. Run from _sfx/, where the takes are kept out of git: python ../tools/sfx/build.py

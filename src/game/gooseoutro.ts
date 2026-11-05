@@ -1,4 +1,4 @@
-// The goose game's ending: no one plays it. Once he swims near the pond's
+// The game's ending: no one plays it. Once he swims near the pond's
 // island, home, it takes him: he swims on to its shore and steps out of the
 // water. The mother gets up off her nest, runs out of the tent's door and
 // straight at him, and the

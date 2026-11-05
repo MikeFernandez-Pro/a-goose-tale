@@ -1,4 +1,4 @@
-// The goose game's music, made as it plays in Web Audio, no files: a slow lullaby in D, a cosy night rather than a
+// The game's music, made as it plays in Web Audio, no files: a slow lullaby in D, a cosy night rather than a
 // haunted one: a warm pad, a soft felt piano, a plucked guitar, a low cello; no music box, choir or drone. It grows with
 // his goslings: alone he has only the pad; each gosling found brings in the next layer (the bass and a low piano, the
 // piano's arpeggio, the tune, the guitar, the cello), every layer by the time all of them are with him. A layer comes in

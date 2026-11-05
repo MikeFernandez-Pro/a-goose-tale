@@ -1,4 +1,4 @@
-// The goose game's bushes: scattered as the dead trees are, nearer the road, never on a trunk.
+// The game's bushes: scattered as the dead trees are, nearer the road, never on a trunk.
 import { describe, expect, it } from 'vitest'
 import { bushes, defaultBushShape } from './bushes'
 import { behindWalls, deadTrees, offWay } from './deadtrees'
@@ -14,7 +14,7 @@ const trees = deadTrees(plain, road, 5, undefined, walls)
 const laidBushes = bushes(plain, road, 4, trees, shape, walls)
 const distance = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z)
 
-describe("the goose game's bushes", () => {
+describe("the game's bushes", () => {
   it('stand in their band either side of the road, behind its walls where by one', () => {
     expect(laidBushes.length).toBeGreaterThan(40)
     for (const b of laidBushes) {

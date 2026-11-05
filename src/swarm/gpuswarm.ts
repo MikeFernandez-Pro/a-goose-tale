@@ -439,7 +439,7 @@ export class GpuSwarm implements PlaySwarm {
   /**
    * Whether each of the pair's bring-round has run: its first step runs it whatever the quota, so its pipeline is
    * built with the step's at the loading, not on the first step the light walks into the dark (a 90 ms hitch at the
-   * goose game's cage, 2026-10-30). Under a quota of none it moves no rat.
+   * game's cage, 2026-10-30). Under a quota of none it moves no rat.
    */
   private readonly roundBuilt = [false, false]
   /**

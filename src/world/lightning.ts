@@ -41,12 +41,12 @@
 // sparks before a strike rise for the time the script gives before it is due.
 // The bolt comes down beside the struck tree, on the side the goose is, not
 // inside its trunk, and stands on the ground's height; or, given no one to
-// come down toward, on the very spot, at the height given it there (the goose
+// come down toward, on the very spot, at the height given it there (the
 // game's log, struck on its roots). The line's sides are a
 // corner's own attribute, where folio-2025 works them out from the vertex's
 // index with a remainder that a negative number breaks on WebGPU; and its
 // last point takes the direction of the one before, where folio-2025's has none.
-// Its look is live (`LightningLook`, the goose game's thunder folder): the
+// Its look is live (`LightningLook`, the game's thunder folder): the
 // colours, how bright, the bolt's size and timing and the burst's, each a
 // uniform read every frame, the defaults folio-2025's.
 import {

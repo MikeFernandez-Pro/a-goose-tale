@@ -1,4 +1,4 @@
-// The goose game's plain rolls: low, wide swells of the ground, read off
+// The game's plain rolls: low, wide swells of the ground, read off
 // Perlin noise, never below the flat ground's level, so nothing under the
 // pond's water rule (ground.ts) mistakes a hollow for its bed. Where a scene
 // or a fire stands the ground is flat, a pad round each, as it is round the
