@@ -22,7 +22,8 @@ const reliefOnly = (set: string) => ({ normals: `./textures/floors/${set}/normal
 /** The floors there are: each a painting and its normal map, in public/textures, or the normal map alone. */
 export const FLOORS: Record<`stylized_${'grass_01' | 'sand_01' | 'stones_02'}`, { map?: string; normals: string }> = {
   // The goose game's hand-painted sets, 2026-10-21, the only floors its folder offers: the Stylized_GrassAndDirt pack's
-  // colour and OpenGL normal maps, cut from 4096 to 2048, then to 1024 in WebP (2026-10-30). Its plain starts on the grass.
+  // colour and OpenGL normal maps, cut from 4096 to 2048, then to 1024 in WebP (2026-10-30), the sand and the stones to
+  // 512 (2026-11-05). Its plain starts on the grass.
   stylized_grass_01: handPainted('stylized_grass_01'),
   // The sand, the bed's, its painting dropped on 2026-10-30 for a plain colour.
   stylized_sand_01: reliefOnly('stylized_sand_01'),
