@@ -10,9 +10,7 @@
 // for its own (ADR-0054).
 import {
   Color,
-  DirectionalLight,
   Group,
-  HemisphereLight,
   Frustum,
   Sphere,
   type Material,
@@ -22,10 +20,7 @@ import {
   type Node,
   type NodeMaterial,
   type Object3D,
-  PCFShadowMap,
-  VSMShadowMap,
   PerspectiveCamera,
-  PointLight,
   Quaternion,
   RingGeometry,
   Scene,
@@ -33,10 +28,8 @@ import {
   Timer,
   Vector2,
   Vector3,
-  Vector4,
-  WebGPURenderer,
 } from 'three/webgpu'
-import { Fn, Loop, cameraPosition, float, fog, getViewPosition, int, mix, mx_noise_float, normalWorldGeometry, pointShadow, positionWorld, renderGroup, screenUV, shadow, smoothstep, uniform, uniformArray, vec3, vec4 } from 'three/tsl'
+import { int, pointShadow, positionWorld, renderGroup, uniform } from 'three/tsl'
 import { loadVAT } from 'three-vat'
 import { getMaxTextureSize, type VATTimeUniform } from 'three-vat/tsl'
 import { benchOn, calm, debugOn, featureOn, filming, noPanel, phone, post0, touchOn, url } from './game/address'
@@ -99,15 +92,18 @@ import { defaultGraveLook, ghostAt, inGraveyard, layGraveyard } from './world/gr
 import { createGraves, mountGraveControls, scatterGravePumpkins, type GraveGround } from './world/graves'
 import { createGraveCandles, mountCandleControls } from './world/gravecandles'
 import { GpuSwarm, MOST_FRAME } from './swarm/gpuswarm'
-import { nextAfterFailure, watchForDrawFailure } from './ui/cannotdraw'
 import type { BenchCost, BenchPlace, PhoneBench } from './dev/phonebench'
 import { keptRun, keepRun, dropKeptRun } from './game/keptrun'
-import { PHONE_SLOW_FRAME, Quality, ladder, maxPixelRatio, startingStep } from './look/quality'
 import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './game/gameplay'
 import { createLightning } from './world/lightning'
 import { flashAt } from './world/weather'
 import { CHAT, INTRO, afterglow, branchAt, branchFlare, branchLanded, roadAheadOf, cowering, flameGrown, goslingAt, litShare, ratsOut, rumbleAt, shakeAt, startled, walkAt, walkOf } from './game/gooseintro'
 import { RemoteSwarm } from './swarm/swarm-remote'
+import { createBeats } from './game/beats'
+import { createDrawing } from './look/drawing'
+import { ladder, startingStep, Quality, PHONE_SLOW_FRAME } from './look/quality'
+import { createSkyFog } from './look/skyfog'
+import { createNightLights } from './light/nightlights'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
@@ -170,21 +166,6 @@ const CAMERA_FOV = 42
  */
 const GOOSE_CAMERA_FOLLOW = 0.6
 /**
- * How far the sun's shadows reach around the light it follows, in metres:
- * enough to cover the view, so no shadow ends on screen. And how deep they
- * reach: past the ground from the furthest place the panel can put the sun.
- */
-const SUN_SHADOW_REACH = 16
-const SUN_SHADOW_DEPTH = 80
-/**
- * The sun's shadow map, texels a side: three centimetres a texel over its
- * reach. Twice as fine cost up to 0.6 ms of a 4 ms frame at 8,192 rats on an
- * RTX 5080, redrawn every frame. The panel's softness is in texels of the
- * 2,048 the look was set at, so it blurs as far on the ground at any size.
- */
-const SUN_SHADOW_SIZE = 1024
-const SOFTNESS_TEXELS = 2048
-/**
  * The most game time a frame carries, s: as much as the swarm can catch up in one, so that on a slow phone he keeps the
  * rats' pace, and a hitch moves the light, the clock and the camera no further.
  */
@@ -195,203 +176,13 @@ const FLOOR_PAST = 20
 const DARK_MARGIN = 0.5
 
 const { look, gooseTheme } = startingLook()
+const beats = createBeats(look.stopMotion)
 
 // ---------------------------------------------------------------- renderer
-// A playback row a rat, and WebGPU's default limit is 8,192 rows: ask for what
-// the adapter can give, so the count reaches its top.
-/** Where a phone has found this tab's WebGPU cannot draw the game: it stays on WebGL 2 for the tab. */
-const WEBGL_FOR_THE_TAB = 'a-goose-tale.webgl'
-const webglAsked = url.has('webgl') || (phone && sessionStorage.getItem(WEBGL_FOR_THE_TAB) === '1')
-type Adapter = { limits: { maxStorageBuffersInVertexStage?: number; maxTextureDimension2D: number; maxComputeWorkgroupSizeX: number; maxComputeInvocationsPerWorkgroup: number; maxComputeWorkgroupStorageSize: number } }
-const gpu = (navigator as { gpu?: { requestAdapter(options: { featureLevel: string }): Promise<Adapter | null> } }).gpu
-// The kind of adapter three asks for itself: a phone with only WebGPU's compatibility mode has no other, a Xiaomi Mi 9 among them.
-const adapter = webglAsked ? null : await gpu?.requestAdapter({ featureLevel: 'compatibility' })
-// The rats' vertices read storage buffers, and WebGPU's compatibility mode may allow none: no use trying, and failing, and
-// reloading. WebGL 2 from the first, as a Xiaomi Mi 9 needs.
-const forceWebGL = webglAsked || adapter?.limits.maxStorageBuffersInVertexStage === 0
-// As much as the adapter has: past a device's defaults, the swarm's scan was refused and no rat drawn on a Xiaomi Mi 9.
-const requiredLimits = adapter && !forceWebGL
-  ? {
-      maxTextureDimension2D: adapter.limits.maxTextureDimension2D,
-      maxComputeWorkgroupSizeX: adapter.limits.maxComputeWorkgroupSizeX,
-      maxComputeInvocationsPerWorkgroup: adapter.limits.maxComputeInvocationsPerWorkgroup,
-      maxComputeWorkgroupStorageSize: adapter.limits.maxComputeWorkgroupStorageSize,
-    }
-  : undefined
-const timestamps = url.has('timestamps')
-/** The phone's bench's tools (phonebench.ts), fetched under `?bench` alone. */
-const benchTools = benchOn ? await import('./dev/phonebench') : undefined
-benchTools?.logPageTrouble()
-// A phone that cannot draw the game tries WebGL 2, else says so (cannotdraw.ts), rather than playing on with no goose.
-const cannotDraw = { stop: () => {} }
-if (phone) {
-  watchForDrawFailure(
-    () => {
-      if (nextAfterFailure(forceWebGL ? 'WebGL 2' : 'WebGPU') === 'give up') return false
-      sessionStorage.setItem(WEBGL_FOR_THE_TAB, '1')
-      location.reload()
-      return true
-    },
-    () => cannotDraw.stop(),
-  )
-}
-// `?bench=load&cold`: a first visit's load, whatever this phone has compiled before.
-if (url.has('cold')) benchTools?.makeShadersNew()
-/** Whether a phone has built all it builds before Enter; and what is being drawn, for the log of what came after it. */
-let allBuilt = false
-let drawingNow = ''
-benchTools?.logLatePipelines(() => allBuilt, () => drawingNow)
-if (url.get('bench') === 'load') benchTools?.logPipelineTimes(url.has('serial'))
-const renderer = new WebGPURenderer({ antialias: true, forceWebGL, requiredLimits, trackTimestamp: timestamps })
-// The most the pixel ratio is drawn at, held to a 4K frame; the quality's steps take it lower, or `?dpr=N` sets it.
-const maxDpr = Number(url.get('dpr')) || maxPixelRatio(devicePixelRatio, innerWidth, innerHeight)
-renderer.setPixelRatio(maxDpr)
-renderer.setSize(innerWidth, innerHeight)
-renderer.domElement.setAttribute('role', 'img')
-renderer.domElement.setAttribute('aria-label', 'A Goose Tale, a game played by eye: a gander with a torch crosses a night full of rats to bring his goslings to their mother. WASD or the arrow keys walk, Space interacts, Escape pauses, M mutes.')
-const pageMain = document.querySelector('main') ?? document.body
-pageMain.append(renderer.domElement)
-await renderer.init()
-cannotDraw.stop = () => renderer.setAnimationLoop(null)
-if (phone) {
-  // A phone can take the GPU from a page it has put away: the page again, and the run kept takes up where it was
-  // (keptrun.ts), not a dead screen. Lost again at once, it has nothing more to try.
-  const LOST_AT = 'a-goose-tale.lost'
-  const LOST_APART = 15000
-  renderer.onDeviceLost = () => {
-    const lastAt = Number(sessionStorage.getItem(LOST_AT) ?? 0)
-    if (Date.now() - lastAt < LOST_APART) return
-    sessionStorage.setItem(LOST_AT, String(Date.now()))
-    location.reload()
-  }
-}
-/**
- * A phone's skeletons in a texture, and never in a uniform buffer: the driver of a Xiaomi Mi 9 (Adreno 640) refused to link
- * every skinned shader over a buffer's bones, on WebGPU and WebGL 2 alike, and so drew no goose. Three takes the texture
- * for bones past this limit: past 16 here, every skeleton the game has. `?bones=buffer` to see it refused.
- */
-const PHONE_BONES_LIMIT = 16 * 64
-if (phone && url.get('bones') !== 'buffer') {
-  const { capabilities } = renderer.backend as unknown as { capabilities: { getUniformBufferLimit(): number } }
-  capabilities.getUniformBufferLimit = () => PHONE_BONES_LIMIT
-}
-if (benchOn) {
-  const drawObject = renderer.renderObject.bind(renderer)
-  renderer.renderObject = (object, scene, camera, geometry, material, group, lightsNode, clippingContext, passId) => {
-    if (allBuilt) {
-      const parents: string[] = []
-      for (let o: Object3D | null = object; o && parents.length < 3; o = o.parent) if (o.name) parents.push(o.name)
-      drawingNow = `${object.type} ${parents.join(' < ') || '(no name)'} ${material.type} ${material.name} ${passId ?? ''}`
-    }
-    drawObject(object, scene, camera, geometry, material, group, lightsNode, clippingContext, passId)
-  }
-}
-if (benchOn) renderer.domElement.addEventListener('webglcontextlost', () => benchTools?.logToServer({ kind: 'error', what: 'context lost', ms: Math.round(performance.now()) }))
-const backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'WebGPU' : 'WebGL 2'
-/**
- * A phone's frame, which never has the AO, the outlines, the bloom or the tilt's blur: the scene pass writes less (post.ts).
- * It keeps the tilt's camera and its grade, which the look stands on. `?lean=0` to measure against it, `?lean` to try it elsewhere.
- */
-const lean = url.get('lean') !== '0' && (phone || url.has('lean'))
-/**
- * The moon's shadows, `?moon=vsm`, `pcf` or `none`, `none` taking the fires' shadows of him and his goslings with them:
- * on a phone none. They were what stood between it and 60 fps: 29 to 30 ms a frame with three's variance maps, which
- * blur twice at each drawing and draw into the map all that receives shadows, the ground too, 23 to 24 ms with PCF, 17
- * to 18 ms with none (iPhone 15 Pro Max, dpr 2, 1,000 rats, 2026-11-02).
- */
-const moon = url.get('moon') ?? (lean ? 'none' : 'vsm')
-// Ready for the sun and the lamp to cast, each while its shadows toggle is on.
-// Variance shadow maps, blurred before they are read, so the sun's softness
-// smooths the rats' shadows instead of graining them: three's WebGPU build has
-// no soft PCF, and its PCF takes five samples. The lamp, a point light, cannot
-// use them and keeps three's PCF.
-renderer.shadowMap.enabled = moon !== 'none'
-renderer.shadowMap.type = moon === 'pcf' ? PCFShadowMap : VSMShadowMap
-
-const scene = new Scene()
-/** The night's colour behind the scene, the fog's. */
-const sky = new Color()
-scene.background = sky
-/** The sky behind the scene: its gradient where the look has a horizon. */
-function skyChanged() {
-  scene.backgroundNode = look.fog.horizon !== undefined ? skyBehind : null
-}
-/** How many lights light the fog, the torch among them: the nearest him. */
-const FOG_LIGHTS = 8
-// The fog is a ring round the light: how thick it is at a point is how far
-// that point is from the light on the ground, not from the camera. Every
-// material reads the one node, so the uniforms move it without a recompile.
-// The ring's edge is frayed by noise: two octaves over the point's place in
-// the world, blown along the ground and churned over time, push the point's
-// distance from the light in and out by up to the wisp, so patches of thicker
-// fog drift through the ring and over the rats. The time is the run's held
-// time, so the stop motion steps the drift on the beat with everything else.
-// Every fog uniform is in the render's group, uploaded every frame: in the object group, a mesh that never moves
-// keeps the values it was first drawn with, and the well stood out of the fog as the ring moved on without it.
-const fogColor = uniform(new Color()).setGroup(renderGroup)
-const fogNear = uniform(0).setGroup(renderGroup)
-const fogFar = uniform(1).setGroup(renderGroup)
-const fogCentre = uniform(new Vector2()).setGroup(renderGroup)
-/**
- * How dense the fog is between near and far: 1 the plain ramp; more bends it
- * up, so the fog is thick soon past near and only creeps to solid at far.
- */
-const fogDensity = uniform(1).setGroup(renderGroup)
-/** How far the noise pushes the edge, m, 0 for a plain ring. */
-const fogWisp = uniform(0).setGroup(renderGroup)
-/** How wide one wisp is, m. */
-const fogScale = uniform(1).setGroup(renderGroup)
-/** How fast the wisps blow along the ground, m/s. */
-const fogDrift = uniform(0).setGroup(renderGroup)
-const fogTime = uniform(0).setGroup(renderGroup)
-const fogWind = fogDrift.mul(fogTime)
-// Blown across x and z at the drift, and rising through the noise's third axis at a third of it, so a wisp changes shape as it goes.
-const fogPoint = vec3(positionWorld.x.add(fogWind), positionWorld.z.add(fogWind.mul(0.6)), positionWorld.y.add(fogWind.mul(0.3))).div(fogScale)
-const fogNoise = mx_noise_float(fogPoint).add(mx_noise_float(fogPoint.mul(2.1).add(vec3(7.3, 1.9, 4.1))).mul(0.5))
-const fogRamp = smoothstep(fogNear, fogFar, positionWorld.xz.distance(fogCentre).add(fogNoise.mul(fogWisp)))
-// The ramp bent by the density: `1 - (1 - ramp)^density` keeps its ends and lifts its middle.
-const fogAmount = fogRamp.oneMinus().pow(fogDensity).oneMinus()
-// The fog lit by the lights in it: round each lit light, the torch first, the fog takes on the lit colour, full at the
-// light and gone a `spread` of its reach out, the lights summed and capped at one, by the strength. So a far light reads
-// as a warm haze in the dark, where it stands and about how far it reaches, and never shows the ground under it. Only
-// the FOG_LIGHTS nearest him; the rest are the page's sparks alone.
-const fogLights = uniformArray(Array.from({ length: FOG_LIGHTS }, () => new Vector4()), 'vec4').setGroup(renderGroup)
-const fogLit = uniform(0).setGroup(renderGroup)
-const fogLitColor = uniform(new Color()).setGroup(renderGroup)
-const fogLitSpread = uniform(1).setGroup(renderGroup)
-/** How lit the fog is at `at` on the ground, x and z, before its lit strength. */
-const glowAt = (at: Node<'vec2'>) =>
-  Fn(() => {
-    const glow = float(0).toVar()
-    Loop(FOG_LIGHTS, ({ i }) => {
-      // x, z, reach, and 1 lit or 0.
-      const one = fogLights.element(i) as unknown as Node<'vec4'>
-      const near = float(1).sub(smoothstep(0, one.z.mul(fogLitSpread).max(0.01), at.distance(one.xy)))
-      glow.addAssign(near.mul(near).mul(one.w))
-    })
-    return glow.min(1)
-  })() as unknown as Node<'float'>
-const fogGlow = glowAt(positionWorld.xz).mul(fogLit)
-// The fog's colour by where the eye looks: the horizon's where the look runs level, turning to the fog's own over
-// the band as it tips down to the ground or up overhead. The sky behind the scene takes the same, so the fog's far
-// edge melts into it; on the goose's fixed camera the frame's top looks out nearly level and his feet well down.
-const skyHorizon = uniform(new Color()).setGroup(renderGroup)
-/** How far the look tips from level before the colour is the fog's own: the sine of the angle. */
-const skyBand = uniform(1).setGroup(renderGroup)
-const skyAt = (along: Node<'vec3'>) => mix(skyHorizon as unknown as Node<'vec3'>, fogColor as unknown as Node<'vec3'>, smoothstep(0, skyBand, along.y.abs()))
-/** The sky along the look at this fragment, for what the scene draws. */
-const skyHere = skyAt(positionWorld.sub(cameraPosition).normalize())
-/** The sky behind the scene: three's background sphere, its normals the look. */
-const skyBehind = skyAt(normalWorldGeometry)
-// The sky along the look through this pixel, for the passes over the frame: the scene camera's matrices, not the quad's.
-const lookInverse = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(() => camera.projectionMatrixInverse)
-const lookWorld = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(() => camera.matrixWorld)
-const skyOnScreen = skyAt(lookWorld.mul(vec4(getViewPosition(screenUV, float(0.5), lookInverse), 0)).xyz.normalize())
-scene.fogNode = fog(skyHere.add((fogLitColor as unknown as Node<'vec3'>).mul(fogGlow)) as unknown as typeof fogColor, fogAmount)
-/** Where the fog goes solid, m from the light, as the panel has it: the ring the swarm brings rats round past, fog or no fog. */
-let fogEdge = 1
-
+const { renderer, backend, lean, moon, maxDpr, timestamps, benchTools, gpuQueue, allBuilt } = await createDrawing()
 const camera = new PerspectiveCamera(CAMERA_FOV, innerWidth / innerHeight, 0.1, 100)
+const scene = new Scene()
+const skyFog = createSkyFog(scene, camera)
 /**
  * How much a phone's lens zooms in, held sideways and upright: the frame's height is what the lens keeps, and a phone
  * sideways has little of it and upright little width. `?zoom=sideways,upright` to try others.
@@ -411,48 +202,8 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight)
 })
 
-// A faint night-sky fill, a low waning moon, and the one warm light.
-const fill = new HemisphereLight()
-scene.add(fill)
-
-const sun = new DirectionalLight()
-sun.shadow.mapSize.set(SUN_SHADOW_SIZE, SUN_SHADOW_SIZE)
-Object.assign(sun.shadow.camera, {
-  left: -SUN_SHADOW_REACH,
-  right: SUN_SHADOW_REACH,
-  top: SUN_SHADOW_REACH,
-  bottom: -SUN_SHADOW_REACH,
-  near: 1,
-  far: SUN_SHADOW_DEPTH,
-})
-sun.shadow.camera.updateProjectionMatrix()
-sun.shadow.bias = -0.0005
-// The sun's shadow in a colour: three's own shadow, 0 in it and 1 out of it as far as the darkness has it, taken from
-// the colour to white, so black is three's shadow as it was and any other colour lets that much of the sun's light in.
-const sunShadowColor = uniform(new Color(0x000000)).setGroup(renderGroup)
-const sunShadow = mix(sunShadowColor, vec3(1), shadow(sun) as unknown as Node<'float'>)
-sun.shadow.shadowNode = sunShadow
-/** Whether the sun casts shadows, for what reads its shadow itself: its map holds still once it stops. */
-const sunCasts = uniform(1).setGroup(renderGroup)
-/** The sun's shadow for the unlit water (water.ts): the lit materials' own, so its map is drawn once; 1 with the sun's shadows off. */
-const sunShadowSeen = moon === 'none' ? vec3(1) : mix(vec3(1), sunShadow, sunCasts)
-scene.add(sun, sun.target)
-
-const lamp = new PointLight()
-/** The lamp's intensity as the look and the ending set it, before the torch's guttering and its catch's flare (torchFrame). */
-let lampLit = 0
-/** The torch's light this frame, times its own: its reach, as the swarm, the lamp and the fog read it; and the lamp's glow. */
-let torchFlare = 1
-let torchGlow = 1
-lamp.shadow.mapSize.set(1024, 1024)
-// The frame renders the scene twice, through two cameras, and three renders a
-// shadow once per camera per frame: asked for by hand, it renders once, and
-// only on the frames the loop asks (see `shadowed`). A frame not asked keeps
-// the last map and the matrix it was drawn with, so the shadows hold still.
-sun.shadow.autoUpdate = lamp.shadow.autoUpdate = false
-lamp.shadow.camera.near = 0.05
-lamp.shadow.camera.far = 30
-scene.add(lamp)
+const nightLights = createNightLights(scene, moon)
+const { fill, sun, lamp } = nightLights
 
 // The goose game's pond bed: the floor gives way to sand down its bank (ground.ts), as the pond folder's bed edits it.
 const bedLook = defaultBedLook()
@@ -505,24 +256,13 @@ const torchRest = new Vector3()
 const flameAt = new Vector3()
 const flameTip = new Vector3()
 const flameOffset = new Vector3()
-/**
- * The flame's draws, by channel: on the beat, the beat's own, past the
- * channels the look's variations take; smooth, two waves on the clock at a
- * pace of the channel's own, so it wavers rather than jumps.
- */
-const FLAME_CHANNELS = 100
-const flameDraw = (channel: number) => {
-  if (beat >= 0) return beatDraw(beat, FLAME_CHANNELS + channel)
-  const rate = 4 + ((channel * 1.37) % 5)
-  return Math.sin(clock * rate + channel * 1.7) * 0.6 + Math.sin(clock * rate * 2.3 + channel) * 0.4
-}
 scene.add(ground.mesh)
 // The frame goes through one scene pass and the effects after it: the ambient occlusion under its fog, the outlines, the palette.
 // With `?tilt` (the goose game's default), the tilt-shift: the depth of field's blur by a band across the screen (tiltshift.ts).
 const tilt = featureOn('tilt') ? createTiltShift() : undefined
 // With the tilt, the depth of field off as the page opens: the tilt's band is the blur (the dof folder still turns it on).
 if (tilt) look.dof.enabled = false
-const post = createPost(renderer, scene, camera, { color: skyOnScreen, amount: fogAmount }, tilt, lean)
+const post = createPost(renderer, scene, camera, { color: skyFog.onScreen, amount: skyFog.amount }, tilt, lean)
 
 // ---------------------------------------------------------------- swarm
 const tuning = defaultTuning()
@@ -1121,7 +861,7 @@ if (skipHint) {
 }
 /** Whether flame `k` of the burning tree is due to be drawn again: at TREE_FLAME_RATE, each flame's beat its own way round the second. Its first drawing at once. */
 function treeFlameDue(own: { drawnAt: number }, k: number): boolean {
-  const beat = Math.floor(clock * TREE_FLAME_RATE + ((k * 0.618034) % 1))
+  const beat = Math.floor(beats.clock * TREE_FLAME_RATE + ((k * 0.618034) % 1))
   if (beat === own.drawnAt) return false
   own.drawnAt = beat
   return true
@@ -1324,7 +1064,7 @@ const waterLook = defaultWaterLook()
 // `?water=1` to `?water=5`: one of the lake looks to try (water.ts) over the default.
 const waterAsked = WATER_LOOKS[Number(url.get('water')) - 1]
 if (waterAsked) Object.assign(waterLook, waterAsked.look)
-const water = await createWater(waterLook, sunShadowSeen)
+const water = await createWater(waterLook, nightLights.sunShadowSeen)
 const pond = createPond(ground.mesh, gooseFloorBox, pondLook, water.material, (field) => ground.setShore(field), gooseGround)
 scene.add(pond.object)
 // The goose's nest on the island's crown, pine needle cards round a hollow (nest.ts), laid again with the pond.
@@ -1559,17 +1299,7 @@ function dawnFrame(share: number) {
     deadTreesMesh.setGrass(deadTreeGrass, look.floor)
     islandTree.setGrass(look.floor)
   }
-  sun.color.set(look.sun.color)
-  sun.intensity = look.sun.intensity
-  sun.castShadow = moon !== 'none'
-  sun.shadow.radius = (look.sun.softness * SUN_SHADOW_SIZE) / SOFTNESS_TEXELS
-  sun.shadow.intensity = look.sun.darkness
-  sunShadowColor.value.set(look.sun.shadowColor)
-  fill.color.set(look.fill.sky)
-  fill.groundColor.set(look.fill.ground)
-  fill.intensity = look.fill.intensity
-  lampLit = light.on ? look.lamp.intensity : 0
-  lamp.intensity = lampLit * torchGlow
+  nightLights.dawned(look, light.on)
 }
 /**
  * The night fading out at the ending's end, and the game's title over it, in the hints' hand; under it, in the slot the
@@ -1809,26 +1539,6 @@ for (const part of look.rats.parts) if (part.name === 'eyes') part.color = goose
 // ---------------------------------------------------------------- panel
 
 /**
- * mulberry32 on the beat and a channel: the same draw for the same beat, so a
- * beat is the same photograph every time it comes round; -1 to 1.
- */
-function beatDraw(beat: number, channel: number): number {
-  let a = (beat * 1013 + channel * 7919 + 0x9e3779b9) >>> 0
-  a = (a + 0x6d2b79f5) >>> 0
-  let t = a
-  t = Math.imul(t ^ (t >>> 15), t | 1)
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-  return (((t ^ (t >>> 14)) >>> 0) / 4294967296) * 2 - 1
-}
-
-/** The stop motion's current beat, -1 with it off; when it began; and when the next begins. */
-let beat = -1
-let beatAt = 0
-let nextBeatAt = 0
-/** How long a beat lasts, s: a frame at the rate, or half as long again for a `longer` one when the beats are uneven. */
-const beatLength = (longer: boolean) => (longer ? 1.5 : 1) / look.stopMotion.fps
-
-/**
  * What the shadows were last drawn from: the swarm's places and its state,
  * the run's time, where the sun and the lamp stood; and whether the look
  * changed since. They are drawn again only when one of those moved, and only
@@ -1839,54 +1549,16 @@ const shadowed = { version: -1, steps: -1, held: Number.NaN, sun: new Vector3(Nu
 /** How often the shadows are drawn again while the intro holds the swarm, ms: as often as the swarm steps once it goes. */
 const HELD_SHADOW_MS = 1000 / 60
 
-/** A between-beats variation, by `channel`: this beat's draw, or 0 with the stop motion off. */
-const vary = (channel: number) => (beat < 0 ? 0 : beatDraw(beat, channel))
-
 /** Everything the look folders set, with this beat's variation where the stop motion asks for it; the lamp's reach also follows the light's strength. */
 function lookChanged() {
   shadowed.dirty = true
   const stop = look.stopMotion
-  const flicker = (channel: number) => (stop.lightFlicker ? 1 + stop.lightAmount * vary(channel) : 1)
-  const shade = (channel: number) => (stop.shadeWobble ? stop.shadeAmount * vary(channel) : 0)
-  rats.setBoil(stop.enabled && stop.boil ? stop.boilAmount : 0, stop.boilScale, beat)
-  const nudge = (channel: number) => (stop.strokeJitter ? stop.strokeAmount * vary(channel) : 0)
+  const shade = (channel: number) => (stop.shadeWobble ? stop.shadeAmount * beats.vary(channel) : 0)
+  rats.setBoil(stop.enabled && stop.boil ? stop.boilAmount : 0, stop.boilScale, beats.beat)
+  const nudge = (channel: number) => (stop.strokeJitter ? stop.strokeAmount * beats.vary(channel) : 0)
 
-  lamp.color.set(look.lamp.color)
-  // The lamp's flicker drifts its hue a little too, warm to cool, as a flame's photographs do.
-  if (stop.lightFlicker) lamp.color.offsetHSL(0.02 * stop.lightAmount * vary(4), 0, 0)
-  // The intensity holds whatever the strength: the torch burning down pulls its reach in, not its glow.
-  lampLit = (light.on ? look.lamp.intensity : 0) * flicker(1)
-  lamp.intensity = lampLit * torchGlow
-  lamp.decay = look.lamp.falloff
-
-  sun.color.set(look.sun.color)
-  sun.intensity = look.sun.intensity * flicker(2)
-  sun.castShadow = look.sun.shadows && moon !== 'none'
-  sunCasts.value = sun.castShadow ? 1 : 0
-  sun.shadow.radius = (look.sun.softness * SUN_SHADOW_SIZE) / SOFTNESS_TEXELS
-  // A uniform the shadow reads: the slider recompiles nothing.
-  sun.shadow.intensity = look.sun.darkness
-  sunShadowColor.value.set(look.sun.shadowColor)
-
-  fill.color.set(look.fill.sky)
-  fill.groundColor.set(look.fill.ground)
-  fill.intensity = look.fill.intensity * flicker(3)
-
-  fogColor.value.set(look.fog.color)
-  skyHorizon.value.set(look.fog.horizon ?? look.fog.color)
-  skyBand.value = Math.sin((Math.max(look.fog.band ?? 15, 1) * Math.PI) / 180)
-  sky.set(look.fog.color)
-  skyChanged()
-  fogEdge = Math.max(look.fog.far, look.fog.near + 0.5)
-  fogNear.value = look.fog.near
-  fogFar.value = fogEdge
-  fogDensity.value = Math.max(look.fog.density, 1)
-  fogWisp.value = look.fog.wisp
-  fogScale.value = Math.max(look.fog.scale, 0.1)
-  fogDrift.value = look.fog.drift
-  fogLit.value = look.fog.lit ?? 0
-  fogLitColor.value.set(look.fog.litColor ?? 0)
-  fogLitSpread.value = look.fog.litSpread ?? 1
+  nightLights.set(look, light.on, beats.vary)
+  skyFog.set(look.fog)
 
   rats.material.color.set(look.rats.color)
   rats.material.set(look.rats)
@@ -1944,8 +1616,8 @@ function lookChanged() {
   smoke.object.visible &&= settings.character
   ground.material.setBeat(shade(8), nudge(9), nudge(10))
   // The frame's jitter: the camera nudged a pixel or two, as a camera between photographs.
-  if (stop.frameJitter && beat >= 0) {
-    camera.setViewOffset(innerWidth, innerHeight, stop.frameAmount * vary(11), stop.frameAmount * vary(12), innerWidth, innerHeight)
+  if (stop.frameJitter && beats.beat >= 0) {
+    camera.setViewOffset(innerWidth, innerHeight, stop.frameAmount * beats.vary(11), stop.frameAmount * beats.vary(12), innerWidth, innerHeight)
   } else if (camera.view !== null) {
     camera.clearViewOffset()
   }
@@ -1957,11 +1629,6 @@ function lookChanged() {
   const blurGlow = look.bloom.enabled && look.bloom.cheap ? look.bloom.blurGlow : 0
   const dof = { ...look.dof, enabled: depthOn || (!lean && !!tilt?.look.enabled), glow: depthOn ? look.dof.glow : blurGlow }
   post.set({ ao, outline: look.outline, hatch: look.hatch, palette: look.palette, grain: look.grain, vignette: look.vignette, screen: look.screen, dof, bloom: look.bloom })
-  // No fog, for now: its ring pushed out of reach, as the bare simulation's is.
-  if (!look.fog.enabled) {
-    fogNear.value = 1e6
-    fogFar.value = 1e6 + 1
-  }
 }
 
 /**
@@ -2448,8 +2115,6 @@ function heading(walk: Walk | null): { x: number; z: number } | null {
 
 // ---------------------------------------------------------------- loop
 const timer = new Timer()
-/** Game time, s: what the run plays by, before the stop motion holds it. */
-let clock = 0
 /** Where the camera's follow of the light has got to: it eases after the light, CAMERA_FOLLOW behind. */
 const followed = new Vector3(light.x, 0, light.z)
 const moved = new Vector3()
@@ -2506,7 +2171,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   stood = Number.isNaN(stood) ? under : stood + (under - stood) * (1 - Math.exp(-dt / STAND_EASE))
   goose.object.position.set(shown.x, stood, shown.z)
   // The flame drawn again on the beat, or every frame smooth, where it wavers on the clock.
-  if (!stop.enabled || newBeat) flame.shape(flameDraw, lightPace.x, lightPace.z)
+  if (!stop.enabled || newBeat) flame.shape(beats.flameDraw, lightPace.x, lightPace.z)
   flame.place(goose.tip(torchEnd, flame.offset(flameOffset)))
   goose.restTip(torchRest, flameOffset)
   flame.centre(flameAt)
@@ -2520,7 +2185,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
     // Raised and sized with its brazier as the edit mode draws it.
     const { y, size } = shownOf(goosePlay.plain.braziers[owner.brazier], 'fire')
     fire.set({ ...look.flame, height: own.height * size, width: own.width * size, glow: fireLook.glow, lean: 0 })
-    if (!stop.enabled || newBeat) fire.shape((channel) => flameDraw(channel + 7 * (i + 1)), 0, 0)
+    if (!stop.enabled || newBeat) fire.shape((channel) => beats.flameDraw(channel + 7 * (i + 1)), 0, 0)
     fire.place(sceneFireFoot.set(at.x + own.x, standAt(at.x + own.x, at.z + own.z) + own.foot * size + y, at.z + own.z))
   })
   pitFires.forEach(({ brazier, light, fire }, p) => {
@@ -2531,7 +2196,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
     const { height, width, foot } = pitFireLook
     const { y, size } = shownOf(goosePlay.plain.braziers[brazier], 'fire')
     fire.set({ ...look.flame, height: height * size, width: width * size, glow: fireLook.glow, lean: 0 })
-    if (!stop.enabled || newBeat) fire.shape((channel) => flameDraw(channel + 7 * (sceneFires.length + 1 + p)), 0, 0)
+    if (!stop.enabled || newBeat) fire.shape((channel) => beats.flameDraw(channel + 7 * (sceneFires.length + 1 + p)), 0, 0)
     fire.place(sceneFireFoot.set(at.x, standAt(at.x, at.z) + foot * size + y, at.z))
   })
   // The island's bonfire, always lit while it shows, its lamp with it.
@@ -2545,7 +2210,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
     const own = fireLooks.cage
     const { size, flame: flameSize } = islandFireLook
     islandFireFlame.set({ ...look.flame, height: own.height * flameSize, width: own.width * flameSize, glow: fireLook.glow, lean: 0 })
-    if (!stop.enabled || newBeat) islandFireFlame.shape((channel) => flameDraw(channel + 7 * (sceneFires.length + pitFires.length + 2)), 0, 0)
+    if (!stop.enabled || newBeat) islandFireFlame.shape((channel) => beats.flameDraw(channel + 7 * (sceneFires.length + pitFires.length + 2)), 0, 0)
     islandFireFlame.place(sceneFireFoot.set(islandFireAt.x, islandFireAt.y + own.foot * size, islandFireAt.z))
   }
   burningTreeFrame(newBeat)
@@ -2554,7 +2219,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   // and never swings with his head. Else it hangs over the goose, easing after it.
   if (look.lamp.inFlame) lamp.position.copy(torchRest)
   else lamp.position.set(lampAt.x, LIGHT_HEIGHT + stood, lampAt.z)
-  fogCentre.value.set(shown.x, shown.z)
+  skyFog.centre.value.set(shown.x, shown.z)
   // The sun stays over the light, so its shadows always cover the view.
   sun.target.position.set(shown.x, 0, shown.z)
   sun.position.copy(sun.target.position).add(look.sun)
@@ -2574,7 +2239,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   if (camera.position.y < above) camera.position.y = above
   // The dead trees' and bushes' stretches past the fog's solid edge, its wisps and all, left undrawn: they would draw as
   // the fog. Those out of the camera's view too, now it has moved, unless their shadow is in it.
-  const plantsReach = look.fog.enabled ? fogEdge + 1.5 * look.fog.wisp + 0.5 : Infinity
+  const plantsReach = look.fog.enabled ? skyFog.edge + 1.5 * look.fog.wisp + 0.5 : Infinity
   camera.updateMatrixWorld()
   plantsView.setFromProjectionMatrix(plantsMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse), camera.coordinateSystem)
   const plantsSun = sun.castShadow ? plantsSunward.subVectors(sun.position, sun.target.position).normalize() : undefined
@@ -2829,8 +2494,8 @@ function captureGooseCamera(): string {
 
 /** How far off the dark starts, m, before the walk's margin: the fog's far edge, or with `roundPast` that distance, the fog nearer where it is on. */
 function darkRadius(): number {
-  if (settings.roundPast === undefined) return fogEdge
-  return look.fog.enabled ? Math.min(fogEdge, settings.roundPast) : settings.roundPast
+  if (settings.roundPast === undefined) return skyFog.edge
+  return look.fog.enabled ? Math.min(skyFog.edge, settings.roundPast) : settings.roundPast
 }
 
 /**
@@ -2851,8 +2516,8 @@ function darkRadius(): number {
  */
 function darkMargin(): number {
   const stop = look.stopMotion
-  const lightHeld = stop.enabled && stop.light ? beatLength(stop.uneven) : 0
-  const swarmHeld = stop.enabled && stop.swarm ? beatLength(stop.uneven) : 0
+  const lightHeld = stop.enabled && stop.light ? beats.length(stop.uneven) : 0
+  const swarmHeld = stop.enabled && stop.swarm ? beats.length(stop.uneven) : 0
   const unseen = 2 * swarm.pace + FRAME_CAP + lightHeld + swarmHeld
   const running = swarmHeld > 0 ? swarmHeld + FRAME_CAP : 0
   return DARK_MARGIN + settings.lightSpeed * unseen + tuning.maxSpeed * running
@@ -2873,14 +2538,12 @@ function groundView(margin: number): ViewPlane[] {
   return viewPlanes
 }
 
-/** The colour the night goes in a strike's flash, and how many times brighter the rats' eyes glow at its height. */
-const FLASH_COLOR = new Color(0xdfe4ff)
+/** How many times brighter the rats' eyes glow at the height of a strike's flash. */
 const EYES_FLASH = 4
 
 /** A strike's flash, 0 to 1, laid on the night: the fog and sky gone pale, the fill and the sun up, the rats' eyes flaring. */
 function flashFrame(flash: number) {
-  fogColor.value.set(look.fog.color).lerp(FLASH_COLOR, flash * 0.7)
-  sky.copy(fogColor.value)
+  skyFog.flash(look.fog.color, flash)
   fill.intensity = look.fill.intensity * (1 + 6 * flash)
   sun.intensity = look.sun.intensity * (1 + 3 * flash)
   rats.setGlow('eyes', look.rats.glow * (1 + EYES_FLASH * flash))
@@ -3025,8 +2688,8 @@ function torchFrame(dt: number, held: number) {
   // His first catch, the branch picked up or his torch first lit, flares further and longer: the ring of rats opens round him.
   const flareLasts = torchFirst ? FIRST_FLARE_LASTS : torch.flareLasts
   const flare = caught ? torchHard * Math.min(1, since / FLARE_IN) * (1 - through(flareLasts)) ** 2 : 0
-  torchFlare = 1 + (torchFirst ? FIRST_FLARE_REACH : torch.reach) * flare
-  torchGlow = (1 + torch.flare * flare) * (1 - torch.dips * dip)
+  nightLights.torchFlare = 1 + (torchFirst ? FIRST_FLARE_REACH : torch.reach) * flare
+  nightLights.torchGlow = (1 + torch.flare * flare) * (1 - torch.dips * dip)
   const popped = through(torch.popLasts)
   const pop = torch.pop * torchHard * (1 - popped) ** 2 * Math.cos(2.5 * Math.PI * popped)
   // Its flame its full size, as see-through as its light is short of a full torch's: fading in a straight line as the light fades out.
@@ -3315,7 +2978,7 @@ function burningTreeFrame(newBeat: boolean) {
     own.fire.object.visible = look.flame.enabled && size > 0 && seen
     if (!own.fire.object.visible) return
     own.fire.set({ ...look.flame, height: height * size, width: width * size, glow: fireLook.glow, lean: 0 })
-    if (treeFlameDue(own, k)) own.fire.shape((channel) => flameDraw(channel + 7 * (40 + k)), 0, 0)
+    if (treeFlameDue(own, k)) own.fire.shape((channel) => beats.flameDraw(channel + 7 * (40 + k)), 0, 0)
     own.fire.place(sceneFireFoot.copy(crownAt[k]!).setY(crownAt[k]!.y + foot * size))
   })
   ;(treeSeen ? gooseScenes.burningTrunk(burningTree, trunkAt) : []).forEach(({ radius }, k, all) => {
@@ -3331,7 +2994,7 @@ function burningTreeFrame(newBeat: boolean) {
     const oz = (camera.position.z - at.z) / away
     sceneFireFoot.set(at.x + (ox + oz * side) * radius * 0.85, at.y + trunkFireLook.foot * size, at.z + (oz - ox * side) * radius * 0.85)
     own.fire.set({ ...look.flame, height: trunkFireLook.height * size, width: trunkFireLook.width * size, glow: fireLook.glow, lean: 0 })
-    if (treeFlameDue(own, 40 + k)) own.fire.shape((channel) => flameDraw(channel + 7 * (80 + k)), 0, 0)
+    if (treeFlameDue(own, 40 + k)) own.fire.shape((channel) => beats.flameDraw(channel + 7 * (80 + k)), 0, 0)
     own.fire.place(sceneFireFoot)
   })
   if (footFire) {
@@ -3344,7 +3007,7 @@ function burningTreeFrame(newBeat: boolean) {
     footFire.object.visible = look.flame.enabled && grown > 0 && treeSeen
     if (footFire.object.visible) {
       footFire.set({ ...look.flame, height: footFireLook.height * grown, width: footFireLook.width * grown, glow: fireLook.glow, lean: 0 })
-      if (!stop.enabled || newBeat) footFire.shape((channel) => flameDraw(channel + 7 * 39), 0, 0)
+      if (!stop.enabled || newBeat) footFire.shape((channel) => beats.flameDraw(channel + 7 * 39), 0, 0)
       footFire.place(footFireAt.set(x, standAt(x, z) + footFireLook.foot, z))
     }
   }
@@ -3400,7 +3063,7 @@ function branchFrame(newBeat: boolean, held: number) {
   branchEmbers.object.visible = look.flame.embers.enabled && fall.shown
   if (branchFire.object.visible) {
     branchFire.set({ ...look.flame, height: branchFireLook.height, width: branchFireLook.width, glow: fireLook.glow, lean: 0 })
-    if (!stop.enabled || newBeat) branchFire.shape((channel) => flameDraw(channel + 7 * 37), 0, 0)
+    if (!stop.enabled || newBeat) branchFire.shape((channel) => beats.flameDraw(channel + 7 * 37), 0, 0)
     branchFire.place(sceneFireFoot.copy(branchFlameAt).setY(branchFlameAt.y + branchFireLook.foot))
   }
   if (branchEmbers.object.visible) branchEmbers.update(held, branchFlameAt)
@@ -3928,7 +3591,7 @@ function lifeFrame() {
   const falling = !Number.isNaN(fallen)
   const dark = progress >= 0 ? progress : falling && !scripted ? Math.min(1, Math.max(0, fallen - after) / Math.max(finish, 1e-3)) : 0
   darkOn.set(goose.object.position.x, goose.object.position.y + 0.4, goose.object.position.z).project(camera)
-  post.dark(dark, (darkOn.x + 1) / 2, (1 - darkOn.y) / 2, falling ? fallen : clock, darkLook)
+  post.dark(dark, (darkOn.x + 1) / 2, (1 - darkOn.y) / 2, falling ? fallen : beats.clock, darkLook)
 }
 
 /** The lights as drawn, the fire he wakes by flaring while he wakes: the lit flame nearest where he wakes. */
@@ -4261,13 +3924,6 @@ const STEP_FRAME = 1
 let loadSlices: PipelineSlices | undefined
 /** How many frames the loading has drawn. */
 let loadFrame = 0
-/**
- * The GPU's queue, on WebGPU: Chrome takes a pipeline at once and builds it
- * on the GPU's side after, so a frame drawn is not a pipeline built. Without
- * waiting for it the loading screen went at 6 s and the game stood 6 s more
- * (2026-10-27).
- */
-const gpuQueue = (renderer.backend as unknown as { device?: { queue: { onSubmittedWorkDone(): Promise<void> } } }).device?.queue
 /** Whether the loading's last frame is still being built on the GPU: no more is drawn until it is. */
 let loadWaiting = false
 
@@ -4416,7 +4072,7 @@ function loadFirstFrame(placed: readonly FixedLight[]) {
   void built
     .catch((error: unknown) => console.warn('the scene was not built', error))
     .then(() => {
-      allBuilt = true
+      allBuilt()
       loadWaiting = false
       if (benchOn) benchTools?.logToServer({ kind: 'built', ms: Math.round(performance.now()) })
       whenBuilt(loadDone)
@@ -4457,23 +4113,6 @@ function enterWhenAsked(go: () => void) {
   enterAsked = once
   slot.append(enter)
   enter.focus()
-}
-
-/** The lights by the fog's lights' order: the torch, then the lit lights nearest him. */
-const fogNearest: FixedLight[] = []
-/** Light the fog round the torch and the lit lights nearest him, FOG_LIGHTS in all, the rest left dark. Water is no light. */
-function lightTheFog(placed: readonly FixedLight[]) {
-  const torch = run.torch
-  fogNearest.length = 0
-  for (const one of placed) if (one.on && one.reach > 0 && !one.shore) fogNearest.push(one)
-  const off = (one: FixedLight) => Math.hypot(one.x - torch.x, one.z - torch.z)
-  fogNearest.sort((a, b) => off(a) - off(b))
-  const slots = fogLights.array as Vector4[]
-  slots[0]!.set(torch.x, torch.z, torch.reach * torchFlare, torch.lit && settings.on ? 1 : 0)
-  for (let k = 1; k < FOG_LIGHTS; k++) {
-    const one = fogNearest[k - 1]
-    slots[k]!.set(one?.x ?? 0, one?.z ?? 0, one?.reach ?? 0, one ? 1 : 0)
-  }
 }
 
 /** Whether a shot is in over the orbit: the opening's or the ending's. */
@@ -4847,7 +4486,7 @@ renderer.setAnimationLoop(() => {
   const loading = !loaded
   if (!loading) keptRunFrame(frame)
   const dt = settings.paused || loading ? 0 : Math.min(frame, FRAME_CAP)
-  clock += dt
+  beats.clock += dt
   if (introRunning()) introT = Math.min(INTRO.end, introT + dt)
   if (outroRunning()) outroT = Math.min(OUTRO.end, outroT + dt)
   controlsFrame(loading)
@@ -4865,42 +4504,19 @@ renderer.setAnimationLoop(() => {
   enterPad?.update(besideOf(commands))
   againPad?.update(besideOf(commands))
   if (!loading) skipHoldFrame(frame)
-  // Stop motion: time posterized to its beats. The run plays the clock as of
-  // the last beat, and the rats' places are read only when a beat begins and
-  // held until the next; the light, the fog and the camera move every frame.
-  // A beat lasts a frame at the rate, or half as long again when uneven; and
-  // on each new beat, with any variation asked for, the look is set again
-  // with that beat's draw, so each beat is a photograph of its own.
+  const newBeat = beats.frame(lookChanged)
   const stop = look.stopMotion
-  let newBeat = false
-  if (!stop.enabled) {
-    if (beat !== -1) {
-      beat = -1
-      lookChanged()
-    }
-    beatAt = nextBeatAt = clock
-  } else {
-    while (clock >= nextBeatAt) {
-      beat++
-      beatAt = nextBeatAt
-      const longer = stop.uneven && beatDraw(beat, 13) < stop.unevenShare * 2 - 1
-      nextBeatAt = beatAt + beatLength(longer)
-      newBeat = true
-    }
-  }
-  // The first beat after the stop motion comes on sets the look again too, for what belongs to it.
-  if (newBeat && (beat === 0 || stop.shadeWobble || stop.lightFlicker || stop.strokeJitter || stop.frameJitter || stop.boil)) lookChanged()
   // The run's time: held on the beat, and on a baked frame of the clip when snapping, so a held pose is a pose and not a blend.
-  let held = stop.enabled && stop.run ? beatAt : clock
+  let held = stop.enabled && stop.run ? beats.beatAt : beats.clock
   if (stop.enabled && stop.snap) held = Math.floor(held / rats.poseStep) * rats.poseStep
   time.value = held
-  fogTime.value = held
+  skyFog.time.value = held
   water.update(held)
   // In the pond he swims, afloat, his water clips taking over from his land ones.
   goose.setSwimming(swimmingIn(pondLook, shown.x, shown.z, pondLook.goose))
   // The goose, standing, turned the way the play has him face: to the chase camera's look.
   goose.pose(held, lightPace.x, lightPace.z, Math.atan2(goosePlay.facing.x, goosePlay.facing.z))
-  post.seed(stop.enabled && look.grain.grainOnBeat ? beat : Math.floor(clock * look.grain.grainSpeed), stop.enabled && stop.paperOnBeat ? beat : 0)
+  post.seed(stop.enabled && look.grain.grainOnBeat ? beats.beat : Math.floor(beats.clock * look.grain.grainSpeed), stop.enabled && stop.paperOnBeat ? beats.beat : 0)
 
   // Q and E, the debug keys, turn the torch's reach up and down: it moves at the dial's rate while one is held, and the panel shows it.
   let dial = 0
@@ -4949,8 +4565,8 @@ renderer.setAnimationLoop(() => {
   // Its reach on the ground: the lamp stands up in the flame, so a reach from it alone would leave the ground under him
   // dark while the torch still burns; this way the pool shrinks to nothing as the torch goes out, and not before.
   const lampUp = Math.max(0, lamp.position.y - standAt(lamp.position.x, lamp.position.z))
-  lamp.distance = Math.hypot(look.lamp.reach * light.strength * torchFlare, lampUp)
-  lamp.intensity = lampLit * torchGlow
+  lamp.distance = Math.hypot(look.lamp.reach * light.strength * nightLights.torchFlare, lampUp)
+  lamp.intensity = nightLights.lampLit * nightLights.torchGlow
   const placed = run.lights()
   // What the swarm holds the rats off: the lights, and in the goose game the pond's water after them, drawn by nothing.
   // The burning branch's light flaring as it lands, before the dawn's comes first of them.
@@ -4958,7 +4574,7 @@ renderer.setAnimationLoop(() => {
   swarmTime.value = swarm.time
   const drawn = wakeFlare(branchFlared(introRunning() && pitLight >= 0 ? placed.map((p, k) => (k === pitLight ? { ...p, reach: p.reach * litShare(introT) } : p)) : placed))
   lights.update(drawn)
-  lightTheFog(drawn)
+  skyFog.lightUp(drawn, run.torch, run.torch.lit && settings.on, nightLights.torchFlare)
   refillZonesFrame(drawn)
   // The lamp, the fog, the sun and the camera after the light, before the swarm is told what the fog hides: this frame's fog, not the last one's.
   follow(dt, newBeat, frame)
@@ -4980,7 +4596,7 @@ renderer.setAnimationLoop(() => {
   swarmLight.x = light.x
   swarmLight.z = light.z
   // Flaring as the torch catches: the rats at its edge thrown back with it.
-  swarmLight.strength = light.strength * torchFlare
+  swarmLight.strength = light.strength * nightLights.torchFlare
   swarmLight.on = light.on
   // The ground each light sees: the torch's where it now is, the others' where they stand; the swarm reads the same, and the drawing at the swarm's time.
   areas.update(swarmLight, keptOff)
@@ -5018,7 +4634,7 @@ renderer.setAnimationLoop(() => {
   swarm.send(wanted, swarmLight, tuning, settings.paused || loadHeld || ratsHeld, dark, keptOff, goosePlay.targets)
   // The places: every frame when smooth; on the beat when held; and the first time a state is there, whatever the beat.
   if (!(stop.enabled && stop.swarm) || !swarm.ready) swarm.sample(performance.now())
-  else if (stop.stagger) swarm.sampleStaggered(performance.now(), clock, stop.fps)
+  else if (stop.stagger) swarm.sampleStaggered(performance.now(), beats.clock, stop.fps)
   else if (newBeat) swarm.hold(performance.now())
   // The smoke on the run's held time too, trailing from the flame's tip.
   smoke.update(held, flame.tip(flameTip), camera.position)
