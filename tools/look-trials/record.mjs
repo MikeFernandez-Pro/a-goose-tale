@@ -1,4 +1,4 @@
-// Films each mood in src/goosethemes.ts on the goose page: at the spawn, the
+// Films each mood in src/look/goosethemes.ts on the goose page: at the spawn, the
 // torch lit (F), a still, then a few metres forward (W), recorded off the
 // canvas in the page (MediaRecorder) and turned into an MP4 and a small GIF.
 //
@@ -9,7 +9,7 @@ import { mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openGame } from '../page.mjs'
-import { GOOSE_THEMES as THEMES } from '../../src/goosethemes.ts'
+import { GOOSE_THEMES as THEMES } from '../../src/look/goosethemes.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)

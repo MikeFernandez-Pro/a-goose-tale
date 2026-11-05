@@ -10,7 +10,7 @@
 // line between their neighbours already gives; then packs the file with
 // meshopt (EXT_meshopt_compression): normals, colours and weights as
 // normalised integers, positions and uvs left as floats, so no node, skin or
-// hierarchy changes. The game's loader (src/gltf.ts) carries the decoder.
+// hierarchy changes. The game's loader (src/look/gltf.ts) carries the decoder.
 // A clip the code starts playing must go in KEEP_CLIPS before the next run.
 import { NodeIO, PropertyType } from '@gltf-transform/core'
 import { ALL_EXTENSIONS, EXTMeshoptCompression } from '@gltf-transform/extensions'

@@ -1,6 +1,6 @@
 # The goose game's sounds, cut from the ElevenLabs takes in src/ (folded to mono in mono/) into
 # ../public/sounds/goose, each file named by its take's number as ElevenLabs gave it (call_3 is call take #3), and the
-# takes each sound has written to ../src/goosetakes.json for the game. A take banned in ../src/goosebans.json (the
+# takes each sound has written to ../src/sound/goosetakes.json for the game. A take banned in ../src/sound/goosebans.json (the
 # page's takes panel saves it) is left out. Run from _sfx/, where the takes are kept out of git: python ../tools/sfx/build.py
 import glob
 import json
@@ -12,8 +12,8 @@ from lib import SR, load, save, db, cut, active_region, active_rms, loop, gate, 
 MONO = 'mono'
 MASTER = 'master'
 GAME = os.path.join('..', 'public', 'sounds', 'goose')
-TAKES = os.path.join('..', 'src', 'goosetakes.json')
-BANS = os.path.join('..', 'src', 'goosebans.json')
+TAKES = os.path.join('..', 'src', 'sound', 'goosetakes.json')
+BANS = os.path.join('..', 'src', 'sound', 'goosebans.json')
 os.makedirs(MASTER, exist_ok=True)
 os.makedirs(GAME, exist_ok=True)
 

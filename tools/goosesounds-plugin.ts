@@ -1,10 +1,10 @@
-// The goose game's sound mix, saved from its sound panel (src/soundpanel.ts): the dev server takes the mix the page
-// posts to /goose-sounds and writes it over src/goosesounds.json, which the game's sounds start from
-// (src/goosesounds.ts), so a saved mix is the one heard on the next load; saving reloads nothing, the page already
+// The goose game's sound mix, saved from its sound panel (src/dev/soundpanel.ts): the dev server takes the mix the page
+// posts to /goose-sounds and writes it over src/sound/goosesounds.json, which the game's sounds start from
+// (src/sound/goosesounds.ts), so a saved mix is the one heard on the next load; saving reloads nothing, the page already
 // playing the mix it saved. Nothing ships: a build has no such address, and the panel downloads the file instead.
 // For the takes panel, it also serves the ElevenLabs takes as they came (_sfx/src, at /goose-raw/), and takes the takes
-// banned it posts to /goose-bans: written over src/goosebans.json, and the sounds made again from what is left by
-// _sfx/build.py, whose new src/goosetakes.json reloads the page.
+// banned it posts to /goose-bans: written over src/sound/goosebans.json, and the sounds made again from what is left by
+// _sfx/build.py, whose new src/sound/goosetakes.json reloads the page.
 import { execFile } from 'node:child_process'
 import { createReadStream, existsSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage } from 'node:http'
@@ -13,8 +13,8 @@ import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
 const HERE = fileURLToPath(new URL('.', import.meta.url))
-const FILE = resolve(HERE, '../src/goosesounds.json')
-const BANS = resolve(HERE, '../src/goosebans.json')
+const FILE = resolve(HERE, '../src/sound/goosesounds.json')
+const BANS = resolve(HERE, '../src/sound/goosebans.json')
 const SFX = resolve(HERE, '../_sfx')
 
 /** Whether `mix` has the mix's shape: a volume, and for each sound by name its volume, speed and pitch, muted or not, and the takes it leaves out. */

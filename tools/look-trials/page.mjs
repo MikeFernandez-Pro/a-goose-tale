@@ -7,7 +7,7 @@
 import { existsSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { GOOSE_THEMES } from '../../src/goosethemes.ts'
+import { GOOSE_THEMES } from '../../src/look/goosethemes.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])

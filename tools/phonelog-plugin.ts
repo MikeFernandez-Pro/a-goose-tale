@@ -1,5 +1,5 @@
 // What a phone measures, kept on this machine: the dev server takes each row
-// the page's `?bench` posts to /phone-log (src/phonebench.ts) and adds it to a
+// the page's `?bench` posts to /phone-log (src/dev/phonebench.ts) and adds it to a
 // file of the day's in _phone/, one line of JSON a row, as it comes, so a phone
 // that kills the tab loses only the row it was on. Nothing ships: a build has
 // no such address.
