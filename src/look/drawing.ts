@@ -67,12 +67,17 @@ export async function createDrawing() {
     // (keptrun.ts), not a dead screen. Lost again at once, it has nothing more to try.
     const LOST_AT = 'a-goose-tale.lost'
     const LOST_APART = 15000
-    renderer.onDeviceLost = () => {
+    const pageAgain = () => {
       const lastAt = Number(sessionStorage.getItem(LOST_AT) ?? 0)
       if (Date.now() - lastAt < LOST_APART) return
       sessionStorage.setItem(LOST_AT, String(Date.now()))
       location.reload()
     }
+    renderer.onDeviceLost = pageAgain
+    // Three tells of every loss but one, `destroyed`, which it takes for the page's own doing. This page never destroys
+    // its device, and an iPhone reports that very reason of a device it took away (2026-11-02); untold, the picture stands still.
+    const { device } = renderer.backend as unknown as { device?: { lost: Promise<{ reason?: string }> } }
+    void device?.lost.then(({ reason }) => reason === 'destroyed' && pageAgain())
   }
   /**
    * A phone's skeletons in a texture, and never in a uniform buffer: the driver of a Xiaomi Mi 9 (Adreno 640) refused to link
