@@ -267,7 +267,8 @@ export function createGooseSounds(camera: Camera, base = `${import.meta.env.BASE
     }
     return loaded
   }
-  for (const sound of GOOSE_SOUNDS) if (!spec(sound).late) void load(sound)
+  // A sound that does not come is only a silence: the game goes on without it (`play` finds no takes).
+  for (const sound of GOOSE_SOUNDS) if (!spec(sound).late) load(sound).catch((error: unknown) => console.warn(`the sound ${sound} did not load`, error))
   /** Every take of each sound now playing, to stop. */
   const playing = new Map<GooseSound, Set<AudioBufferSourceNode>>(GOOSE_SOUNDS.map((sound) => [sound, new Set()]))
 

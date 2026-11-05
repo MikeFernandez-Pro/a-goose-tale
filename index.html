@@ -63,6 +63,8 @@
       }
       .enter:hover, .enter:focus-visible { background: #f6ead01a; outline: none; }
       .enter:active { transform: translateY(3px); box-shadow: 0 0 0 #f6ead099; }
+      /* What the loading screen says when it is stuck, and its key to try again: over the slot's edge, so the title never moves. */
+      #loading .trouble { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 16px; font-size: 26px; text-align: center; }
     </style>
   </head>
   <body>
@@ -136,6 +138,66 @@
       }
     </script>
     <div id="loading"><div>A Goose Tale</div><div class="slot"><div class="share">0 %</div></div></div>
+    <script>
+      // The loading screen's way out. Here and not in main.ts, since main.ts may be the file that did not come. A file
+      // the game cannot start without, lost: the share gives way to the words and a key to load the page again, the run
+      // kept in this tab still kept. The share standing still that long, a connection that hangs and never says so: the
+      // same key under it, in case, and gone again if the share moves on.
+      {
+        /** How long the share may stand still, ms: past a slow connection's first files and a phone's slowest shader. */
+        const STILL = 45000
+        const screen = document.getElementById('loading')
+        const share = screen.querySelector('.share')
+        let trouble
+        const tryAgain = (words) => {
+          trouble?.remove()
+          trouble = document.createElement('div')
+          trouble.className = 'trouble'
+          const said = document.createElement('div')
+          said.textContent = words
+          const key = document.createElement('button')
+          key.className = 'enter'
+          key.textContent = 'Try again'
+          key.addEventListener('click', () => location.reload())
+          trouble.append(said, key)
+          share.parentElement.append(trouble)
+          return key
+        }
+        // The share taken away for Enter, or the screen fading: nothing left to be stuck on.
+        const loading = () => share.isConnected && !screen.classList.contains('loaded')
+        let lost = false
+        const fileLost = () => {
+          if (lost || !loading()) return
+          lost = true
+          share.style.display = 'none'
+          tryAgain("The game couldn't load.").focus()
+        }
+        // A fetch's own words, in Chrome, Firefox and Safari; three's for a file refused; a dynamic import's; an image's bare event.
+        const isLostFile = (reason) => reason?.type === 'error' || /failed to fetch|networkerror|load failed|responded with|imported module|importing a module/i.test(String(reason?.message ?? reason))
+        addEventListener('error', (event) => (event.target?.tagName === 'SCRIPT' || isLostFile(event.error ?? event.message)) && fileLost(), true)
+        addEventListener('unhandledrejection', (event) => isLostFile(event.reason) && fileLost())
+        let was = share.textContent
+        let movedAt = performance.now()
+        const watching = setInterval(() => {
+          if (!loading()) {
+            clearInterval(watching)
+            trouble?.remove()
+            return
+          }
+          if (lost) return
+          const now = performance.now()
+          // A page in the background draws nothing and loads little: no time of its own to count.
+          if (share.textContent !== was || document.hidden) {
+            was = share.textContent
+            movedAt = now
+            trouble?.remove()
+            trouble = undefined
+          } else if (!trouble && now - movedAt > STILL) {
+            tryAgain('Still loading. Slow connection?')
+          }
+        }, 1000)
+      }
+    </script>
     <div id="fallen"></div>
     <script type="module" src="./src/main.ts"></script>
   </body>
