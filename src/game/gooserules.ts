@@ -1,9 +1,9 @@
 // What the goose game starts with: how its rats crowd and run, the panel's first settings, and how he feels to play.
-import { type Settings, type GooseFeel } from '../settings'
+import type { Settings, GooseFeel } from '../settings'
 import { url, debugOn } from './address'
 import { RAT_SPEEDS, SIZE_BY_SPEED, LIGHT_SPEED, CROWD } from './gameplay'
 import { defaultTuning } from '../swarm/swarm'
-import { createFeathers } from '../characters/feathers'
+import type { createFeathers } from '../characters/feathers'
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
 /** The goose game's rats to start, 100 since 2026-11-02, more coming with each gosling found: ?rats=N asks for others. */

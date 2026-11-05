@@ -1,6 +1,6 @@
 // The sky behind the scene and the fog round the light: one node every material reads, moved by uniforms without a recompile.
 import type { Look } from '../settings'
-import { Color, Scene, PerspectiveCamera, Vector2, Vector4, Matrix4, type Node } from 'three/webgpu'
+import { Color, type Scene, type PerspectiveCamera, Vector2, Vector4, Matrix4, type Node } from 'three/webgpu'
 import { uniform, renderGroup, vec3, positionWorld, mx_noise_float, smoothstep, uniformArray, Fn, float, Loop, mix, cameraPosition, normalWorldGeometry, vec4, getViewPosition, screenUV, fog } from 'three/tsl'
 import type { FixedLight } from '../swarm/swarm'
 

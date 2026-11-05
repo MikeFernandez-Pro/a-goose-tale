@@ -1,6 +1,6 @@
 // Where things are done, drawn on the ground, for the developer: the fills and the scenes' zones.
-import { Scene, Group, MeshBasicNodeMaterial, Mesh, RingGeometry } from 'three/webgpu'
-import { GoosePlay } from '../game/gooseplay'
+import { type Scene, Group, MeshBasicNodeMaterial, Mesh, RingGeometry } from 'three/webgpu'
+import type { GoosePlay } from '../game/gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import { url } from '../game/address'
 import type { FixedLight } from '../swarm/swarm'

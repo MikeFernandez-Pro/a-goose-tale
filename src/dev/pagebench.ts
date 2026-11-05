@@ -6,27 +6,25 @@
 // step it settles on. Otherwise the step is held where the device starts. The goose never dies, and his torch never
 // burns down. The late game's load after the first place: every gosling with him, and their rats. Elsewhere
 // `&budget=` says a vsync, ms, where it isn't 60 Hz. The load is raised by the pixel ratio, up to BENCH_DPRS.
-import { GoosePlay } from '../game/gooseplay'
+import type { GoosePlay } from '../game/gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import type { Look } from '../settings'
 import type { TiltShift } from '../look/tiltshift'
-import { Scene, WebGPURenderer, type Object3D } from 'three/webgpu'
+import type { Scene, WebGPURenderer, Object3D } from 'three/webgpu'
 import type { Water } from '../world/water'
-import { Quality } from '../look/quality'
-import { Rats } from '../swarm/rats'
+import type { Quality } from '../look/quality'
+import type { Rats } from '../swarm/rats'
 import type { DeadTreesMesh } from '../world/deadtrees'
 import type { BushesMesh } from '../world/bushes'
 import type { GroundFloor } from '../world/ground'
-import { createFallingLeaves } from '../world/fallingleaves'
+import type { createFallingLeaves } from '../world/fallingleaves'
 import type { Goose } from '../characters/goose'
 import type { Goslings } from '../characters/goslings'
 import type { Graveyard } from '../world/graveyard'
 import type { Ghosts } from '../characters/ghosts'
-import { GpuSwarm } from '../swarm/gpuswarm'
-import { RemoteSwarm } from '../swarm/swarm-remote'
+import type { GpuSwarm } from '../swarm/gpuswarm'
+import type { RemoteSwarm } from '../swarm/swarm-remote'
 import type { BenchCost, PhoneBench, BenchPlace } from './phonebench'
-import { url } from '../game/address'
-import { RATS_AFTER } from '../game/ratsarrive'
 
 /** The parts of the page the bench takes off and puts back. */
 export interface BenchParts {
@@ -57,6 +55,10 @@ export interface BenchParts {
   gpuQueue: { onSubmittedWorkDone(): Promise<void> } | undefined
   debugKeys: { torchEverlasting: boolean; standOffIsland(): void; standAtGraveyard(): void }
   holds: { ratShare: number; fireShadows: boolean }
+  /** The address the bench was asked for on. */
+  url: URLSearchParams
+  /** How long after a gosling's find his rats come, s. */
+  ratsAfter: number
 }
 
 /** `objects` not drawn, in any pass: by layer, since the page sets their visibility itself, each frame. */
@@ -90,7 +92,7 @@ function benchLook(lookChanged: () => void, name: string, set: (on: boolean) => 
 const BENCH_DPRS = [2.5, 3, 4]
 /** How long `?bench=soak` goes on, in rounds of a walk up, a walk back and a stand, each reading 5 s. */
 const SOAK_ROUNDS = 20
-export function createBench({ benchTools, goosePlay, look, tilt, scene, water, quality, renderer, lookChanged, rats, deadTreesMesh, bushesMesh, ground, prepassOn, fallingLeaves, goose, goslings, graveyard, ghosts, backend, lean, moon, run, swarm, gpuQueue, debugKeys, holds }: BenchParts): PhoneBench | undefined {
+export function createBench({ benchTools, goosePlay, look, tilt, scene, water, quality, renderer, lookChanged, rats, deadTreesMesh, bushesMesh, ground, prepassOn, fallingLeaves, goose, goslings, graveyard, ghosts, backend, lean, moon, run, swarm, gpuQueue, debugKeys, holds, url, ratsAfter }: BenchParts): PhoneBench | undefined {
   if (!benchTools || url.get('bench') === 'load') return undefined
   const play = goosePlay
   const everyGosling = () => play.giveGoslings(play.goslings.length)
@@ -99,7 +101,7 @@ export function createBench({ benchTools, goosePlay, look, tilt, scene, water, q
   const soaking = benchMode === 'soak'
   const everything = benchMode === 'all'
   // Time for each gosling's rats to come, RATS_AFTER s apart.
-  const ratsCome = 3000 + play.goslings.length * RATS_AFTER * 1000
+  const ratsCome = 3000 + play.goslings.length * ratsAfter * 1000
   /** The key held down, as a player's would be: the bench walks him as a keyboard does. */
   let heldKey = ''
   const hold = (code: string) => {

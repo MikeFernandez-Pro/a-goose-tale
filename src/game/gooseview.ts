@@ -1,11 +1,11 @@
 // The camera over the goose: its lens, its follow of him, its kinds (the fixed one the player has, the others the
 // developer's), what knocks it, and the shots that take it over in the opening and the ending. And his walk, which goes
 // the way the camera sees the ground.
-import { Vector3, PerspectiveCamera, WebGPURenderer, Spherical, Frustum, Matrix4, Sphere, Quaternion } from 'three/webgpu'
+import { Vector3, type PerspectiveCamera, type WebGPURenderer, Spherical, Frustum, Matrix4, Sphere, Quaternion } from 'three/webgpu'
 import { url, phone, filming, calm, debugOn } from './address'
 import type { Light, ViewPlane } from '../swarm/swarm'
 import type { Goslings } from '../characters/goslings'
-import { GoosePlay } from './gooseplay'
+import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import type { GooseFeel, Look } from '../settings'
 import type { Opening } from './opening'

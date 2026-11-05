@@ -1,6 +1,6 @@
 // The night's three lights: a faint fill, the moon, and the one warm lamp over the goose.
 import type { Look } from '../settings'
-import { Scene, HemisphereLight, DirectionalLight, Color, PointLight, type Node } from 'three/webgpu'
+import { type Scene, HemisphereLight, DirectionalLight, Color, PointLight, type Node } from 'three/webgpu'
 import { uniform, renderGroup, mix, vec3, shadow } from 'three/tsl'
 
 /**

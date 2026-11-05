@@ -1,13 +1,13 @@
 // What is written over the game to lead the player: the hold indicator over him, the calling gosling's badge and his honks,
 // and what to do written over where it is done.
-import { GoosePlay, inZone, type SceneState, type Zone } from '../game/gooseplay'
+import { type GoosePlay, inZone, type SceneState, type Zone } from '../game/gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import type { Goslings } from '../characters/goslings'
 import type { GooseSounds } from '../sound/goosesounds'
 import type { Opening } from '../game/opening'
 import type { Ending } from '../game/ending'
 import type { PlayerInput } from './gooseinput'
-import { PerspectiveCamera, WebGPURenderer, Vector3 } from 'three/webgpu'
+import { type PerspectiveCamera, type WebGPURenderer, Vector3 } from 'three/webgpu'
 import { filming, url, phone, featureOn, noPanel } from '../game/address'
 import { createHoldHint, promptedOf } from './holdhint'
 import { createGoslingBadge, mountBadgeControls } from './goslingbadge'

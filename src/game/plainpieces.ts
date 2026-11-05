@@ -1,7 +1,7 @@
 // The plain's own pieces of the route, as the edit mode (gooseedit.ts) and the route's saved places move them.
-import { GoosePlay } from './gooseplay'
+import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
-import { createGooseScenes, type EditPiece } from './goosescenes'
+import type { createGooseScenes, EditPiece } from './goosescenes'
 import type { Lights } from '../light/lights'
 import type { Goslings } from '../characters/goslings'
 import { keptShown } from '../world/plain'

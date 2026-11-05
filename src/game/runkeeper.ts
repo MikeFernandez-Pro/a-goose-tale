@@ -1,5 +1,5 @@
 // The run kept as it goes, and taken up again.
-import { GoosePlay } from './gooseplay'
+import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import type { Opening } from './opening'
 import type { Ending } from './ending'

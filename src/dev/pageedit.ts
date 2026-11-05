@@ -1,7 +1,7 @@
 // The edit mode (gooseedit.ts) on the page.
-import { PerspectiveCamera, WebGPURenderer, Scene } from 'three/webgpu'
-import { createGooseScenes, type EditPiece } from '../game/goosescenes'
-import { GoosePlay } from '../game/gooseplay'
+import type { PerspectiveCamera, WebGPURenderer, Scene } from 'three/webgpu'
+import type { createGooseScenes, EditPiece } from '../game/goosescenes'
+import type { GoosePlay } from '../game/gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import type { Settings } from '../settings'
 import type { GooseCamera, GooseView } from '../game/gooseview'

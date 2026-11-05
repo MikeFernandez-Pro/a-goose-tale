@@ -13,7 +13,7 @@
 // ending.ts), the camera (gooseview.ts), the input (gooseinput.ts), what is heard, written and felt (gooseheard.ts,
 // goosehints.ts, goosefelt.ts), and the loading (loadingscreen.ts). What only the developer has is in src/dev.
 import {
-  Mesh,
+  type Mesh,
   type Node,
   type NodeMaterial,
   PerspectiveCamera,
@@ -77,7 +77,7 @@ import { createGooseHeard } from './sound/gooseheard'
 import { createGooseHints } from './ui/goosehints'
 import { createGooseFelt } from './game/goosefelt'
 import { createZoneRings } from './world/zonerings'
-import { createRatsArrive, RUMBLE_GAIN } from './game/ratsarrive'
+import { createRatsArrive, RUMBLE_GAIN, RATS_AFTER } from './game/ratsarrive'
 import { createLoading, STEP_FRAME } from './ui/loadingscreen'
 import { createRunKeeper } from './game/runkeeper'
 import { createBeats } from './game/beats'
@@ -1000,7 +1000,7 @@ renderer.setAnimationLoop(() => {
   if (!loading) {
     if (!benchMade) {
       benchMade = true
-      bench = pageBench?.createBench({ benchTools, goosePlay, look, tilt, scene, water, quality, renderer, lookChanged, rats, deadTreesMesh, bushesMesh, ground, prepassOn, fallingLeaves, goose, goslings, graveyard, ghosts, backend, lean, moon, run, swarm, gpuQueue, debugKeys, holds: benchHolds })
+      bench = pageBench?.createBench({ benchTools, goosePlay, look, tilt, scene, water, quality, renderer, lookChanged, rats, deadTreesMesh, bushesMesh, ground, prepassOn, fallingLeaves, goose, goslings, graveyard, ghosts, backend, lean, moon, run, swarm, gpuQueue, debugKeys, holds: benchHolds, url, ratsAfter: RATS_AFTER })
     }
     if (bench) goosePlay.life = 1
     bench?.frame(frame * 1000, performance.now() - start, performance.now())

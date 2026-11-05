@@ -1,10 +1,10 @@
 // The rats coming in: all at once at the opening's rush, and more for every gosling he finds.
-import { GoosePlay } from './gooseplay'
+import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import type { Settings } from '../settings'
 import type { Opening } from './opening'
-import { GpuSwarm } from '../swarm/gpuswarm'
-import { RemoteSwarm } from '../swarm/swarm-remote'
+import type { GpuSwarm } from '../swarm/gpuswarm'
+import type { RemoteSwarm } from '../swarm/swarm-remote'
 import { type Dark, sightEdge } from '../swarm/swarm'
 import { url } from './address'
 

@@ -1,6 +1,6 @@
 // The debug keys, on the developer's page and in a take.
 import type { Settings } from '../settings'
-import { GoosePlay } from './gooseplay'
+import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import { type PondLook, islandMiddle, islandShoreAt } from '../world/pond'
 import type { Graveyard } from '../world/graveyard'

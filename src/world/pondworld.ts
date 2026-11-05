@@ -1,13 +1,13 @@
 // The pond at the road's end and all on its island: the water, the nest, the bonfire, the tent, the picnic, the oak, and the
 // geese there.
-import { Scene, Vector3 } from 'three/webgpu'
+import { type Scene, Vector3 } from 'three/webgpu'
 import type { NightLights } from '../light/nightlights'
 import type { GroundFloor } from './ground'
 import { type PondLook, createPond, islandMiddle, groundOf, defaultPondLook, shoreAt } from './pond'
-import { rollingGround } from './rolling'
-import { createGooseScenes, CAGE_FIRE_LIGHT } from '../game/goosescenes'
+import type { rollingGround } from './rolling'
+import { type createGooseScenes, CAGE_FIRE_LIGHT } from '../game/goosescenes'
 import type { PlainFires } from '../light/plainfires'
-import { FakeLamps, FakeLamp } from '../light/fakelamps'
+import { type FakeLamps, FakeLamp } from '../light/fakelamps'
 import type { Goose } from '../characters/goose'
 import { type Roadside, ISLAND_BUSH_KEEP } from './roadside'
 import type { Look } from '../settings'
@@ -18,7 +18,7 @@ import { createTent } from './tent'
 import { createPicnic } from './picnic'
 import { createIslandTree } from './islandtree'
 import { createIslandGeese } from '../characters/islandgeese'
-import { createBeats } from '../game/beats'
+import type { createBeats } from '../game/beats'
 import { type Plain, WADE } from './plain'
 
 /** How far the pond was moved by hand from where it falls past home, m (the pond folder's, 2026-10-29; z 2026-10-30). */
