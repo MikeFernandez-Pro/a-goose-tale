@@ -1,6 +1,4 @@
-// Leaves falling round the goose, always on. Brought
-// back on 2026-10-25 from the parked leaves prototype
-// (ThreJsJourney/parked/last-light-leaves/leaves.prototype.ts), the falling
+// Leaves falling round the goose, always on, the falling
 // alone: no litter on the ground, so a leaf lies a while where it lands and
 // shrinks away. Its colours are the litter's as they were, unless the game
 // gives it the dead trees' (main.ts).
@@ -71,7 +69,7 @@ export interface FallingLeaves {
 
 /**
  * Leaves falling from the sky round the goose: one mesh, a quad a leaf, its
- * every move in the vertex shader, as the old woods' rain was. A leaf has its
+ * every move in the vertex shader. A leaf has its
  * place in a square repeating round him, lands somewhere new each fall, sways
  * and tumbles on the way down, carried by the wind, lies flat on the ground a
  * while, then shrinks away, and falls again.

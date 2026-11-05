@@ -1,19 +1,18 @@
 // Ghost geese (`?ghosts`, `?ghosts=float`, `?ghosts=rag`, `?ghosts=ball`, `&ghostcount=`), a sheet
-// over a goose that is not there. Asked for on 2026-10-27: characters in the world that haunt and guide
-// him, no light of their own, several of them. For now each goes slowly round a small circle in front
-// of him, walking or idle: the question is whether a sheet over a goose reads as a Halloween ghost, and
-// how its cloth hangs and trails.
+// over a goose that is not there, since 2026-10-27: characters in the world that haunt and guide
+// him, no light of their own, several of them. In the game they walk the graveyard's paths (graveyard.ts);
+// with `?ghosts` alone each goes slowly round a small circle in front of him, walking or idle.
 //
 // Each ghost is a hidden copy of the ghost goose (ghostGoose.glb: his rig, no wings, no torch) playing its idle, and a sheet: the verlet
 // cloth of three's webgpu_compute_cloth example, springs and points in storage buffers stepped by two
 // compute passes at 360 steps a second. The sheet is worn, as a costume's cloth is in games: dropped
 // straight down from over it onto a smooth blob round its bones (the spheres, blended, swollen by the
 // cloth's thickness), every point that lands on it rides the bone it landed nearest, and only the rest,
-// the skirt and the tent between its head and its back, is simulated. WebGPU only, agreed.
+// the skirt and the tent between its head and its back, is simulated. WebGPU only.
 //
-// The presets are the silhouettes to judge: `long` hangs to the ground, `float` is a short sheet
+// The presets are its silhouettes: `long` hangs to the ground, `float` is a short sheet
 // hovering high with nothing under its hem, `rag` is the floating one torn at its edge, a little
-// see-through, in more wind. `ball` (asked for on 2026-10-28, for a more natural ghost) is the plain
+// see-through, in more wind. `ball` (2026-10-28, a more natural ghost) is the plain
 // sheet ghost: no goose under it, the sheet laid over one sphere and hanging free from its middle.
 import {
   AnimationMixer,

@@ -1,6 +1,6 @@
 // The game's pages in headed Chrome, for a probe, a bench or a load check:
 // one place for the dev server, the browser and its switches, which every
-// throwaway driver was writing again, each on its own guess at the port.
+// driver was writing again, each on its own guess at the port.
 //
 //   node tools/page.mjs '#goose'            load it, wait, print the errors
 //

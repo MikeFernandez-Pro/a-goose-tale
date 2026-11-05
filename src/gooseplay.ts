@@ -414,7 +414,7 @@ const GOSLING_ACCEL = 9
 const ARRIVE = [0.35, 0.6]
 /** How close a gosling lets a sibling come, and the goose, m, before he steps away. */
 const SPACE = 0.28
-const HER_SPACE = 0.32
+const HIS_SPACE = 0.32
 /**
  * With the goose standing, a gosling comes to rest within REST m of his place, under
  * RESTING m/s, and stays at rest, idling as the goose does, until his place is GO m
@@ -2061,7 +2061,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
       }
       if (!resting[k]) {
         for (const j of circle) if (j !== k) away(this.goslings[j]!.x, this.goslings[j]!.z, SPACE + (FALL_SPACE - SPACE) * huddle)
-        away(holder.x, holder.z, HER_SPACE + (FALL_SPACE - HER_SPACE) * huddle)
+        away(holder.x, holder.z, HIS_SPACE + (FALL_SPACE - HIS_SPACE) * huddle)
       }
       const w = Math.hypot(wx, wz)
       if (w > top) {

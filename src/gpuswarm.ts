@@ -28,8 +28,8 @@
 // spawns the rats, by the swarm's own rule, uploading the new ones only. What
 // comes back is small and late: the rats whose gait changed, listed by the
 // step, read back a list at a time, and how many rats the last step found at
-// the holder, never awaited on the frame. Played (play.ts), the woods setting
-// its rats down by where they are (#182), every rat's place comes back too, a
+// the holder, never awaited on the frame. Played (play.ts), the play setting
+// its rats down by where they are, every rat's place comes back too, a
 // frame or two late, and a rat set down is where it was set down until a read
 // made since says otherwise.
 import { DataTexture, FloatType, NearestFilter, RGBAFormat, StorageBufferAttribute, Vector4, type ComputeNode, type Node, type StorageBufferNode, type Texture, type WebGPURenderer } from 'three/webgpu'
@@ -689,8 +689,8 @@ export class GpuSwarm implements PlaySwarm {
 
   /**
    * Set rat `i` down afresh at (x, z), standing, as the swarm sets one down
-   * (swarm.ts): a page that places its rats where it wants them, the woods'
-   * spawn spots (#181), moves a rat it has no use for where it has one.
+   * (swarm.ts): a page that places its rats where it wants them
+   * moves a rat it has no use for where it has one.
    * Uploaded into both of the pair, so it stands there at once, blended from
    * nowhere.
    */

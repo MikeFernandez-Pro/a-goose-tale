@@ -30,7 +30,7 @@ _Avoid_: pool (that is the lamp's light), radius, reach (that is how far it woul
 
 **Wall**:
 A straight run of the **road**'s broken walls, from one point on the ground to another, that no rat crosses and whose stones keep the goose and his **goslings** off; light passes it. A rat that sees the goose clearly runs straight at him; one a wall stands between takes the shortest way round the walls (ADR-0056). With more walls than the swarm reads, it is handed only the nearest to the goose, picked again as he walks.
-_Avoid_: obstacle, collider, hall (that is the test branch's arena)
+_Avoid_: obstacle, collider
 
 **Noticing distance**:
 How far off a rat notices the goose, along its way round the **walls** (ADR-0056). Further, it does not run at him, and seethes where it is: the rats own the dark across the **plain** and do not cross it to the light.
@@ -62,7 +62,7 @@ _Avoid_: game loop, controller, engine
 
 **Plain**:
 **A Goose Tale**'s ground, laid by hand: where the goose starts at its south end, a route of braziers heading north, wandering sideways, and the pond a little past the last. Its only **walls** are the **road**'s. Its ground rolls in low swells, flat round its start, its fires, its scenes and the pond; the play stays on the flat x and z, and only the drawing stands things on the swells.
-_Avoid_: map, level (the woods' word, gone with them)
+_Avoid_: map, level
 
 **Road**:
 The old road up the **plain**, its braziers standing along it as its beacons: stone slabs, whole by each fire, thinning out in the dark between to the odd slab sunk in the dirt, running on back past where he starts and ending at the pond. Laid by hand, through points of its own; or else from the fires, passing each a little to one side, at a **scene** on the side away from its body. It says which way to go; the **call** and the **badge** say where a **gosling** is.
@@ -86,7 +86,7 @@ _Avoid_: ping, hint, shout
 
 **Badge**:
 The calling **gosling**'s icon, there the whole time he calls, not just as he honks: the gosling in a ring, an arrow beside it. Out of view it sits at the screen's edge on the gosling's side, the arrow pointing out to him; in view it hangs over his head, bobbing, the arrow pointing down, until the goose has him; with none left waiting, the last gosling keeps his as he leads the goose home, until the **ending**. Each honk of the **call** jolts it a little.
-_Avoid_: marker (the trial's flag), waypoint, objective
+_Avoid_: marker (the query's flag), waypoint, objective
 
 **Ghost**:
 In the graveyard **scene**, the ghost of a goose that never came home, a sheet over it, and a **light** that walks a path of its own, set beforehand and closed on itself, round and round, holding rats off as any light does. Somewhere its path crosses the next ghost's, and there, as the two pass, their **lit areas** meet and he can go from one to the other: the only way on, with no other light there. A ghost walks slower than he does, so keeping in its light is holding back, not keeping up. It pays him no heed: it never follows him, waits for him or turns to him. It is no **flame**: it fills no torch.

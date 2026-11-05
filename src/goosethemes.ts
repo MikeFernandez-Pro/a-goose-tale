@@ -364,7 +364,7 @@ export const GOOSE_THEMES: Record<string, GooseTheme> = {
         rimWidth: 0.08,
         rimSoftness: 0.23,
       },
-      // The torch's sparks as the open arena has them, in the street lamp's colours: born a pale sodium white, dying its orange.
+      // The torch's sparks in the street lamp's colours: born a pale sodium white, dying its orange.
       flame: { embers: { hot: 0xfff2d0, cold: 0xffa040 } },
       // The grass as set on 2026-10-25, matt: the wet shine it had on the dirt left off; more colour in it on 2026-10-27.
       floor: { lightness: 0.25, saturation: 0.6, hue: 32 },
@@ -435,7 +435,7 @@ export const GOOSE_THEMES: Record<string, GooseTheme> = {
   },
   '22-rainy-deaths-door-ink': {
     title: "Rainy Death's Door, inked",
-    note: '21 pushed further (asked for: more contrast, saturated, sketchy, stylized): a deeper, darker green, a thinner mist, harder shadows and toon steps, cross-hatching in the deepest shade, bolder strokes, more paper.',
+    note: '21 pushed further (more contrast, saturated, sketchy, stylized): a deeper, darker green, a thinner mist, harder shadows and toon steps, cross-hatching in the deepest shade, bolder strokes, more paper.',
     look: {
       lamp: { color: 0xffa050, intensity: 8 },
       sun: { color: 0xc0e0cc, intensity: 1.8, x: -10, y: 30, z: -10, darkness: 0.85 },
@@ -468,7 +468,7 @@ export const GOOSE_THEMES: Record<string, GooseTheme> = {
     eyes: 0xffe680,
     fireLamp: 0xff9a50,
   },
-  // HALLOWEEN (2026-10-25): ten more, asked for as Halloween and full moons, one of them black and white.
+  // HALLOWEEN (2026-10-25): ten more, Halloween and full moons, one of them black and white.
   '23-jack-o-lantern': {
     title: "Jack-o'-lantern",
     note: 'The torch the orange of a carved pumpkin against a deep violet night, a pale gold full moon high; black rats rimmed orange, pumpkin eyes.',

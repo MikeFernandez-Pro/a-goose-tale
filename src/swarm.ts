@@ -1,6 +1,6 @@
 // The swarm (CONTEXT.md, ADR-0046): every rat running for the light's holder,
-// with no ring, no route map and no moods. Written from scratch in a
-// prototype beside the route-map swarm (ADR-0045) and kept in its place. No
+// with no ring, no route map and no moods. Written from scratch
+// beside the route-map swarm (ADR-0045), which it replaced. No
 // renderer and no DOM, so it is tested in Node and could move into a worker
 // unchanged.
 //
@@ -200,7 +200,7 @@ export interface Tuning {
   agitation: number
   /**
    * How high a rat rides the bodies it presses into, as a multiple of a rat's
-   * height: 0 and every rat stays on the ground. Prototype, see the pile below.
+   * height: 0 and every rat stays on the ground. See the pile below.
    */
   pile: number
   /** How many gaps past a rat's own hold at the light the pile takes to reach its full height, in a straight line: short, a cliff; long, a slope. */
@@ -597,7 +597,7 @@ export class Swarm {
   stagger = 1
   staggerFrom = 12
   /**
-   * Dashes (2026-10-21, the sewers): now and then a rat coming for the holder, or seething where it is, lunges
+   * Dashes (2026-10-21): now and then a rat coming for the holder, or seething where it is, lunges
    * straight the way it faces, `dashSpeed` times its pace for `dashTime` s, about `dashRate` times a second, at once
    * as a bolt is. One at the light's edge snaps in to the edge itself, past its nerve, and the edge sends it back;
    * one behind bodies rides up over them. 0 and no rat dashes. The CPU step's alone.
@@ -608,7 +608,7 @@ export class Swarm {
   /** How long its dash has left to run, s. */
   readonly dashing: Float32Array
   /**
-   * The weave (2026-10-21, the sewers): a rat coming for the holder swerves either way off the line to it, by up
+   * The weave (2026-10-21): a rat coming for the holder swerves either way off the line to it, by up
    * to `weave` radians, on two swings of its own pace and moment, so no two run the same line and a crowd held at a
    * wall shuffles along it rather than pressing in a row. 0 and every rat runs straight at the holder. The CPU
    * step's alone.

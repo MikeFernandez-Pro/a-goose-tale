@@ -124,7 +124,7 @@ const LATEST = 2
 
 /**
  * The page's end: where the rats are this frame, and what the step reads.
- * Played (play.ts), the woods setting its rats down by where they are (#182),
+ * Played (play.ts), the play setting its rats down by where they are,
  * the count is the one last asked, and a rat set down stands where it was set
  * down until the worker's states have it there.
  */

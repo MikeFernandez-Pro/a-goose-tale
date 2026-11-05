@@ -119,7 +119,7 @@ const WELL_COLOURS: Record<string, number> = {
   'Material.006': 0x999999,
 }
 const WELL_GLOWS: Record<string, number> = { 'Material.011': 4 }
-/** The cage's materials that may glow, and how bright to start: Material.005, its key's (and a cube's), asked for on 2026-10-29. */
+/** The cage's materials that may glow, and how bright to start: Material.005, its key's (and a cube's), since 2026-10-29. */
 const CAGE_GLOWS: Record<string, number> = { 'Material.005': 1.4 }
 /** The cage's set's colours, by material, as set from the panel on 2026-10-29: Material.005, the key's, orange. */
 const CAGE_COLOURS: Record<string, number> = {

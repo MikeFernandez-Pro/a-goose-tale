@@ -5,7 +5,7 @@
 // pond, so a well or a cage stands level, and the pond's floor and bank
 // are laid as before; from each pad's edge the swells come up over RAMP m.
 //
-// The play stays on the flat ground, x and z, as the woods' does (heights.ts):
+// The play stays on the flat ground, x and z (heights.ts):
 // the height is the drawing's alone. It is read once into a HeightGrid, the
 // one thing every reader takes it from: the rats on the GPU (gpucull.ts), and
 // on the page the floor's points, the goose, his goslings and the scenes, so

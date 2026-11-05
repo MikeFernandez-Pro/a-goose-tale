@@ -1,6 +1,5 @@
-// A Goose Tale: a swarm of rats held off by a light (ADR-0044), and the goose game, the one page it keeps since
-// 2026-10-30 (the woods, the sewers, the hall, the levels of detail's page and the bare arena are at the tag
-// last-light-before-goose-only). The goose, the torch in his beak, crosses the night plain one way on the route
+// A Goose Tale: a swarm of rats held off by a light (ADR-0044). The goose, the torch in his beak, crosses the night
+// plain one way on the route
 // saved in gooseroute.json (plain.ts), from brazier to brazier to the pond, played by the goose play
 // (gooseplay.ts), which the page feeds the keys and draws: his goslings waiting at the braziers and in his circle,
 // as the goose in miniature (goslings.ts), and the pond, a hollow in the floor inside a noisy shore (pond.ts).
@@ -333,7 +332,7 @@ const look: Look = {
     paint: { strength: 1.3, density: 2.5, size: 1.75, rounding: 0 },
     // Drawn simpler the fewer pixels long a rat stands, on WebGPU (ADR-0057); `?lod=0` starts with every rat whole.
     levels: { on: url.get('lod') !== '0', show: false, split: 'none', blur: 1, levels: LEVELS.map((level) => ({ ...level })) },
-    // The far crowd's staggered steps, on trial (2026-10-16): off to start, `?stagger=4&staggerFrom=5` starts with them.
+    // The far crowd's staggered steps (2026-10-16): off to start, `?stagger=4&staggerFrom=5` starts with them.
     stagger: { n: url.has('stagger') ? Number(url.get('stagger')) || 4 : 1, from: Number(url.get('staggerFrom') ?? 5), show: false },
   },
   // The floor the page starts on, with its own look.
@@ -422,16 +421,16 @@ function paler(color: number, lift: number): number {
 const GOOSE_THEME = '18-rainy-street-lamp'
 const gooseTheme = gooseThemeOf(url.get('theme') ?? GOOSE_THEME)
 if (gooseTheme) layInto(look, gooseTheme.look)
-// The goose game's rats matt, whatever the theme, as asked for on 2026-10-26: no highlight and no rim.
+// The goose game's rats matt, whatever the theme, since 2026-10-26: no highlight and no rim.
 Object.assign(look.rats, { specular: 0, rim: false })
-// For now, as asked for on 2026-10-26: no fog, a pale violet moon, a mauve fill, and the rats all one dusty
+// Since 2026-10-26: no fog, a pale violet moon, a mauve fill, and the rats all one dusty
 // mauve; the lamp, the moon and the fill as set from the panel, the lamp's light reaching less far.
 look.fog.enabled = false
 Object.assign(look.lamp, { color: 0xf09a60, intensity: 7, reach: 4.7, falloff: 0, lag: 0.08, inFlame: false })
 Object.assign(look.sun, { color: 0xa094ff, intensity: 2.5, x: -23.5, y: 27, z: 25, shadows: true, softness: 1.5, darkness: 0.64, shadowColor: 0x241d3a })
 Object.assign(look.fill, { sky: 0x754b8b, ground: 0x221a28, intensity: 0.8 })
 look.rats.variants = [{ tint: 0x5c4d5a, share: 1 }]
-// The torch's smoke white and faint, whatever the theme, as asked for on 2026-11-01.
+// The torch's smoke white and faint, whatever the theme, since 2026-11-01.
 Object.assign(look.flame.smoke, { color: 0xffffff, opacity: 0.1 })
 // The fog paler toward the horizon (2026-10-25), whatever the theme: a soft gradient down the frame, the top of which
 // looks out nearly level. Its own colour lifted, so the horizon stays in the fog's family.
@@ -631,7 +630,7 @@ const lookWorld = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(()
 const skyOnScreen = skyAt(lookWorld.mul(vec4(getViewPosition(screenUV, float(0.5), lookInverse), 0)).xyz.normalize())
 scene.fogNode = fog(skyHere.add((fogLitColor as unknown as Node<'vec3'>).mul(fogGlow)) as unknown as typeof fogColor, fogAmount)
 // The goose (goose.ts) burns its torch at the cup's top: the flame sunk into it, as the panel set it on 2026-10-08;
-// and as bright as the plain's fires (`fireLook`), asked for on 2026-10-29.
+// and as bright as the plain's fires (`fireLook`), since 2026-10-29.
 Object.assign(look.flame, { lift: -0.09, offsetX: -0.009, offsetZ: 0.022, glow: 2.8 })
 /** Where the fog goes solid, m from the light, as the panel has it: the ring the swarm brings rats round past, fog or no fog. */
 let fogEdge = 1
@@ -783,11 +782,11 @@ const GOOSE_NOTICE = 6
 // roam more than 16 m past that (2026-10-26).
 Object.assign(tuning, { notice: GOOSE_NOTICE, wander: 1, roam: 16 })
 // The goose game's rats pile up a fifth of a rat's height since 2026-11-02 (a whole one from 2026-10-29); and since
-// 2026-10-25 they lunge and weave as the sewers' did, but softer, the
-// sewers' read too aggressive here; a little more since 2026-10-26: about once in 3.5 s each, at 2.1 times its pace
+// 2026-10-25 they lunge and weave, softly, a harder lunge reading too
+// aggressive here; a little more since 2026-10-26: about once in 3.5 s each, at 2.1 times its pace
 // for 0.13 s, swerving up to 0.4 rad.
 Object.assign(tuning, { pull: tuning.notice, pile: 0.2, dashRate: 1 / 3.5, dashSpeed: 2.1, dashTime: 0.13, weave: 0.4 })
-// The goose game's rats as quick to answer as the open arena's since 2026-10-29, the calmer answer of 2026-10-25 read
+// The goose game's rats quick to answer since 2026-10-29, the calmer answer of 2026-10-25 read
 // as too tame; but still no bolt at once, from the light or into a lunge.
 Object.assign(tuning, { reaction: 0.25, turnRate: 10, fleeReaction: 0.3, fleeTurn: 1.5 })
 /** The collision disc at the usual size: the rat scale and the spacing multiply it. */
@@ -1122,7 +1121,7 @@ const archLook = defaultArchLook()
 // Their slabs and their toon shell, as the doors folder edits them: the road's and the floor's as the page opens, the
 // floor's glossy highlight making them wet as the road is; theirs from then. As the folder was set on 2026-10-25:
 // smaller slabs than the road's; a theme's own shell over that. Their stone 0.68 light, and no highlight, whatever the
-// theme, as asked for on 2026-10-26, and a thin soft periwinkle rim, as set from the panel on 2026-10-27; the walls' the same.
+// theme, since 2026-10-26, and a thin soft periwinkle rim, as set from the panel on 2026-10-27; the walls' the same.
 const STONE_LIGHTNESS = 0.68
 const matted = { specular: 0, rim: true, rimStrength: 0.32, rimWidth: 0.23, rimSoftness: 0.075, rimColor: 0x9097fe }
 const { saturation: stoneSaturation, hue: stoneHue, rotation: stoneRotation, relief: stoneRelief } = roadLook
@@ -1148,7 +1147,7 @@ if (roadWalls) scene.add(roadWalls.object)
 roadWalls?.setShell(wallShell)
 // The dead trees either side of the road (deadtrees.ts), behind its walls where by one, as the dead trees folder edits
 // them: scattered again on every change to it, the road, the arches or the walls; in the scenes' shell, their wood the
-// user's of 2026-10-26, or a bark set the bark folder picks, laid as the floor is; swaying in the wind as
+// colour chosen on 2026-10-26, or a bark set the bark folder picks, laid as the floor is; swaying in the wind as
 // justASimpleTree's trees do.
 const deadTreeShape = defaultDeadTreeShape()
 const deadTreeLook = { show: true, wood: 0xe4aff3, saturation: 0.64, y: -0.31, trunk: 0.09, rings: 6 }
@@ -1205,7 +1204,7 @@ if (bushesMesh) {
   bushesMesh.object.position.setY(bushLook.y)
 }
 // The goose game's see-through (seethrough.ts): the dead trees between the camera and him, and nothing else since the
-// user's of 2026-10-26, dithered away round him by Perlin noise, as the see-through folder sets it: on 2026-10-26 a
+// change of 2026-10-26, dithered away round him by Perlin noise, as the see-through folder sets it: on 2026-10-26 a
 // wide hole, 4 m round, cut from him on, in finer blots. A tree's trunk is kept whole
 // (DeadTreesMesh.trunk), so it stands there whatever is dithered away above it: up to 0.09 of its height, under the
 // first fork of any of the four, 0.155 of the height up the lowest (2026-10-26), its cut filled by its cross-section,
@@ -1267,7 +1266,7 @@ const fireLook = { glow: look.flame.glow, lamp: gooseTheme?.fireLamp ?? 0xff7a28
  */
 const fireLooks: Record<FireScene, SceneFireLook> = {
   tree: sceneFire(TREE_FIRE_BOWL - 0.05, 0.5, 0.28),
-  // The campfire's lamp dimmer than the braziers', as asked for on 2026-11-01, and dimmer again later that day.
+  // The campfire's lamp dimmer than the braziers' since 2026-11-01, and dimmer again later that day.
   cage: { ...sceneFire(0.24, 1.05, 0.55), intensity: 3.5 },
 }
 /**
@@ -2210,8 +2209,8 @@ function lookChanged() {
   tent?.setShell(look.goose)
   picnic?.setShell(look.goose)
   islandTree?.setShell({ ...look.goose, ...deadTreeShine })
-  // The dead trees in the scenes' shell, with a highlight and a rim of their own: none of either to start, matt, as the
-  // user asked on 2026-10-26, the dead trees folder's to give them.
+  // The dead trees in the scenes' shell, with a highlight and a rim of their own: none of either to start, matt since
+  // 2026-10-26, the dead trees folder's to give them.
   deadTreesMesh?.setShell({ ...look.goose, ...deadTreeShine })
   bushesMesh?.setShell(look.goose)
   flame.set(look.flame)
@@ -3242,7 +3241,7 @@ function biteFrame() {
   if (biters > 0 && t - biteCued >= bite.gap) {
     biteCued = t
     biteHard = BITE_SOFTEST + ((1 - BITE_SOFTEST) * (Math.min(biters, MOST_BITERS) - 1)) / (MOST_BITERS - 1)
-    gooseSounds?.play(bite.sound === 'honk' ? 'bite_honk' : 'bite_hiss', herAt(), biteHard)
+    gooseSounds?.play(bite.sound === 'honk' ? 'bite_honk' : 'bite_hiss', hisAt(), biteHard)
     biteCame.x = goosePlay.biteFrom.x
     biteCame.z = goosePlay.biteFrom.z
     biteBody.set(goose.object.position.x, goose.object.position.y + BITE_BODY, goose.object.position.z)
@@ -3343,7 +3342,7 @@ function torchFrame(dt: number, held: number) {
     torchHard = TORCH_SOFTEST + (1 - TORCH_SOFTEST) * (1 - caughtFrom)
     embers.burst(torch.sparks * torchHard, torch.sparkSpeed)
     // Lit from out, its ignite is heard already (scenesHeardFrame); a top-up's catch is heard here.
-    if (caughtFrom > 0) gooseSounds?.play('ignite', herAt(), torchHard * TOPPED_IGNITE)
+    if (caughtFrom > 0) gooseSounds?.play('ignite', hisAt(), torchHard * TOPPED_IGNITE)
   }
   const since = t - caughtAt
   const caught = since >= 0
@@ -3532,7 +3531,7 @@ function shoutFrame() {
     const shown = introRunning() && age >= 0 && age < SHOUT_SHOWS
     if (shown && k > shoutsHeard) {
       shoutsHeard = k
-      gooseSounds?.play('honk', herAt())
+      gooseSounds?.play('honk', hisAt())
     }
     word.style.opacity = shown ? String(Math.min(1, age / 0.06) * Math.min(1, (SHOUT_SHOWS - age) / 0.35)) : '0'
     if (!shown) return
@@ -3780,7 +3779,7 @@ if (gooseSounds) {
   }
 }
 /** Where he is heard from: his middle, where the play has him. */
-const herAt = () => {
+const hisAt = () => {
   const { x, z } = goosePlay!.holder
   return { x, y: standAt(x, z) + 0.4, z }
 }
@@ -3945,11 +3944,11 @@ const goslingWas: ({ x: number; z: number } | undefined)[] = []
 const CALLS_AFTER = [{ at: INTRO.rush + 1, gain: 0.85 }] as const
 /**
  * The opening's chatter as they walk (CHAT): a gosling's happy peep, written over him, or the goose's soft answer, heard and
- * written over his head as small as a peep, HER_WORD; how loud the goslings are, and how far over him the word goes, m.
+ * written over his head as small as a peep, HIS_WORD; how loud the goslings are, and how far over him the word goes, m.
  */
-const HER_WORD = '*honk*'
+const HIS_WORD = '*honk*'
 const CHAT_GAIN = 0.75
-const HER_HEAD = 0.95
+const HIS_HEAD = 0.95
 let chatHeard = 0
 function chatFrame() {
   for (let line = CHAT[chatHeard]; line && introT >= line.at; line = CHAT[++chatHeard]) {
@@ -3960,9 +3959,9 @@ function chatFrame() {
       if (found.length) happyPeep(found[line.who % found.length]!, CHAT_GAIN)
       continue
     }
-    gooseSounds?.play(line.who, herAt())
+    gooseSounds?.play(line.who, hisAt())
     const { position } = goose.object
-    peepWords?.peep({ x: position.x, y: position.y + HER_HEAD, z: position.z }, 0, HER_WORD)
+    peepWords?.peep({ x: position.x, y: position.y + HIS_HEAD, z: position.z }, 0, HIS_WORD)
   }
 }
 /** The opening's own clock, s, run on past its end for his last honks; whether it was skipped, which hushes them. */
@@ -3994,7 +3993,7 @@ function gooseSoundsFrame(dt: number) {
     else if (!introRunning() && !gooseSounds.hushed && gooseSounds.context.state === 'running') musicIn = Math.min(1, musicIn + dt / MUSIC_FADE)
     backgroundMusic.set(musicIn * musicIn)
   }
-  const at = herAt()
+  const at = hisAt()
   gooseSounds.walk(at, dt, pondLook ? swimmingIn(pondLook, at.x, at.z, pondLook.goose) : 0, goose.footfalls)
   goosePlay.goslings.forEach((g, k) => {
     if (!g) return
@@ -4513,7 +4512,7 @@ function aheadOf(scene: SceneState): { zone: Zone; word: string } | undefined {
   return undefined
 }
 
-/** Whether what the woods and the goose game hide until its moment has been drawn once unseen, to build its pipelines. */
+/** Whether what the game hides until its moment has been drawn once unseen, to build its pipelines. */
 let unseenBuilt = false
 /** Whether the page has loaded: every pipeline built, the GPU done building them, and the loading screen fading. */
 let loaded = false
