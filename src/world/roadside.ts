@@ -28,6 +28,7 @@ import { uniform, renderGroup, positionWorld } from 'three/tsl'
 import { type Wall, nearestWalls } from '../swarm/walls'
 import { type Point } from './plain'
 import { walkOf } from '../game/gooseintro'
+import { GHOST_HEARD } from '../sound/gooseheard'
 
 /** How far round an island bush the goslings keep, m, of its width. */
 export const ISLAND_BUSH_KEEP = 0.35
@@ -423,7 +424,32 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     layGraveCandles()
     layArches()
   }
+  /** How far past the graveyard's ground the camera's view wakes its ghosts, m: woken out of sight, their cloth settles before it shows. */
+  const GHOST_SETTLE = 3
+  /**
+   * Whether the graveyard's ghosts may be seen or heard: its ground, their lamps' reach and GHOST_SETTLE round it, in
+   * the camera's view, or within earshot of him. Else they are neither walked nor drawn, and walk on from where the
+   * play's clock has them once woken. Without the graveyard they walk round him, always awake.
+   */
+  function ghostsNear(within: (x: number, z: number, radius: number, reach: number) => boolean, inView: (x: number, z: number, radius: number) => boolean): boolean {
+    if (!graveyard) return true
+    let minX = Infinity
+    let maxX = -Infinity
+    let minZ = Infinity
+    let maxZ = -Infinity
+    for (const p of graveyard.outline) {
+      minX = Math.min(minX, p.x)
+      maxX = Math.max(maxX, p.x)
+      minZ = Math.min(minZ, p.z)
+      maxZ = Math.max(maxZ, p.z)
+    }
+    const x = (minX + maxX) / 2
+    const z = (minZ + maxZ) / 2
+    const radius = Math.hypot(maxX - minX, maxZ - minZ) / 2
+    return within(x, z, radius, GHOST_HEARD) || (!!ghosts && inView(x, z, radius + ghosts.look.reach + GHOST_SETTLE))
+  }
   const roadside = {
+    ghostsNear,
     graveyard, ghosts, graves, graveCandles,
     arches, archLook, archStone, archShell, archesChanged, archesShell, layArches,
     roadWalls, roadWallLook, wallStone, wallShell, layWalls,

@@ -94,4 +94,4 @@ export function createGooseInput({ settings, opening, ending, editing, setPaused
 }
 
 /** The input as the page has it. */
-export type GooseInput = ReturnType<typeof createGooseInput>
+export type PlayerInput = ReturnType<typeof createGooseInput>

@@ -1,5 +1,5 @@
 // The game paused, as the player sees it.
-import type { GooseInput } from './gooseinput'
+import type { PlayerInput } from './gooseinput'
 import { type Settings } from '../settings'
 import { type GooseSounds } from '../sound/goosesounds'
 import { filming } from '../game/address'
@@ -12,7 +12,7 @@ import { type PadButton, padBeside, besideOf } from './holdhint'
  */
 export function createPauseVeil({ settings, input, gooseSounds, loaded, editing, setPaused }: {
   settings: Settings
-  input: GooseInput
+  input: PlayerInput
   gooseSounds: GooseSounds | undefined
   loaded: () => boolean
   editing: () => boolean | undefined
