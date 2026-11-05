@@ -49,13 +49,13 @@ test beside its source:
 | Folder | What is in it |
 | --- | --- |
 | `swarm/` | the rats: where they run, the way round the walls, the lit areas they keep out of, their workers and their drawing |
-| `game/` | the play with no drawing, the scenes, the opening and the ending |
+| `game/` | the play with no drawing, the scenes, the opening and the ending, the camera, what he feels and what the address asks |
 | `characters/` | the gander, the goslings, the island geese and the ghosts |
 | `world/` | the plain and the route it follows, the road, the pond, the graveyard, the trees and the weather |
 | `light/` | the lights, the flame, its embers and smoke, and the shadows fires cast |
-| `look/` | the shading, the frame after the scene, the themes, the quality steps and the model loader |
-| `sound/` | the sounds, the music and their mixes |
-| `ui/` | the controls, the hints, the badge and the error screens |
+| `look/` | the renderer, the sky and the fog, the shading, the frame after the scene, the themes, the quality steps and the model loader |
+| `sound/` | the sounds, the music, their mixes and what the game is heard doing |
+| `ui/` | the controls, the hints, the badge, the words the opening shows, and the loading, pause and error screens |
 | `dev/` | the panels, the route editor and the benches, loaded only when asked for |
 
 In `tools/`, `vite/` holds the dev server's and the build's plugins, `generators/` the scripts

@@ -2,10 +2,10 @@
 // geese there.
 import { type Scene, Vector3 } from 'three/webgpu'
 import type { NightLights } from '../light/nightlights'
-import type { GroundFloor } from './ground'
+import type { Floor } from './ground'
 import { type PondLook, createPond, islandMiddle, groundOf, defaultPondLook, shoreAt } from './pond'
 import type { rollingGround } from './rolling'
-import { type createGooseScenes, CAGE_FIRE_LIGHT } from '../game/goosescenes'
+import { type GooseScenes, CAGE_FIRE_LIGHT } from '../game/goosescenes'
 import type { PlainFires } from '../light/plainfires'
 import { type FakeLamps, FakeLamp } from '../light/fakelamps'
 import type { Goose } from '../characters/goose'
@@ -18,7 +18,7 @@ import { createTent } from './tent'
 import { createPicnic } from './picnic'
 import { createIslandTree } from './islandtree'
 import { createIslandGeese } from '../characters/islandgeese'
-import type { createBeats } from '../game/beats'
+import type { Beats } from '../game/beats'
 import { type Plain, WADE } from './plain'
 
 /** How far the pond was moved by hand from where it falls past home, m (the pond folder's, 2026-10-29; z 2026-10-30). */
@@ -40,12 +40,12 @@ export function pondPastHome(p: Plain): PondLook {
 export async function createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look }: {
   scene: Scene
   nightLights: NightLights
-  beats: ReturnType<typeof createBeats>
-  ground: GroundFloor
+  beats: Beats
+  ground: Floor
   gooseFloorBox: { minX: number; maxX: number; minZ: number; maxZ: number }
   pondLook: PondLook
   gooseGround: ReturnType<typeof rollingGround>
-  gooseScenes: Awaited<ReturnType<typeof createGooseScenes>>
+  gooseScenes: GooseScenes
   fires: PlainFires
   fakeLamps: FakeLamps
   goose: Goose
@@ -54,7 +54,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   look: Look
 }) {
   const { fireLook, fireLooks, plainFlame, sceneFires, pitFires, sceneFireFoot } = fires
-  // The goose game's plain runs far past the arena's floor, out to the black: the floor laid under the whole of it, its
+  // The game's plain runs far out to the black: the floor laid under the whole of it, its
   // painting read in the world's own coordinates, so a bigger plane changes nothing where the old one was. The pond's
   // shore is cut out of it, and its bank, in the floor's material, falls from there to the water (pond.ts).
   // Its water depth-tinted, refracting and foaming (water.ts), as the pond folder's water edits it.

@@ -9,8 +9,8 @@ import type { FixedLight } from '../swarm/swarm'
 export function createZoneRings(scene: Scene, goosePlay: GoosePlay<PlaySwarm>, standAt: (x: number, z: number) => number) {
   const { level } = goosePlay
   /**
-   * DEBUG: where things are done, as rings on the ground: orange, a flame's dip, or a scene's fire's zone, the interact
-   * key held to fill the torch; red, where the interact key works a scene, the well's
+   * DEBUG: where things are done, as rings on the ground: orange, a flame's dip, or a scene's fire's zone, Interact
+   * held to fill the torch; red, where Interact works a scene, the well's
    * winch, the dead tree's trunk, the cage and its key. `?zones`, or the run folder's switch.
    */
   const refillZones = { show: url.has('zones') || url.has('refill') }

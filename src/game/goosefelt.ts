@@ -4,15 +4,15 @@ import type { PlaySwarm } from '../swarm/play'
 import type { GooseFeel } from '../settings'
 import type { GooseSounds } from '../sound/goosesounds'
 import type { Goose } from '../characters/goose'
-import type { createFeathers } from '../characters/feathers'
-import type { createEmbers } from '../light/embers'
-import type { createFlame } from '../light/flame'
-import type { createPost, DarkLook } from '../look/post'
+import type { Feathers } from '../characters/feathers'
+import type { Embers } from '../light/embers'
+import type { Flame } from '../light/flame'
+import type { Post, DarkLook } from '../look/post'
 import type { Goslings } from '../characters/goslings'
 import type { NightLights } from '../light/nightlights'
 import type { PlayerInput } from '../ui/gooseinput'
 import { type PerspectiveCamera, Vector3 } from 'three/webgpu'
-import type { createBeats } from './beats'
+import type { Beats } from './beats'
 import type { Opening } from './opening'
 import type { Ending } from './ending'
 import { rumbleAt } from './gooseintro'
@@ -26,17 +26,17 @@ export function createGooseFelt({ goosePlay, feel, gooseSounds, hisAt, standAt, 
   hisAt: () => { x: number; y: number; z: number }
   standAt: (x: number, z: number) => number
   goose: Goose
-  feathers: ReturnType<typeof createFeathers>
-  embers: ReturnType<typeof createEmbers>
-  flame: ReturnType<typeof createFlame>
-  post: ReturnType<typeof createPost>
+  feathers: Feathers
+  embers: Embers
+  flame: Flame
+  post: Post
   goslings: Goslings
   nightLights: NightLights
   torchHeard: { level: number; faster: number }
   input: PlayerInput
   camera: PerspectiveCamera
   view: { cameraKnock: Vector3; controls: { target: Vector3 } }
-  beats: ReturnType<typeof createBeats>
+  beats: Beats
   opening: Opening
   ending: Ending
   darkLook: DarkLook

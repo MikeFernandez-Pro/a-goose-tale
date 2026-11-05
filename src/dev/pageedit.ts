@@ -1,14 +1,15 @@
 // The edit mode (gooseedit.ts) on the page.
 import type { PerspectiveCamera, WebGPURenderer, Scene } from 'three/webgpu'
-import type { createGooseScenes, EditPiece } from '../game/goosescenes'
+import type { GooseScenes, EditPiece } from '../game/goosescenes'
 import type { GoosePlay } from '../game/gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import type { Settings } from '../settings'
 import type { GooseCamera, GooseView } from '../game/gooseview'
 import { createEditMode } from './gooseedit'
 import { type Route, toSave } from '../world/plain'
+
 /**
- * The goose game's edit mode, E on and off (gooseedit.ts): the play paused and the camera the free orbit while it is
+ * The game's edit mode, E on and off (gooseedit.ts): the play paused and the camera the free orbit while it is
  * on, both put back as they were after; the scenes' pieces, and each plain brazier and its waiting gosling, to pick,
  * move, turn, raise and size; saved as the route, the page loaded again on it. The pieces raised and sized as the
  * route keeps them, edit mode or not.
@@ -17,7 +18,7 @@ export function createPageEdit({ camera, renderer, scene, gooseScenes, goosePlay
   camera: PerspectiveCamera
   renderer: WebGPURenderer
   scene: Scene
-  gooseScenes: Awaited<ReturnType<typeof createGooseScenes>>
+  gooseScenes: GooseScenes
   goosePlay: GoosePlay<PlaySwarm>
   plainPieces: () => EditPiece[]
   settings: Settings

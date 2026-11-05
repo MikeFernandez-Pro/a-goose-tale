@@ -71,3 +71,6 @@ export function createBeats(stop: Look['stopMotion']) {
   }
   return beats
 }
+
+/** The clock and the beats as the page has them. */
+export type Beats = ReturnType<typeof createBeats>

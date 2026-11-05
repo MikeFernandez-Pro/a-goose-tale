@@ -11,7 +11,7 @@
 // (drawing.ts), the sky and the night's lights (skyfog.ts, nightlights.ts), what stands along the road and at the pond
 // (roadside.ts, pondworld.ts), the fires (plainfires.ts), the opening and the ending (opening.ts, openingshow.ts,
 // ending.ts), the camera (gooseview.ts), the input (gooseinput.ts), what is heard, written and felt (gooseheard.ts,
-// goosehints.ts, goosefelt.ts), and the loading (loadingscreen.ts). What only the developer has is in src/dev.
+// goosehints.ts, goosefelt.ts), and the loading (loadingscreen.ts). The developer's panels, route editor and benches are in src/dev.
 import {
   type Mesh,
   type Node,
@@ -97,7 +97,7 @@ const LIGHT_HEIGHT = 1.1
  * rats' pace, and a hitch moves the light, the clock and the camera no further.
  */
 const FRAME_CAP = MOST_FRAME
-/** How far past the goose game's plain the floor runs, m: out of sight in the fog from anywhere he can stand. */
+/** How far past the game's plain the floor runs, m: out of sight in the fog from anywhere he can stand. */
 const FLOOR_PAST = 20
 /** How far past the fog's far edge the swarm may set a rat down, m, before the walk's own margin: a rat's length at the panel's usual scale, and the placing step's run. */
 const DARK_MARGIN = 0.5
@@ -114,7 +114,7 @@ fitToPage(camera, renderer)
 const nightLights = createNightLights(scene, moon)
 const { sun, lamp } = nightLights
 
-// The goose game's pond bed: the floor gives way to sand down its bank (ground.ts), as the pond folder's bed edits it.
+// The game's pond bed: the floor gives way to sand down its bank (ground.ts), as the pond folder's bed edits it.
 const bedLook = defaultBedLook()
 // And the ground under its wells, fading into the dirt round each, as the well folder's texture edits it.
 const wellGroundLook = defaultWellGroundLook()
@@ -167,7 +167,7 @@ const flameTip = new Vector3()
 const flameOffset = new Vector3()
 scene.add(ground.mesh)
 // The frame goes through one scene pass and the effects after it: the ambient occlusion under its fog, the outlines, the palette.
-// With `?tilt` (the goose game's default), the tilt-shift: the depth of field's blur by a band across the screen (tiltshift.ts).
+// With `?tilt` (the game's default), the tilt-shift: the depth of field's blur by a band across the screen (tiltshift.ts).
 const tilt = featureOn('tilt') ? createTiltShift() : undefined
 // With the tilt, the depth of field off as the page opens: the tilt's band is the blur (the dof folder still turns it on).
 if (tilt) look.dof.enabled = false
@@ -187,12 +187,12 @@ const areas = new LitAreas(new Walls([]))
 const seen = seenTexture(areas)
 const vat = await loadVAT(RAT.url)
 const time: VATTimeUniform = uniform(0)
-/** The goose game's plain as its play lays it, known before the play is, so the rats can be made on its ground. */
+/** The game's plain as its play lays it, known before the play is, so the rats can be made on its ground. */
 const goosePlain = laid(ROUTE)
-// The goose game's pond, as the pond folder edits it: past the last brazier, at the end of the route, the water the
+// The game's pond, as the pond folder edits it: past the last brazier, at the end of the route, the water the
 // rats are held off.
 const pondLook = pondPastHome(goosePlain)
-/** The box the goose game's floor is laid over: the plain's, and round the drawn pond at its widest shore, which lies on past the play's, FLOOR_PAST more. */
+/** The box the game's floor is laid over: the plain's, and round the drawn pond at its widest shore, which lies on past the play's, FLOOR_PAST more. */
 const gooseFloorBox = (() => {
   const b = goosePlain.bounds
   const r = pondLook.radius * FURTHEST
@@ -203,10 +203,10 @@ const gooseFloorBox = (() => {
     maxZ: Math.max(b.maxZ, pondLook.z + r) + FLOOR_PAST,
   }
 })()
-/** How the goose game's plain rolls, as the ground folder edits it; and where the pond is, flat round it. */
+/** How the game's plain rolls, as the ground folder edits it; and where the pond is, flat round it. */
 const rollingLook = defaultRollingLook()
 const pondPlace = { x: pondLook.x, z: pondLook.z, widest: widestShore(pondLook) }
-/** The goose game's rolling ground (rolling.ts) over its floor: what the floor is laid on, and the rats, the goose and the scenes stand on. */
+/** The game's rolling ground (rolling.ts) over its floor: what the floor is laid on, and the rats, the goose and the scenes stand on. */
 const gooseGround = rollingGround(goosePlain, pondPlace, gooseFloorBox, rollingLook)
 // Leaves falling round him, to the rolling ground (fallingleaves.ts), with a panel of their own.
 const fallingLeaves = url.get('leaves') === '0' ? undefined : createFallingLeaves(gooseGround, defaultFallLook())
@@ -224,7 +224,7 @@ const gpuCull = url.has('cpustep') ? undefined : rats.gpuCull
 const playSwarm = (ground: Ground) =>
   (gpuCull ? new GpuSwarm(gpuCull, renderer, capacity, SEED, 0, arenaScale, undefined, ground, seen.texture) : new RemoteSwarm(capacity, SEED, 0, arenaScale, ground))
 /**
- * The goose game, on its saved route, its rats the panel's budget and `?seed`'s, walking at the panel's pace. The
+ * The game, on its saved route, its rats the panel's budget and `?seed`'s, walking at the panel's pace. The
  * dead tree stands where the route has it, or `?tree=N` m ahead of his start.
  */
 const treeAhead = Number(url.get('tree')) || null
@@ -232,7 +232,7 @@ const goosePlay = new GoosePlay<GpuSwarm | RemoteSwarm>(
   { rats: settings.rats, pace: settings.lightSpeed, seed: Math.round(Number(url.get('seed') ?? 1)) || 1, treeAhead, lastGuides: true },
   { tuning, swarm: playSwarm },
 )
-/** The ground's height under (x, z): the goose game's rolling plain. */
+/** The ground's height under (x, z): the game's rolling plain. */
 const groundAt = (x: number, z: number) => gooseGround.at(x, z)
 /** How high he stands at (x, z): on the ground, down the pond's bank and into its water, afloat where it is too deep (pond.ts). */
 const standAt = (x: number, z: number) => groundAt(x, z) + standingIn(pondLook, x, z, pondLook.goose)
@@ -241,13 +241,11 @@ const hisAt = () => {
   const { x, z } = goosePlay.holder
   return { x, y: standAt(x, z) + 0.4, z }
 }
-/** The goose game's sounds (goosesounds.ts): none in a take, or with `?mute`; M mutes them. */
-const gooseSounds = !filming && !url.has('mute') ? createGooseSounds(camera) : undefined
 /** Whether his torch has been full once: starting with it out, he lights it first, and no gosling peeps for him nor turns the camera till then. */
 let torchFilled = false
 const torchFilledOnce = () => (torchFilled ||= goosePlay.run.fuel >= 0.99)
 /** The burning tree's light, where the plain starts by one. */
-const pitLight = spawnTree(goosePlay.plain)
+const burningTreeLight = spawnTree(goosePlay.plain)
 
 // The level and its rules, the goose play's. Its torch: it burns down, its light shrinking with the
 // fuel in a straight line to nothing, and grows back as he fills it at a fire. A and E (Q and E on a QWERTY keyboard)
@@ -258,7 +256,7 @@ const runTuning = goosePlay.runTuning
 const run = goosePlay.run
 // The lit areas see every wall that stops the rats.
 areas.setWalls(new Walls(run.walls()))
-const opening = createOpening(goosePlay, spawnTree(goosePlay.plain))
+const opening = createOpening(goosePlay, burningTreeLight)
 /** The torch as the swarm reads it: where the holder is, its reach as a share of the swarm's full light, and lit. */
 const light: Light = { x: run.holder.x, z: run.holder.z, strength: 0, on: false }
 /** Hand the swarm the torch as the run has it, and the debug switch: true if it went out or was relit. */
@@ -292,7 +290,7 @@ const looks = goosePlay.level.lights.map((_, k) => {
   if (goosePlay.wellFires.some(({ light }) => light === k)) return PIT_LIGHT
   // The burning branch, lying on the ground, burns on its broken end, its lamp low over it.
   if (k === goosePlay.branch?.light) return BRANCH_LIGHT
-  return b === undefined ? TREE_FIRE_LIGHT : k === spawnTree(goosePlay.plain) ? BURNING_LIGHT : b.scene === 'tree' ? TREE_LIGHT : b.scene === 'well' ? WELL_LIGHT : b.scene === 'cage' ? CAGE_FIRE_LIGHT : undefined
+  return b === undefined ? TREE_FIRE_LIGHT : k === burningTreeLight ? BURNING_LIGHT : b.scene === 'tree' ? TREE_LIGHT : b.scene === 'well' ? WELL_LIGHT : b.scene === 'cage' ? CAGE_FIRE_LIGHT : undefined
 })
 // The braziers and ghosts lit as fake lamps (fakelamps.ts): one loop in each lit shader, not a point light written out
 // in each; the torch's lamp stays a point light.
@@ -304,12 +302,12 @@ scene.add(lights.object)
 /** The pond's water as drawn, the swarm's to hold the rats off: its shore, as the pond folder last laid it. */
 const pondWater = (look: PondLook) => shoreLight(look.x, look.z, (angle) => shoreAt(look, angle))
 goosePlay.setWater(pondWater(pondLook))
-// The goose game's goslings, afloat once out of their depth in the pond.
+// The game's goslings, afloat once out of their depth in the pond.
 const goslingSpeeds = defaultGoslingSpeeds()
 const goslingSize = { height: GOSLING_HEIGHT }
 const goslings = await createGoslings(goosePlay, pondLook, goslingSpeeds, groundAt, goslingSize)
-// The goose game's scenes: the well and the dead tree (#190).
-const gooseScenes = await createGooseScenes(goosePlay, (x, z) => groundAt(x, z) + standingIn(pondLook, x, z, pondLook.goose))
+// The game's scenes: the well and the dead tree (#190).
+const gooseScenes = await createGooseScenes(goosePlay, standAt)
 scene.add(gooseScenes.object)
 feel.key.taken = gooseScenes.keyTaken
 // Its shell laid now, before the panel reads the cart's and the corpse's highlight and rim, which start as it.
@@ -317,15 +315,18 @@ gooseScenes.setShell(look.goose)
 scene.add(goslings.object)
 /** How far round a gosling's feet the camera's view must reach to draw him, m: the bird and his shadow on the ground. */
 const GOSLING_SEEN = 1
-const openingShow = createOpeningShow({ opening, goosePlay, goose, camera, renderer, gooseSounds, hisAt, fakeLamps, scene, standAt })
 // The ground laid under each well, where the play stands it.
 ground.setWells(goosePlay.scenes.filter((s) => s.kind === 'well'))
 const roadside = await createRoadside({ scene, goosePlay, lights, fakeLamps, backend, renderer, groundAt, pondLook, gooseFloorBox, roadShape, roadLook, ground, look, gooseTheme, gooseScenes, fallingLeaves, dev })
 const { graveyard, ghosts, graves, graveCandles, deadTreesMesh, deadTreeShine, deadTreeGrass, bushesMesh, gooseSee, gooseSeeLook, gooseSeeZone, cutSeenThrough } = roadside
-const fires = createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats })
+const fires = createPlainFires({ scene, goosePlay, burningTreeLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats })
 const { burningBranch, branchEmbers, plainFlames, branchFlared } = fires
 const pondWorld = await createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look })
 const { waterLook, water, tent, picnic, islandTree, islandGeese } = pondWorld
+const debugKeys = createDebugKeys({ settings, run, goosePlay, pondLook, graveyard, showDeath: () => (felt.deathShownAt = goosePlay.t) })
+/** The game's sounds (goosesounds.ts): none in a take, or with `?mute`; M mutes them. */
+const gooseSounds = !filming && !url.has('mute') ? createGooseSounds(camera) : undefined
+const openingShow = createOpeningShow({ opening, goosePlay, goose, camera, renderer, gooseSounds, hisAt, fakeLamps, scene, standAt })
 const ending = createEnding({ goosePlay, pondLook, islandGeese, tent, look, waterLook, water, ground, deadTreesMesh, deadTreeGrass, islandTree, nightLights, light, gooseSounds, goose, camera, renderer })
 // The bed under the pond's water takes less light, as deep as the water lies.
 ground.setWaterLevel(pondLook.water)
@@ -350,7 +351,7 @@ const zoneRings = createZoneRings(scene, goosePlay, standAt)
 /** Where the see-through's hole is cut round: the holder, at its chest. */
 const seeThroughAt = new Vector3()
 // The torch's lamp lights only what the torch sees: its lamp's shadow is its lit area, the walls alone cutting it,
-// its own falloff ending it. Under `?shadows`, the lamp's own cube of shadows as well. In the goose game no light but the
+// its own falloff ending it. Under `?shadows`, the lamp's own cube of shadows as well. In the game no light but the
 // sun casts or is cut (2026-10-21): the plain has no walls to cut a light, and the cut cost every rat's pixel a turn and
 // two texture reads a light, about 1.2 ms of a 7 ms frame at 8,000 rats on a screen twice the pixels.
 const torchCentre = uniform(new Vector2(light.x, light.z))
@@ -397,7 +398,7 @@ for (const part of look.rats.parts) if (part.name === 'eyes') part.color = goose
  * the swarm's own rate whatever the screen's, a step at most behind their rats.
  */
 const shadowed = { version: -1, steps: -1, held: Number.NaN, sun: new Vector3(Number.NaN), lamp: new Vector3(Number.NaN), at: -Infinity, dirty: true }
-/** How often the shadows are drawn again while the intro holds the swarm, ms: as often as the swarm steps once it goes. */
+/** How often the shadows are drawn again while the opening holds the swarm, ms: as often as the swarm steps once it goes. */
 const HELD_SHADOW_MS = 1000 / 60
 
 /** Everything the look folders set, with this beat's variation where the stop motion asks for it; the lamp's reach also follows the light's strength. */
@@ -517,10 +518,9 @@ function qualityChanged() {
   lookChanged()
 }
 
-const debugKeys = createDebugKeys({ settings, run, goosePlay, pondLook, graveyard, showDeath: () => (felt.deathShownAt = goosePlay.t) })
 if (dev && fallingLeaves && !noPanel) mountFallControls(fallingLeaves, dev.GUI)
 const view = createGooseView({ camera, renderer, light, goslings, run, feel, opening, ending, torchFilledOnce, tilt, standAt, groundAt, goosePlay, look })
-const panel = noPanel || filming ? undefined : dev?.mountPagePanel({ settings, tuning, look, capacity, rats, RAT_RADIUS, torchChanged, lookChanged, shadowsChanged, runTuning, level, goosePlay, zoneRings, darkLook, feel, openingShow, pondLook, pondWorld, roadside, fires, ground, pondWater, bedLook, gooseGround, goosePlain, pondPlace, rollingLook, roadShape, roadLook, goslingSpeeds, goslingSize, pitLight, fireShadowLook, gooseScenes, wellGroundLook, view, tilt })
+const panel = noPanel || filming ? undefined : dev?.mountPagePanel({ settings, tuning, look, capacity, rats, RAT_RADIUS, torchChanged, lookChanged, shadowsChanged, runTuning, level, goosePlay, zoneRings, darkLook, feel, openingShow, pondLook, pondWorld, roadside, fires, ground, pondWater, bedLook, gooseGround, goosePlain, pondPlace, rollingLook, roadShape, roadLook, goslingSpeeds, goslingSize, burningTreeLight, fireShadowLook, gooseScenes, wellGroundLook, view, tilt })
 // Without the panel, P still pauses, and F, a debug key, still puts the torch out.
 if (!panel) lightAndPause(settings, () => torchChanged() && lookChanged())
 qualityChanged()
@@ -603,7 +603,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   fires.frame(newBeat)
   pondWorld.bonfireFrame(newBeat, ending.firesLeft)
   fires.burningTreeFrame(newBeat)
-  openingShow.introLightFrame()
+  openingShow.openingLightFrame()
   // In the torch, the lamp burns where the torch rests, the head's sway left out (2026-10-11): it moves with him
   // and never swings with his head. Else it hangs over the goose, easing after it.
   if (look.lamp.inFlame) lamp.position.copy(torchRest)
@@ -624,7 +624,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
 follow(Infinity, true, 0)
 view.start()
 
-const plainPieces = createPlainPieces(goosePlay, gooseScenes, lights, goslings, pitLight)
+const plainPieces = createPlainPieces(goosePlay, gooseScenes, lights, goslings, burningTreeLight)
 layPieces([...gooseScenes.pieces(goosePlay), ...plainPieces()])
 // The tree's gosling lands a little ahead of where he is drawn sitting.
 goosePlay.landingOf = (tree) => gooseScenes.landingOf(goosePlay, tree)
@@ -664,7 +664,7 @@ function darkMargin(): number {
 /** The goose's bones by name, the cage's key carried on one of them. */
 const gooseBone = (name: string) => goose.bone(name)
 
-/** The goose game's frame past the play, `dt` of play on, at the held time `held`: the goslings where it has them. */
+/** The game's frame past the play, `dt` of play on, at the held time `held`: the goslings where it has them. */
 function gooseFrame(dt: number, held: number) {
   roadside.ratWallsFrame(goosePlay.holder, () => run.walls(), swarm)
   gooseScenes.update(goosePlay, dt, gooseBone)
@@ -705,8 +705,8 @@ function islandNear(): boolean {
 }
 
 const arrive = createRatsArrive({ goosePlay, settings, opening, swarm })
-const heard = createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats, ghosts, islandGeese, pondLook, pitLight, run, settings, feel, opening, ending, input, camera, renderer, dev, hisAt, standAt, torchFilledOnce, loaded: () => loadingPage.loaded })
-const hints = createGooseHints({ goosePlay, goslings, gooseSounds, opening, ending, input, camera, renderer, dev, standAt, torchFilledOnce, pitLight })
+const heard = createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats, ghosts, islandGeese, pondLook, burningTreeLight, run, settings, feel, opening, ending, input, camera, renderer, dev, hisAt, standAt, torchFilledOnce, loaded: () => loadingPage.loaded })
+const hints = createGooseHints({ goosePlay, goslings, gooseSounds, opening, ending, input, camera, renderer, dev, standAt, torchFilledOnce, burningTreeLight })
 /** How many times he had fallen as of the last frame: one more, he has woken, and the camera is put on him at once. */
 let fallsSeen = 0
 const felt = createGooseFelt({ goosePlay, feel, gooseSounds, hisAt, standAt, goose, feathers, embers, flame, post, goslings, nightLights, torchHeard: heard.torchHeard, input, camera, view, beats, opening, ending, darkLook, darkHeld: DARK_HELD })
@@ -860,11 +860,11 @@ renderer.setAnimationLoop(() => {
   lamp.distance = Math.hypot(look.lamp.reach * light.strength * nightLights.torchFlare, lampUp)
   lamp.intensity = nightLights.lampLit * nightLights.torchGlow
   const placed = run.lights()
-  // What the swarm holds the rats off: the lights, and in the goose game the pond's water after them, drawn by nothing.
+  // What the swarm holds the rats off: the lights, and in the game the pond's water after them, drawn by nothing.
   // The burning branch's light flaring as it lands, before the dawn's comes first of them.
   const keptOff = ending.withDawn([...branchFlared(goosePlay.lights())])
   swarmTime.value = swarm.time
-  const drawn = felt.wakeFlare(branchFlared(opening.running() && pitLight >= 0 ? placed.map((p, k) => (k === pitLight ? { ...p, reach: p.reach * litShare(opening.t) } : p)) : placed))
+  const drawn = felt.wakeFlare(branchFlared(opening.running() && burningTreeLight >= 0 ? placed.map((p, k) => (k === burningTreeLight ? { ...p, reach: p.reach * litShare(opening.t) } : p)) : placed))
   lights.update(drawn)
   skyFog.lightUp(drawn, run.torch, run.torch.lit && settings.on, nightLights.torchFlare)
   zoneRings.frame(drawn)
@@ -896,14 +896,13 @@ renderer.setAnimationLoop(() => {
   torchCentre.value.set(swarmLight.x, swarmLight.z)
 
   // What the fog hides, past the far edge it is drawn at this frame by the walk's margin: where rats left behind are brought round ahead unseen.
-  // In the goose game, what the camera leaves out too, so they come back as near him as the view allows, and the
+  // In the game, what the camera leaves out too, so they come back as near him as the view allows, and the
   // swarm seems to have no end.
   const margin = darkMargin()
   const dark: Dark | undefined =
     settings.bringRound ? { x: shown.x, z: shown.z, radius: darkRadius() + margin, view: view.groundView(margin) } : undefined
   const ratsCome = arrive.comeFrame(dt)
   const wanted = fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, Math.round((settings.rats + arrive.forGoslings()) * quality.step.rats * benchHolds.ratShare))
-  // The goose game's goslings in the dark pull the rats near them (#188).
   // Held till the strike, but stepped once on the loading screen with the rest, so its first step builds nothing.
   const ratsHeld = opening.on && !ratsOut(opening.t) && !loading
   if (opening.on && !arrive.rushed && ratsOut(opening.t) && dark) {
@@ -923,6 +922,7 @@ renderer.setAnimationLoop(() => {
   // Loading, it takes its step on STEP_FRAME, and goes on being asked till it has stood them: the worker of WebGL 2 reads
   // its input on a clock of its own, and asked for one frame alone it could miss it, and the loading wait for ever at 99 %.
   const loadHeld = loading && (loadingPage.frame < STEP_FRAME || (loadingPage.frame > STEP_FRAME && swarm.ready))
+  // The goslings in the dark pull the rats near them (#188).
   swarm.send(wanted, swarmLight, tuning, settings.paused || loadHeld || ratsHeld, dark, keptOff, goosePlay.targets)
   // The places: every frame when smooth; on the beat when held; and the first time a state is there, whatever the beat.
   if (!(stop.enabled && stop.swarm) || !swarm.ready) swarm.sample(performance.now())
@@ -945,7 +945,7 @@ renderer.setAnimationLoop(() => {
   rats.draw(swarm, camera, stop.enabled)
   if (blurred && look.dof.onLight) post.focusAt(focus)
   // The shadows again only if what casts them moved, on a new state of the swarm, or as often as it would step while
-  // the intro holds it, the goose and his goslings moving all the same; a changed look at once. The fire's shadow,
+  // the opening holds it, the goose and his goslings moving all the same; a changed look at once. The fire's shadow,
   // its mask, every frame.
   const now = performance.now()
   layFireShadows()

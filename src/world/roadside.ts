@@ -7,10 +7,10 @@ import type { Lights } from '../light/lights'
 import type { FakeLamps } from '../light/fakelamps'
 import { type PondLook, shoreAt, islandMiddle, groundOf } from './pond'
 import { type RoadShape, roadLine, leadIn, roadField } from './road'
-import type { RoadLook, GroundFloor } from './ground'
+import type { RoadLook, Floor } from './ground'
 import type { Look } from '../settings'
 import type { gooseThemeOf } from '../look/goosethemes'
-import { type createGooseScenes, BURNING_MODEL } from '../game/goosescenes'
+import { type GooseScenes, BURNING_MODEL } from '../game/goosescenes'
 import type { createFallingLeaves } from './fallingleaves'
 import { featureOn, url, noPanel } from '../game/address'
 import { layGraveyard, defaultGraveLook, ghostAt, inGraveyard } from './graveyard'
@@ -48,15 +48,15 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   gooseFloorBox: { minX: number; maxX: number; minZ: number; maxZ: number }
   roadShape: RoadShape
   roadLook: RoadLook
-  ground: GroundFloor
+  ground: Floor
   look: Look
   gooseTheme: ReturnType<typeof gooseThemeOf>
-  gooseScenes: Awaited<ReturnType<typeof createGooseScenes>>
+  gooseScenes: GooseScenes
   fallingLeaves: ReturnType<typeof createFallingLeaves> | undefined
   dev: Pick<typeof import('../dev/devtools'), 'GUI'> | undefined
 }) {
   // Ghost geese (`?ghosts`, `=float`, `=rag` or `=ball`, `&ghostcount=`), cloth sheets on the GPU (ghosts.ts); WebGPU only.
-  // `?graveyard` (the goose game's default, ball ghosts): they walk the graveyard's chain behind the last fire as
+  // `?graveyard` (the game's default, ball ghosts): they walk the graveyard's chain behind the last fire as
   // graveyard.ts lays it, on the play's clock, so they meet where and when they meet there.
   const graveyard = (() => {
     if (!featureOn('graveyard')) return undefined
@@ -235,7 +235,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   const bushesMesh = await createBushes(bushLeaves, groundAt)
   scene.add(bushesMesh.object)
   bushesMesh.object.position.setY(bushLook.y)
-  // The goose game's see-through (seethrough.ts): the dead trees between the camera and him, and nothing else since the
+  // The game's see-through (seethrough.ts): the dead trees between the camera and him, and nothing else since the
   // change of 2026-10-26, dithered away round him by Perlin noise, as the see-through folder sets it: on 2026-10-26 a
   // wide hole, 4 m round, cut from him on, in finer blots. A tree's trunk is kept whole
   // (DeadTreesMesh.trunk), so it stands there whatever is dithered away above it: up to 0.09 of its height, under the

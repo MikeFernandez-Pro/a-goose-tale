@@ -8,6 +8,7 @@ import { defaultAO } from './post'
 import { defaultGoose } from '../characters/goose'
 import { defaultFlame } from '../light/flame'
 import { gooseThemeOf, layInto } from './goosethemes'
+
 /**
  * A stylized floor's look to start: as painted, a tile two and a half metres
  * wide, unturned, its normal map as authored; no highlight; the earth's
@@ -32,9 +33,9 @@ const stylizedFloor = (texture: FloorName, own: Partial<Look['floor']> = {}): Lo
  * set for one painting is wrong for the other.
  */
 export const FLOOR_LOOKS: Record<FloorName, Look['floor']> = {
-  // The goose game's stylized sets, each set from the panel on 2026-10-21: the grass dark and turned to a warmer green,
+  // The game's stylized sets, each set from the panel on 2026-10-21: the grass dark and turned to a warmer green,
   // in deep relief; the sand dark, a little warmer, flat; the stones grey, on smaller tiles, in deep relief.
-  // Paler and yellower, on bigger tiles: set from the panel on 2026-10-25, the goose game's floor.
+  // Paler and yellower, on bigger tiles: set from the panel on 2026-10-25, the game's floor.
   stylized_grass_01: stylizedFloor('stylized_grass_01', { lightness: 0.25, saturation: 0.6, hue: 32, scale: 4.6, relief: 3 }),
   stylized_sand_01: stylizedFloor('stylized_sand_01', { lightness: 0.32, saturation: 0.63, hue: 14, relief: 0 }),
   stylized_stones_02: stylizedFloor('stylized_stones_02', { lightness: 0.52, saturation: 0, hue: 1, scale: 1.5, relief: 2.57 }),
@@ -48,16 +49,16 @@ export function copyInto<T extends object>(target: T, source: T): void {
     else target[key] = value
   }
 }
-/** The goose game's rats' eyes, as the panel was set on 2026-10-24. */
+/** The game's rats' eyes, as the panel was set on 2026-10-24. */
 export const GOOSE_EYES = 0x0aefff
-/** How much paler the goose game's fog is toward the horizon, in lightness from 0 to 1. */
+/** How much paler the game's fog is toward the horizon, in lightness from 0 to 1. */
 const HORIZON_LIFT = 0.12
 /** `color` with its lightness raised by `lift`, as the eye sees it. */
 function paler(color: number, lift: number): number {
   const hsl = new Color(color).getHSL({ h: 0, s: 0, l: 0 }, SRGBColorSpace)
   return new Color().setHSL(hsl.h, hsl.s, Math.min(hsl.l + lift, 1), SRGBColorSpace).getHex()
 }
-// LOOK TRIALS: `#goose?theme=<name>` lays one of goosethemes.ts's moods over the look above; with none, the rainy
+// `?theme=<name>` lays one of goosethemes.ts's moods over the look above; with none, the rainy
 // night under a street lamp, put back on 2026-10-25 after the Halloween round (`00-current` the look above alone).
 const GOOSE_THEME = '18-rainy-street-lamp'
 
@@ -181,7 +182,7 @@ export function startingLook() {
     trails: { enabled: true, seconds: 0.11, width: 0.01, strength: 4, wave: 2, taper: 1.9, fade: 6, wiggle: 0, wiggleSpeed: 1.6, color: 0xffbe0a, eyeColour: false },
   }
 
-  // The goose game plays smooth: no stop motion. Its lamp hangs over him, not in the flame at his beak, so his light is
+  // The game plays smooth: no stop motion. Its lamp hangs over him, not in the flame at his beak, so his light is
   // centred on him and his goslings.
   look.stopMotion.enabled = false
   look.lamp.inFlame = false
@@ -196,7 +197,7 @@ export function startingLook() {
   Object.assign(look.trails, { enabled: true, seconds: 0.11, width: 0.01, taper: 1.9, wave: 2, strength: 4, fade: 6, wiggle: 0, wiggleSpeed: 1.6, eyeColour: true })
   const gooseTheme = gooseThemeOf(url.get('theme') ?? GOOSE_THEME)
   if (gooseTheme) layInto(look, gooseTheme.look)
-  // The goose game's rats matt, whatever the theme, since 2026-10-26: no highlight and no rim.
+  // The game's rats matt, whatever the theme, since 2026-10-26: no highlight and no rim.
   Object.assign(look.rats, { specular: 0, rim: false })
   // Since 2026-10-26: no fog, a pale violet moon, a mauve fill, and the rats all one dusty
   // mauve; the lamp, the moon and the fill as set from the panel, the lamp's light reaching less far.

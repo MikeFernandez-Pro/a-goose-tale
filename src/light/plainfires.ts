@@ -6,12 +6,12 @@ import type { PlaySwarm } from '../swarm/play'
 import type { Look } from '../settings'
 import type { gooseThemeOf } from '../look/goosethemes'
 import type { Lights } from './lights'
-import type { createBeats } from '../game/beats'
+import type { Beats } from '../game/beats'
 import type { Opening } from '../game/opening'
-import { type createGooseScenes, type SceneFireLook, TREE_FIRE_BOWL, PIT_BOWL } from '../game/goosescenes'
+import { type GooseScenes, type SceneFireLook, TREE_FIRE_BOWL, PIT_BOWL } from '../game/goosescenes'
 import type { Goose } from '../characters/goose'
 import type { Roadside } from '../world/roadside'
-import type { createSkyFog } from '../look/skyfog'
+import type { SkyFog } from '../look/skyfog'
 import type { NightLights } from './nightlights'
 import type { Rats } from '../swarm/rats'
 import { createFlames, type Flame } from './flame'
@@ -29,22 +29,22 @@ import { shownOf } from '../world/plain'
 const EYES_FLASH = 4
 
 /** The plain's fires on what the page has made. */
-export function createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats }: {
+export function createPlainFires({ scene, goosePlay, burningTreeLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats }: {
   scene: Scene
   goosePlay: GoosePlay<PlaySwarm>
-  pitLight: number
+  burningTreeLight: number
   look: Look
   gooseTheme: ReturnType<typeof gooseThemeOf>
   lights: Lights
-  beats: ReturnType<typeof createBeats>
+  beats: Beats
   standAt: (x: number, z: number) => number
   groundAt: (x: number, z: number) => number
   camera: PerspectiveCamera
   opening: Opening
-  gooseScenes: Awaited<ReturnType<typeof createGooseScenes>>
+  gooseScenes: GooseScenes
   goose: Goose
   roadside: Roadside
-  skyFog: ReturnType<typeof createSkyFog>
+  skyFog: SkyFog
   nightLights: NightLights
   rats: Rats
 }) {
@@ -101,7 +101,7 @@ export function createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme,
   const trunkFireLook = sceneFire(-0.1, 0.95, 0.5)
   const trunkFires: { fire: Flame; size: number; drawnAt: number }[] = []
   const trunkAt: Vector3[] = []
-  const footFire = pitLight < 0 ? undefined : plainFlame()
+  const footFire = burningTreeLight < 0 ? undefined : plainFlame()
   /**
    * The burning branch (branch.ts), where the route lays one: snapped off the burning tree's crown in the opening, BRANCH_FROM_UP
    * m up and BRANCH_FROM_OUT m out from its trunk toward where it lands, it falls, tumbling, to lie with its broken end
@@ -150,16 +150,16 @@ export function createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme,
   /** How far past the burning tree's crown and its flames the camera's view must reach to draw its fire, m. */
   const TREE_FIRE_ROOM = 1
   /** Whether the strike's flash showed last frame, to lay the night back once it is over. */
-  let introFlashing = false
+  let strikeFlashing = false
   const footFireAt = new Vector3()
   /** The strike on the burning tree as the opening has it, its bolt and sparks the hollow log's of 2026-10-24, its sparks shorter-lived. */
-  const introLightning = opening.on && pitLight >= 0 ? createLightning(1, { rising: false }) : undefined
-  if (introLightning) {
-    Object.assign(introLightning.look.bolt, { foot: 0xffbb00, top: 0x34a4f9, fade: 8, brightness: 1.3, thickness: 0.15, height: 0.45, jagged: 1.15, seconds: 0.8, drift: 1.05, ease: 7.5 })
-    Object.assign(introLightning.look.sparks, { near: 0xff822e, far: 0xff7b00, fade: 4, brightness: 2.6, count: 128, size: 0.055, seconds: 0.55, reach: 4.5, ease: 7.5, fall: 0.6, round: true })
-    introLightning.look.flash = 0.73
+  const strike = opening.on && burningTreeLight >= 0 ? createLightning(1, { rising: false }) : undefined
+  if (strike) {
+    Object.assign(strike.look.bolt, { foot: 0xffbb00, top: 0x34a4f9, fade: 8, brightness: 1.3, thickness: 0.15, height: 0.45, jagged: 1.15, seconds: 0.8, drift: 1.05, ease: 7.5 })
+    Object.assign(strike.look.sparks, { near: 0xff822e, far: 0xff7b00, fade: 4, brightness: 2.6, count: 128, size: 0.055, seconds: 0.55, reach: 4.5, ease: 7.5, fall: 0.6, round: true })
+    strike.look.flash = 0.73
   }
-  if (introLightning) scene.add(introLightning.object)
+  if (strike) scene.add(strike.object)
   const sceneFireFoot = new Vector3()
   /** A strike's flash, 0 to 1, laid on the night: the fog and sky gone pale, the fill and the sun up, the rats' eyes flaring. */
   function flashFrame(flash: number) {
@@ -174,9 +174,9 @@ export function createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme,
    * strike that lights it, its bolt on the crown's top and its flash on the night.
    */
   function burningTreeFrame(newBeat: boolean) {
-    if (pitLight < 0) return
+    if (burningTreeLight < 0) return
     const stop = look.stopMotion
-    lights.setLamp(pitLight, fireLook.lamp, crownFireLook.intensity * litShare(opening.t))
+    lights.setLamp(burningTreeLight, fireLook.lamp, crownFireLook.intensity * litShare(opening.t))
     const { height, width, foot } = crownFireLook
     const tree = roadside.burningTree
     if (!tree) return
@@ -215,7 +215,7 @@ export function createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme,
       own.fire.place(sceneFireFoot)
     })
     if (footFire) {
-      const at = goosePlay.level.lights[pitLight]!
+      const at = goosePlay.level.lights[burningTreeLight]!
       const { start } = goosePlay.plain
       const d = Math.hypot(start.x - at.x, start.z - at.z) || 1
       const x = at.x + ((start.x - at.x) / d) * FOOT_FIRE
@@ -228,12 +228,12 @@ export function createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme,
         footFire.place(footFireAt.set(x, standAt(x, z) + footFireLook.foot, z))
       }
     }
-    if (introLightning) {
+    if (strike) {
       const struck = opening.t >= INTRO.strike ? INTRO.strike : Number.NaN
-      introLightning.update(opening.t, [{ at: tree, due: INTRO.strike, time: struck }], goosePlay.holder, standAt)
-      const flash = Math.max(flashAt(opening.t - INTRO.strike), afterglow(opening.t)) * introLightning.look.flash * (calm ? 0.2 : 1)
-      if (flash > 0 || introFlashing) flashFrame(flash)
-      introFlashing = flash > 0
+      strike.update(opening.t, [{ at: tree, due: INTRO.strike, time: struck }], goosePlay.holder, standAt)
+      const flash = Math.max(flashAt(opening.t - INTRO.strike), afterglow(opening.t)) * strike.look.flash * (calm ? 0.2 : 1)
+      if (flash > 0 || strikeFlashing) flashFrame(flash)
+      strikeFlashing = flash > 0
     }
   }
 
@@ -265,7 +265,7 @@ export function createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme,
       return
     }
     // Where it lies, and where it falls from: over the tree's trunk, on the side toward where it lands.
-    const tree = pitLight >= 0 ? goosePlay.level.lights[pitLight]! : branch
+    const tree = burningTreeLight >= 0 ? goosePlay.level.lights[burningTreeLight]! : branch
     const away = Math.atan2(branch.z - tree.z, branch.x - tree.x)
     branchTo.set(branch.x, standAt(branch.x, branch.z) + BRANCH_LIFT, branch.z)
     branchFrom.set(tree.x + Math.cos(away) * BRANCH_FROM_OUT, groundAt(tree.x, tree.z) + BRANCH_FROM_UP, tree.z + Math.sin(away) * BRANCH_FROM_OUT)

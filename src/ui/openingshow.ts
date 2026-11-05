@@ -1,6 +1,5 @@
 // What the opening shows over the game: how to skip it, his shouts after his goslings, and a soft light on them.
-import type { Opening } from '../game/opening'
-import { SKIP_HOLD } from '../game/opening'
+import { SKIP_HOLD, type Opening } from '../game/opening'
 import type { GooseSounds } from '../sound/goosesounds'
 import type { GoosePlay } from '../game/gooseplay'
 import type { PlaySwarm } from '../swarm/play'
@@ -96,23 +95,23 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
    * A soft light over him and his goslings through the opening, only to lead the eye to them: gentle, a pale
    * pool `height` m over him, coming up over its first `fadeIn` s and gone over its last `fadeOut` s; no shadow from it.
    */
-  const introLightLook = { show: true, color: 0xdde4ff, intensity: 2, reach: 5, height: 2.6, fadeIn: 1.5, fadeOut: 2 }
-  const introLight = opening.on ? fakeLamps.track(new FakeLamp(introLightLook.color, 0, introLightLook.reach, 0)) : undefined
-  if (introLight) {
-    introLight.shadows = false
-    scene.add(introLight)
+  const openingLightLook = { show: true, color: 0xdde4ff, intensity: 2, reach: 5, height: 2.6, fadeIn: 1.5, fadeOut: 2 }
+  const openingLight = opening.on ? fakeLamps.track(new FakeLamp(openingLightLook.color, 0, openingLightLook.reach, 0)) : undefined
+  if (openingLight) {
+    openingLight.shadows = false
+    scene.add(openingLight)
   }
   /** The opening's light over him as the opening has it now, out once it is over. */
-  function introLightFrame() {
-    if (!introLight) return
-    const { show, color, intensity, reach, height, fadeIn, fadeOut } = introLightLook
+  function openingLightFrame() {
+    if (!openingLight) return
+    const { show, color, intensity, reach, height, fadeIn, fadeOut } = openingLightLook
     const share = Math.min(1, opening.t / Math.max(fadeIn, 1e-3), (INTRO.end - opening.t) / Math.max(fadeOut, 1e-3))
-    introLight.intensity = show && opening.running() ? intensity * Math.max(0, share) : 0
-    if (!(introLight.intensity > 0)) return
-    introLight.color.setHex(color)
-    introLight.distance = reach
+    openingLight.intensity = show && opening.running() ? intensity * Math.max(0, share) : 0
+    if (!(openingLight.intensity > 0)) return
+    openingLight.color.setHex(color)
+    openingLight.distance = reach
     const { x, z } = goosePlay.holder
-    introLight.position.set(x, standAt(x, z) + height, z)
+    openingLight.position.set(x, standAt(x, z) + height, z)
   }
-  return { introLight, introLightLook, skipHintFrame, shoutFrame, introLightFrame }
+  return { openingLight, openingLightLook, skipHintFrame, shoutFrame, openingLightFrame }
 }

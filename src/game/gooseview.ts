@@ -15,6 +15,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { Walk } from '../ui/goosecontrols'
 import { shakeAt } from './gooseintro'
 import { pullOf } from './gooseoutro'
+
 /**
  * Where the camera starts from the light, and its field of view: a third
  * person's view, behind and a little above the holder, looking at its head
@@ -31,7 +32,7 @@ const FILM_TARGET = new Vector3(-0.03, -0.13, -0.54)
 const CAMERA_ABOVE = 0.6
 const LOOK_SPEED = 0.0025
 /**
- * The goose game's cameras, V going round them (?orbit, ?locked or ?chase starts in one) (2026-10-24). The fixed one,
+ * The game's cameras, V going round them (?orbit, ?locked or ?chase starts in one) (2026-10-24). The fixed one,
  * the page's own: GOOSE_CAMERA from his feet, looking at GOOSE_TARGET, the chosen framing, captured on the panel on
  * 2026-10-24, 22 degrees down from 5.5 m (or the panel's capture kept since); nothing the mouse does turns it, but the
  * pointer's place on the screen slides it a little, as Portfolio2024's camera does: up to PARALLAX m across
@@ -181,7 +182,7 @@ export function createGooseView({ camera, renderer, light, goslings, run, feel, 
   controls.maxDistance = 80
   // The chase camera: a click locks the pointer, and the pointer then turns the camera round him, up and down as far as
   // the orbit goes: the drag does not. Escape lets it go.
-  /** The goose game's camera, and whether it turns on the locked pointer, as all but the orbit do. */
+  /** The game's camera, and whether it turns on the locked pointer, as all but the orbit do. */
   let gooseCamera: GooseCamera = 'fixed'
   /** The pointer's place on the screen, -1 to 1 across and down; the fixed camera's parallax as now slid, m. */
   const pointerShare = { x: 0, y: 0 }
@@ -231,7 +232,7 @@ export function createGooseView({ camera, renderer, light, goslings, run, feel, 
     const wz = fx * walk.x - fz * walk.y
     return { x: run.holder.x + wx * walk.strength, z: run.holder.z + wz * walk.strength }
   }
-  /** Where the camera's follow of the light has got to: it eases after the light, CAMERA_FOLLOW behind. */
+  /** Where the camera's follow of the light has got to: it eases after the light, GOOSE_CAMERA_FOLLOW behind. */
   const followed = new Vector3(light.x, 0, light.z)
   const moved = new Vector3()
   /** The camera's follow owed since it last moved, s, while the stop motion holds the camera. */
@@ -247,7 +248,7 @@ export function createGooseView({ camera, renderer, light, goslings, run, feel, 
   if (filming) controls.target.set(light.x, followed.y, light.z).add(FILM_TARGET)
   else controls.target.set(light.x, followed.y, light.z).add(CAMERA_TARGET)
   /**
-   * The goose game's camera set to `to`. The fixed one put back at the framing, kept or the page's, the mouse doing
+   * The game's camera set to `to`. The fixed one put back at the framing, kept or the page's, the mouse doing
    * nothing to it but the parallax. The locked one put back where it stands over him, held to its one way across
    * and its tilts. The chase looks at him from behind as the camera now faces, CHASE_CAMERA back and up, the locked
    * pointer turning it round him; the drag neither turns nor slides it, the wheel still brings it in and out. The orbit
@@ -338,7 +339,7 @@ export function createGooseView({ camera, renderer, light, goslings, run, feel, 
   const viewPlanes: ViewPlane[] = viewFrustum.planes.map(() => ({ a: 0, b: 0, c: 0 }))
   /**
    * The camera's frustum met with the ground, each plane pushed `margin` m out, so a rat set down past it shows no
-   * part of itself: the goose game's dark, where the rats left behind are set down as near him as the view allows.
+   * part of itself: the game's dark, where the rats left behind are set down as near him as the view allows.
    */
   function groundView(margin: number): ViewPlane[] {
     camera.updateMatrixWorld()

@@ -4,6 +4,7 @@ import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import { type PondLook, islandMiddle, islandShoreAt } from '../world/pond'
 import type { Graveyard } from '../world/graveyard'
+
 /** How far off the island's waterline the 6 debug key stands him, m. */
 const ISLAND_BY = 1
 
@@ -17,16 +18,11 @@ export function createDebugKeys({ settings, run, goosePlay, pondLook, graveyard,
   showDeath: () => void
 }) {
   const debugKeys = {
-    /** The goose game's torch held full each frame, its F debug key's. */
+    /** The game's torch held full each frame, its F debug key's. */
     torchEverlasting: false,
     standOffIsland,
     standAtGraveyard,
   }
-  // In the goose game F, a debug key, gives the torch a light that never burns down, held full each frame; and puts it out
-  // again for real, its fuel gone, so nothing holds the rats off his circle until a fire fills it. Taken here first, before the panel's own F, which only hides the light from the rats. 0 to 5 on the
-  // top row, debug keys too, stand him back where he starts, by the well's zone, the dead tree's, the
-  // cage's and, on 5, the pond; on 6 in the water just off its island, facing it. Any other number, or 0 to 5 on the keypad, gives him that many goslings at
-  // once, 0 none (the key's place, so the AZERTY row needs no shift).
   /** ISLAND_BY m off the island's waterline on the camera's side (+z), facing it. */
   function standOffIsland() {
     const middle = islandMiddle(pondLook)
@@ -45,6 +41,11 @@ export function createDebugKeys({ settings, run, goosePlay, pondLook, graveyard,
     facing.x = graveyard.entrance.facing.x
     facing.z = graveyard.entrance.facing.z
   }
+  // In the game F, a debug key, gives the torch a light that never burns down, held full each frame; and puts it out
+  // again for real, its fuel gone, so nothing holds the rats off his circle until a fire fills it. Taken here first, before the panel's own F, which only hides the light from the rats. 0 to 5 on the
+  // top row, debug keys too, stand him back where he starts, by the well's zone, the dead tree's, the
+  // cage's and, on 5, the pond; on 6 in the water just off its island, facing it. Any other number, or 0 to 5 on the keypad, gives him that many goslings at
+  // once, 0 none (the key's place, so the AZERTY row needs no shift).
   addEventListener(
     'keydown',
     (event) => {

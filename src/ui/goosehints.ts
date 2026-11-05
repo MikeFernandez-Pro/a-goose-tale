@@ -16,7 +16,7 @@ import { touchLayout, STICK_REACH, BUTTON_RADIUS } from './goosetouch'
 import { EXCITED_FROM } from '../sound/gooseheard'
 
 /** The hints on what the page has made. */
-export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, ending, input, camera, renderer, dev, standAt, torchFilledOnce, pitLight }: {
+export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, ending, input, camera, renderer, dev, standAt, torchFilledOnce, burningTreeLight }: {
   goosePlay: GoosePlay<PlaySwarm>
   goslings: Goslings
   gooseSounds: GooseSounds | undefined
@@ -28,10 +28,10 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
   dev: Pick<typeof import('../dev/devtools'), 'GUI'> | undefined
   standAt: (x: number, z: number) => number
   torchFilledOnce: () => boolean
-  pitLight: number
+  burningTreeLight: number
 }) {
   /**
-   * The goose game's hold indicator, over the goose while he is by the burning branch lying there, at the well or the dead tree (#190), at the cage's skull
+   * The game's hold indicator, over the goose while he is by the burning branch lying there, at the well or the dead tree (#190), at the cage's skull
    * or the cage (#191); none in a take. A scene the key works now before a fire's dip it overlaps. Where the key does nothing yet, what to do first: at the dead tree with his torch out.
    * At the cage without its key, the hint over the cage says it.
    */
@@ -76,7 +76,7 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
     else holdHint.update(at, 0, 'light your torch', false)
   }
   /**
-   * `?marker` (the goose game's default, the portrait) or `?marker=doodle`: the calling gosling's badge
+   * `?marker` (the game's default, the portrait) or `?marker=doodle`: the calling gosling's badge
    * (goslingbadge.ts), there all the time he calls and on over his head as the goose comes, quiet, till the goose has
    * him; its honks small, said rather than shouted, over
    * the gosling's head in view alone, none by the badge, and heard barely far off, louder as the goose comes; and his torch
@@ -265,8 +265,8 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
       const at = callAt(aheadAt, box, CALL_MARGIN)
       return aheadHint.update(at, 0, 'pick it up!', false, at.out ? Math.atan2(at.out.y, at.out.x) : Math.PI / 2)
     }
-    if (!branch && pitLight >= 0 && !torchFilledOnce() && sinceIntro >= START_HINT_AFTER) {
-      const tree = goosePlay.level.lights[pitLight]!
+    if (!branch && burningTreeLight >= 0 && !torchFilledOnce() && sinceIntro >= START_HINT_AFTER) {
+      const tree = goosePlay.level.lights[burningTreeLight]!
       aheadAt.set(tree.x, standAt(tree.x, tree.z) + AHEAD_HEIGHT, tree.z).project(camera)
       aheadShown = true
       return aheadHint.update(callAt(aheadAt, box, CALL_MARGIN), 0, 'light your torch', false)

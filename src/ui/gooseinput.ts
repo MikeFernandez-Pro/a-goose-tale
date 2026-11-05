@@ -8,6 +8,7 @@ import type { Ending } from '../game/ending'
 import { GooseControls, type ControlsState, type Commands, SPACE, WALK_KEYS } from './goosecontrols'
 import { phone, filming, touchOn } from '../game/address'
 import { createThumbs } from './goosethumbs'
+
 /** The debug keys that turn the torch's reach up and down, and how many metres a second of one adds or takes. */
 export const DIAL: Record<string, number> = { KeyQ: 1, KeyE: -1 }
 export const DIAL_RATE = 1.2

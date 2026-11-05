@@ -28,7 +28,7 @@ const GOSLING_HEAD = 0.3
 export const GHOST_HEARD = 18
 
 /** The sounds on what the page has made. `loaded` whether the page has loaded. */
-export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats, ghosts, islandGeese, pondLook, pitLight, run, settings, feel, opening, ending, input, camera, renderer, dev, hisAt, standAt, torchFilledOnce, loaded }: {
+export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats, ghosts, islandGeese, pondLook, burningTreeLight, run, settings, feel, opening, ending, input, camera, renderer, dev, hisAt, standAt, torchFilledOnce, loaded }: {
   gooseSounds: GooseSounds | undefined
   goosePlay: GoosePlay<PlaySwarm>
   goslings: Goslings
@@ -37,7 +37,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
   ghosts: Ghosts | undefined
   islandGeese: IslandGeese
   pondLook: PondLook
-  pitLight: number
+  burningTreeLight: number
   run: GoosePlay<PlaySwarm>['run']
   settings: Settings
   feel: GooseFeel
@@ -115,13 +115,13 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
     peepWords?.peep({ x: at.x, y: at.y + PEEP_OVER, z: at.z }, after)
   }
   /** How loud each gosling's peeps are as he hops for joy in the ending's ring, many at once; and how far into the ending they have been heard, s. */
-  const OUTRO_PEEP_GAIN = 0.7
-  let outroHeard = -1
+  const ENDING_PEEP_GAIN = 0.7
+  let endingHeard = -1
   /**
    * The island's goslings seeing their father come: once he is within ISLAND_SEES m of its waterline, one of them, any,
    * peeps now and then, the pause between, s, shrinking as he nears the shore, each drawn ISLAND_JITTER times it, never
    * on a beat, and louder; on through the ending at its quickest, his goslings with them, as they run down to meet
-   * him and round the two of them, until they settle in the ring, where each peeps a run of his own (`outroPeepsFrame`).
+   * him and round the two of them, until they settle in the ring, where each peeps a run of his own (`endingPeepsFrame`).
    */
   const ISLAND_SEES = 12
   const ISLAND_PAUSE = [1.8, 0.45] as const
@@ -154,17 +154,17 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
     if (at) peepAt({ x: at.x, y: standAt(at.x, at.z) + GOSLING_HEAD, z: at.z }, ISLAND_GAIN[0] + (ISLAND_GAIN[1] - ISLAND_GAIN[0]) * close)
   }
   /** Every gosling in the ending's ring, his and the island's, peep peep peep as he hops for joy: those due since the last frame. */
-  function outroPeepsFrame() {
+  function endingPeepsFrame() {
     const stage = ending.stage
     if (!stage || !ending.running()) return
-    const from = outroHeard
-    outroHeard = ending.t
+    const from = endingHeard
+    endingHeard = ending.t
     const due = (brood: boolean, k: number) => peepsOf(stage, brood, k).some((t) => t > from && t <= ending.t)
-    ending.brood.forEach((k, i) => due(true, i) && happyPeep(k, OUTRO_PEEP_GAIN))
+    ending.brood.forEach((k, i) => due(true, i) && happyPeep(k, ENDING_PEEP_GAIN))
     stage.island.forEach((_, j) => {
       if (!due(false, j)) return
       const { at, act } = goslingOf(stage, false, j, ending.t)
-      peepAt({ x: at.x, y: standAt(at.x, at.z) + (act?.lift ?? 0) + GOSLING_HEAD, z: at.z }, OUTRO_PEEP_GAIN)
+      peepAt({ x: at.x, y: standAt(at.x, at.z) + (act?.lift ?? 0) + GOSLING_HEAD, z: at.z }, ENDING_PEEP_GAIN)
     })
   }
   const peepOn = new Vector3()
@@ -307,7 +307,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
     excitedFrame(dt)
     guideCallFrame(dt)
     islandCallsFrame(dt)
-    outroPeepsFrame()
+    endingPeepsFrame()
     chatFrame()
     if (opening.on && !openingSkipped) {
       openingClock += dt
@@ -316,7 +316,7 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
     if (opening.running() && !frightHeard && opening.t >= INTRO.strike) {
       frightHeard = true
       gooseSounds.play('fright', at)
-      const tree = run.lights()[pitLight]
+      const tree = run.lights()[burningTreeLight]
       if (tree) gooseSounds.play('thunder', { x: tree.x, y: standAt(tree.x, tree.z) + 2, z: tree.z })
       opening.brood().forEach((k) => {
         const g = goosePlay.goslings[k]!
@@ -348,8 +348,8 @@ export function createGooseHeard({ gooseSounds, goosePlay, goslings, goose, rats
       }
     }
     run.lights().forEach((light, k) => {
-      const loop = (fireLoops[k] ??= gooseSounds.loop(k === pitLight ? 'fire_crackling' : 'fire_calm'))
-      loop.set(k === pitLight ? litShare(opening.t) : light.on ? 1 : 0, { x: light.x, y: standAt(light.x, light.z) + 0.6, z: light.z })
+      const loop = (fireLoops[k] ??= gooseSounds.loop(k === burningTreeLight ? 'fire_crackling' : 'fire_calm'))
+      loop.set(k === burningTreeLight ? litShare(opening.t) : light.on ? 1 : 0, { x: light.x, y: standAt(light.x, light.z) + 0.6, z: light.z })
     })
     torchLoop?.set(torchHeard.level, { x: at.x, y: at.y + 0.5, z: at.z }, torchHeard.faster)
     // From the shore nearest him, or from him once he is in.

@@ -6,7 +6,7 @@ import type { IslandGeese, IslandCue } from '../characters/islandgeese'
 import type { Tent } from '../world/tent'
 import type { Look } from '../settings'
 import type { WaterLook, Water } from '../world/water'
-import type { GroundFloor } from '../world/ground'
+import type { Floor } from '../world/ground'
 import type { DeadTreesMesh, GrassLook } from '../world/deadtrees'
 import type { IslandTree } from '../world/islandtree'
 import type { NightLights } from '../light/nightlights'
@@ -18,6 +18,7 @@ import { url } from './address'
 import { type Stage, type Island, layOutro, ganderAt, planAt, aimOf, motherAt, goslingOf, againOf, heartsOf, HEART_SHOWS, morningOf, fadeOf, titleOf, byOf, DRAIN, dawnOf } from './gooseoutro'
 import { type PadButton, padBeside } from '../ui/holdhint'
 import { dropKeptRun } from './keptrun'
+
 /** The lights the dawn brings up: the low sun, the sky's fill, and the fires', the torch's among them, dying down; the water's horizon and the floor's colour with them. */
 interface DawnLook {
   sun: { color: number; intensity: number; x: number; y: number; z: number; softness: number; shadowColor: number; darkness: number }
@@ -53,7 +54,7 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
   look: Look
   waterLook: WaterLook
   water: Water
-  ground: GroundFloor
+  ground: Floor
   deadTreesMesh: DeadTreesMesh
   deadTreeGrass: GrassLook
   islandTree: IslandTree
@@ -87,15 +88,15 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
     playAgain: undefined as (() => void) | undefined,
     /** On a pad, its button beside Play again. */
     againPad: undefined as PadButton | undefined,
-    start: startOutro,
-    walk: walkOutro,
-    cue: outroCue,
-    act: outroAct,
-    frame: outroFrame,
+    start: startEnding,
+    walk: walkEnding,
+    cue: endingCue,
+    act: endingAct,
+    frame: endingFrame,
     withDawn,
     againShown,
     get card() {
-      return outroCard
+      return endingCard
     },
   }
   /** How far ahead of him the last gosling leads him, m, toward the island, out past his body as the camera sees him; and how far off its waterline the gosling keeps. */
@@ -112,23 +113,23 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
     return { x: holder.x + (dx * lead) / d, z: holder.z + (dz * lead) / d }
   }
   /** The night's lights as the ending starts, to bring the dawn up from. */
-  let outroNight: DawnLook | undefined
+  let nightLook: DawnLook | undefined
   /** The ending started: laid out from where he, the mother and every gosling are now. */
-  function startOutro() {
+  function startEnding() {
     dropKeptRun()
     const play = goosePlay
     ending.brood = play.goslings.flatMap((g, k) => (g?.state === 'circle' || g?.state === 'guiding' ? [k] : []))
     const { mother, motherYaw, goslings: island } = islandGeese.cast()
     const brood = ending.brood.map((k) => ({ x: play.goslings[k]!.x, z: play.goslings[k]!.z }))
     ending.stage = layOutro(ending.island, { gander: { ...play.holder }, mother, door: tent.object.visible ? tent.door() : undefined, motherYaw, island, brood })
-    outroNight = dawnLookOf(look)
+    nightLook = dawnLookOf(look)
     dawnFloor = undefined
     ending.t = 0
     // In by now, asked for when the last gosling was found; else as soon as it comes.
     void gooseSounds?.load('outro').then(() => gooseSounds.play('outro'))
   }
   /** He and his goslings where the ending has them, the camera's look with them. */
-  function walkOutro() {
+  function walkEnding() {
     const stage = ending.stage
     if (!stage) return
     const { at, facing } = ganderAt(stage, ending.t)
@@ -140,13 +141,13 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
     ending.aim.z = (stage.pair.z - at.z) * aim
   }
   /** The island's geese as the ending has them, or nothing before it. */
-  function outroCue(): IslandCue | undefined {
+  function endingCue(): IslandCue | undefined {
     const stage = ending.stage
     if (!stage) return undefined
     return { mother: motherAt(stage, ending.t), goslings: stage.island.map((_, j) => goslingOf(stage, false, j, ending.t)) }
   }
   /** What his gosling `k` does in the ending, shaking dry or hopping, and the way the gosling faces standing, if anything. */
-  function outroAct(k: number) {
+  function endingAct(k: number) {
     const i = ending.brood.indexOf(k)
     return ending.stage && i >= 0 ? goslingOf(ending.stage, true, i, ending.t) : undefined
   }
@@ -164,10 +165,10 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
   let dawnFloor: { saturation: number; lightness: number } | undefined
   /** The dawn brought up `share` of the way from the night it started at: into the look, and the lights set from it. */
   function dawnFrame(share: number) {
-    if (!outroNight) return
+    if (!nightLook) return
     const mixed = (a: number, b: number) => dawnFrom.setHex(a).lerp(dawnTo.setHex(b), share).getHex()
     const between = (a: number, b: number) => a + (b - a) * share
-    const night = outroNight
+    const night = nightLook
     Object.assign(look.sun, {
       color: mixed(night.sun.color, DAWN.sun.color),
       intensity: between(night.sun.intensity, DAWN.sun.intensity),
@@ -201,46 +202,46 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
    * loading screen's Enter key has, the key to play again, by its button or the controls' confirm once it shows: the page
    * loaded again. Filmed, the title stays alone.
    */
-  const outroCard = on ? document.createElement('div') : undefined
-  const outroTitle = on ? document.createElement('div') : undefined
-  const outroAgain = on && !url.has('film') ? document.createElement('button') : undefined
+  const endingCard = on ? document.createElement('div') : undefined
+  const endingTitle = on ? document.createElement('div') : undefined
+  const againButton = on && !url.has('film') ? document.createElement('button') : undefined
   function againShown() {
-    return !!outroAgain && ending.running() && againOf(ending.t) > 0
+    return !!againButton && ending.running() && againOf(ending.t) > 0
   }
   /** Who made it, a link at the foot of the screen, coming in before Play again: at the foot, so the title stands where the loading screen has it. */
-  const outroBy = outroAgain ? document.createElement('a') : undefined
-  if (outroCard && outroTitle) {
-    outroCard.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;opacity:0;pointer-events:none;z-index:20;visibility:hidden'
-    outroTitle.style.cssText = 'font-family:Gaegu,cursive;font-weight:700;font-size:min(13vw,128px);color:#f6ead0;opacity:0'
-    outroTitle.textContent = 'A Goose Tale'
+  const madeBy = againButton ? document.createElement('a') : undefined
+  if (endingCard && endingTitle) {
+    endingCard.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;opacity:0;pointer-events:none;z-index:20;visibility:hidden'
+    endingTitle.style.cssText = 'font-family:Gaegu,cursive;font-weight:700;font-size:min(13vw,128px);color:#f6ead0;opacity:0'
+    endingTitle.textContent = 'A Goose Tale'
     const slot = document.createElement('div')
     slot.style.cssText = 'height:64px;margin-top:12px'
-    if (outroAgain) {
-      outroAgain.className = 'enter'
-      outroAgain.textContent = 'Play again'
-      ending.againPad = padBeside(outroAgain)
-      outroAgain.style.cssText = 'opacity:0;pointer-events:none;visibility:hidden'
+    if (againButton) {
+      againButton.className = 'enter'
+      againButton.textContent = 'Play again'
+      ending.againPad = padBeside(againButton)
+      againButton.style.cssText = 'opacity:0;pointer-events:none;visibility:hidden'
       let again = false
       const once = () => {
         if (again || !againShown()) return
         again = true
-        outroAgain.disabled = true
+        againButton.disabled = true
         location.reload()
       }
-      outroAgain.addEventListener('click', once)
+      againButton.addEventListener('click', once)
       ending.playAgain = once
-      slot.append(outroAgain)
+      slot.append(againButton)
     }
-    outroCard.append(outroTitle, slot)
-    if (outroBy) {
-      outroBy.textContent = 'a game by Mike Fernandez'
-      outroBy.href = 'https://www.mike-fernandez.dev/'
-      outroBy.target = '_blank'
-      outroBy.rel = 'noopener'
-      outroBy.style.cssText = 'position:absolute;bottom:max(20px,env(safe-area-inset-bottom));font:700 22px/1.2 Gaegu,cursive;color:#f6ead0;text-decoration:none;opacity:0;pointer-events:none;visibility:hidden'
-      outroCard.append(outroBy)
+    endingCard.append(endingTitle, slot)
+    if (madeBy) {
+      madeBy.textContent = 'a game by Mike Fernandez'
+      madeBy.href = 'https://www.mike-fernandez.dev/'
+      madeBy.target = '_blank'
+      madeBy.rel = 'noopener'
+      madeBy.style.cssText = 'position:absolute;bottom:max(20px,env(safe-area-inset-bottom));font:700 22px/1.2 Gaegu,cursive;color:#f6ead0;text-decoration:none;opacity:0;pointer-events:none;visibility:hidden'
+      endingCard.append(madeBy)
     }
-    document.body.append(outroCard)
+    document.body.append(endingCard)
   }
   /**
    * The hearts going up over the two of them once they meet (gooseoutro.ts heartsOf), drawn as the game's words are:
@@ -284,25 +285,25 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
     })
   }
   /** The ending a frame on: the dawn, the hearts, the fade and the title. */
-  function outroFrame() {
+  function endingFrame() {
     heartsFrame()
     if (!ending.running()) return
     dawnFrame(morningOf(ending.t))
     // Hidden until each shows, not only see-through: else Tab and a screen reader find them long before the ending.
-    if (outroCard) {
-      outroCard.style.opacity = String(fadeOf(ending.t))
-      outroCard.style.visibility = fadeOf(ending.t) > 0 ? '' : 'hidden'
+    if (endingCard) {
+      endingCard.style.opacity = String(fadeOf(ending.t))
+      endingCard.style.visibility = fadeOf(ending.t) > 0 ? '' : 'hidden'
     }
-    if (outroTitle) outroTitle.style.opacity = String(titleOf(ending.t))
-    if (outroAgain) {
-      outroAgain.style.opacity = String(againOf(ending.t))
-      outroAgain.style.pointerEvents = againShown() ? 'auto' : 'none'
-      outroAgain.style.visibility = againShown() ? '' : 'hidden'
+    if (endingTitle) endingTitle.style.opacity = String(titleOf(ending.t))
+    if (againButton) {
+      againButton.style.opacity = String(againOf(ending.t))
+      againButton.style.pointerEvents = againShown() ? 'auto' : 'none'
+      againButton.style.visibility = againShown() ? '' : 'hidden'
     }
-    if (outroBy) {
-      outroBy.style.opacity = String(byOf(ending.t) * 0.75)
-      outroBy.style.pointerEvents = byOf(ending.t) > 0 ? 'auto' : 'none'
-      outroBy.style.visibility = byOf(ending.t) > 0 ? '' : 'hidden'
+    if (madeBy) {
+      madeBy.style.opacity = String(byOf(ending.t) * 0.75)
+      madeBy.style.pointerEvents = byOf(ending.t) > 0 ? 'auto' : 'none'
+      madeBy.style.visibility = byOf(ending.t) > 0 ? '' : 'hidden'
     }
   }
   /** The swarm's lights with the dawn's first: reaching out from the two of them as it comes up, the rats draining off out of it. */

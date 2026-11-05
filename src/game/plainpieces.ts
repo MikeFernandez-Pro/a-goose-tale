@@ -1,13 +1,13 @@
 // The plain's own pieces of the route, as the edit mode (gooseedit.ts) and the route's saved places move them.
 import type { GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
-import type { createGooseScenes, EditPiece } from './goosescenes'
+import type { GooseScenes, EditPiece } from './goosescenes'
 import type { Lights } from '../light/lights'
 import type { Goslings } from '../characters/goslings'
 import { keptShown } from '../world/plain'
 
 /** The plain's pieces, on what the page has made. */
-export function createPlainPieces(goosePlay: GoosePlay<PlaySwarm>, gooseScenes: Awaited<ReturnType<typeof createGooseScenes>>, lights: Lights, goslings: Goslings, pitLight: number) {
+export function createPlainPieces(goosePlay: GoosePlay<PlaySwarm>, gooseScenes: GooseScenes, lights: Lights, goslings: Goslings, burningTreeLight: number) {
   /** The plain braziers, those with no scene, and their goslings while waiting, and the fire pit by each well, as edit pieces: moved only. */
   function plainPieces(): EditPiece[] {
     const play = goosePlay
@@ -38,7 +38,7 @@ export function createPlainPieces(goosePlay: GoosePlay<PlaySwarm>, gooseScenes: 
     return play.plain.braziers.flatMap((b, k): EditPiece[] => {
       if (b.scene || b.follows !== undefined) return []
       const light = play.level.lights[k]!
-      const stand = (k === pitLight ? gooseScenes.pit : undefined) ?? lights.object.children[k]
+      const stand = (k === burningTreeLight ? gooseScenes.pit : undefined) ?? lights.object.children[k]
       const g = play.goslings[k]
       const bird = goslings.object.children[k]
       const pieces: EditPiece[] = []

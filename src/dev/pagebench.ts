@@ -16,7 +16,7 @@ import type { Quality } from '../look/quality'
 import type { Rats } from '../swarm/rats'
 import type { DeadTreesMesh } from '../world/deadtrees'
 import type { BushesMesh } from '../world/bushes'
-import type { GroundFloor } from '../world/ground'
+import type { Floor } from '../world/ground'
 import type { createFallingLeaves } from '../world/fallingleaves'
 import type { Goose } from '../characters/goose'
 import type { Goslings } from '../characters/goslings'
@@ -40,7 +40,7 @@ export interface BenchParts {
   rats: Rats
   deadTreesMesh: DeadTreesMesh
   bushesMesh: BushesMesh
-  ground: GroundFloor
+  ground: Floor
   prepassOn: boolean
   fallingLeaves: ReturnType<typeof createFallingLeaves> | undefined
   goose: Goose

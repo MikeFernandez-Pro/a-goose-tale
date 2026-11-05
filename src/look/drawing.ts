@@ -6,8 +6,6 @@ import { maxPixelRatio } from './quality'
 
 /** The renderer made and put on the page, and what a device and the address ask of its frame. */
 export async function createDrawing() {
-  // A playback row a rat, and WebGPU's default limit is 8,192 rows: ask for what
-  // the adapter can give, so the count reaches its top.
   /** Where a phone has found this tab's WebGPU cannot draw the game: it stays on WebGL 2 for the tab. */
   const WEBGL_FOR_THE_TAB = 'a-goose-tale.webgl'
   const webglAsked = url.has('webgl') || (phone && sessionStorage.getItem(WEBGL_FOR_THE_TAB) === '1')
@@ -18,6 +16,8 @@ export async function createDrawing() {
   // The rats' vertices read storage buffers, and WebGPU's compatibility mode may allow none: no use trying, and failing, and
   // reloading. WebGL 2 from the first, as a Xiaomi Mi 9 needs.
   const forceWebGL = webglAsked || adapter?.limits.maxStorageBuffersInVertexStage === 0
+  // A playback row a rat, and WebGPU's default limit is 8,192 rows: ask for what
+  // the adapter can give, so the count reaches its top.
   // As much as the adapter has: past a device's defaults, the swarm's scan was refused and no rat drawn on a Xiaomi Mi 9.
   const requiredLimits = adapter && !forceWebGL
     ? {

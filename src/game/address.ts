@@ -26,7 +26,7 @@ export const touchOn = phone || url.has('touch')
 /** No panel but on the developer's page, nor there with `?nopanel` or on a phone: the whole screen is the game and the thumbs. */
 export const noPanel = !debugOn || url.has('nopanel') || phone
 /**
- * A feature, on by default in the goose game since 2026-10-30 (the tilt, the graveyard, the marker, the cheap bloom),
+ * A feature, on by default in the game since 2026-10-30 (the tilt, the graveyard, the marker, the cheap bloom),
  * `?key=0` turning it off.
  */
 export const featureOn = (key: string) => url.get(key) !== '0'

@@ -1,7 +1,7 @@
 // The loading: every pipeline the game will want built behind the screen, a slice a frame, so nothing stalls once it plays;
 // and the screen's count, and its Enter.
 import type { Scene, DirectionalLight, PointLight, Object3D, Mesh } from 'three/webgpu'
-import type { createPost } from '../look/post'
+import type { Post } from '../look/post'
 import type { Rats } from '../swarm/rats'
 import type { IslandGeese } from '../characters/islandgeese'
 import type { Ghosts } from '../characters/ghosts'
@@ -9,8 +9,8 @@ import type { Goslings } from '../characters/goslings'
 import type { Lights } from '../light/lights'
 import type { PlainFires } from '../light/plainfires'
 import type { Flame } from '../light/flame'
-import type { createEmbers } from '../light/embers'
-import type { createSmoke } from '../light/smoke'
+import type { Embers } from '../light/embers'
+import type { Smoke } from '../light/smoke'
 import type { GpuSwarm } from '../swarm/gpuswarm'
 import type { RemoteSwarm } from '../swarm/swarm-remote'
 import type { GooseSounds } from '../sound/goosesounds'
@@ -25,7 +25,7 @@ export const STEP_FRAME = 1
 /** The loading, on what the page has made. */
 export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings, lights, fires, flame, embers, smoke, sun, lamp, shadowed, swarm, gpuQueue, lean, benchTools, backend, allBuilt, gooseSounds }: {
   scene: Scene
-  post: ReturnType<typeof createPost>
+  post: Post
   rats: Rats
   islandGeese: IslandGeese
   ghosts: Ghosts | undefined
@@ -33,8 +33,8 @@ export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings
   lights: Lights
   fires: PlainFires
   flame: Flame
-  embers: ReturnType<typeof createEmbers>
-  smoke: ReturnType<typeof createSmoke>
+  embers: Embers
+  smoke: Smoke
   sun: DirectionalLight
   lamp: PointLight
   shadowed: { dirty: boolean }
@@ -68,9 +68,9 @@ export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings
    * the rain's streaks, the flames of the lights not yet lit, the torch's flame,
    * embers and smoke while it starts out, would build their pipelines only then,
    * and stall the strike, the rain's coming or the torch's first lighting (108 ms
-   * on the goose game, 2026-10-27); and what stands out of the cameras' sight at
+   * on the game, 2026-10-27); and what stands out of the cameras' sight at
    * the start, the sun's shadow camera's too, stalls his arrival where it stands
-   * (150-200 ms at the goose game's well, cage and pond); and the graveyard's
+   * (150-200 ms at the game's well, cage and pond); and the graveyard's
    * ghosts, asleep till he comes near, stalled him at the dead tree beside it
    * (350-550 ms, 2026-10-30); and the goslings out of sight, the moon's shadow
    * of the first to come into it (50 ms at the well); and the island's geese, drawn only near it, the mother stalled him
@@ -301,7 +301,7 @@ export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings
   }
 
   /**
-   * The goose game, built, waits on its loading screen for the player to enter, by its button or the controls' confirm:
+   * The game, built, waits on its loading screen for the player to enter, by its button or the controls' confirm:
    * their click, key or pad's press is what lets the browser play sounds, so the opening is heard from its first moment.
    * Safari takes no pad's press for it: it enters all the same, heard from the first click or key.
    * Filmed or driven by a tool, it goes straight in.

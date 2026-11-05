@@ -142,3 +142,6 @@ export function createSkyFog(scene: Scene, camera: PerspectiveCamera) {
     },
   }
 }
+
+/** The sky and the fog as the page has them. */
+export type SkyFog = ReturnType<typeof createSkyFog>
