@@ -97,13 +97,15 @@ import { keptRun, keepRun, dropKeptRun } from './game/keptrun'
 import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './game/gameplay'
 import { createLightning } from './world/lightning'
 import { flashAt } from './world/weather'
-import { CHAT, INTRO, afterglow, branchAt, branchFlare, branchLanded, roadAheadOf, cowering, flameGrown, goslingAt, litShare, ratsOut, rumbleAt, shakeAt, startled, walkAt, walkOf } from './game/gooseintro'
+import { CHAT, INTRO, afterglow, branchAt, branchFlare, cowering, flameGrown, litShare, ratsOut, rumbleAt, shakeAt, startled, walkOf } from './game/gooseintro'
 import { RemoteSwarm } from './swarm/swarm-remote'
 import { createBeats } from './game/beats'
 import { createDrawing } from './look/drawing'
 import { ladder, startingStep, Quality, PHONE_SLOW_FRAME } from './look/quality'
 import { createSkyFog } from './look/skyfog'
 import { createNightLights } from './light/nightlights'
+import { createOpening, SKIP_HOLD } from './game/opening'
+import { createOpeningShow } from './ui/openingshow'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
@@ -417,6 +419,15 @@ const goosePlay = new GoosePlay<GpuSwarm | RemoteSwarm>(
 )
 /** The ground's height under (x, z): the goose game's rolling plain. */
 const groundAt = (x: number, z: number) => gooseGround.at(x, z)
+/** How high he stands at (x, z): on the ground, down the pond's bank and into its water, afloat where it is too deep (pond.ts). */
+const standAt = (x: number, z: number) => groundAt(x, z) + standingIn(pondLook, x, z, pondLook.goose)
+/** Where he is heard from: his middle, where the play has him. */
+const hisAt = () => {
+  const { x, z } = goosePlay.holder
+  return { x, y: standAt(x, z) + 0.4, z }
+}
+/** The goose game's sounds (goosesounds.ts): none in a take, or with `?mute`; M mutes them. */
+const gooseSounds = !filming && !url.has('mute') ? createGooseSounds(camera) : undefined
 
 // The level and its rules, the goose play's. Its torch: it burns down, its light shrinking with the
 // fuel in a straight line to nothing, and grows back as he fills it at a fire. A and E (Q and E on a QWERTY keyboard)
@@ -425,29 +436,9 @@ const level = goosePlay.level
 const runTuning = goosePlay.runTuning
 /** The run, the goose play's. */
 const run = goosePlay.run
-/**
- * The opening (gooseintro.ts): in the goose game, unless `?intro=0` or the page films; its own clock, s, on with the
- * play's and held by its pause; the skip held SKIP_HOLD s (the space bar or the bottom face button) skips to its end.
- */
-const introOn = !url.has('film') && url.get('intro') !== '0'
-let introT = introOn ? 0 : INTRO.end
-const introRunning = () => introT < INTRO.end
-const SKIP_HOLD = 0.8
-/** How long the skip has been held, s: let go, it drains twice as fast. */
-let skipHolding = 0
-/** The opening over at once: he where his walk ends, the rest the play's from the next frame. */
-function skipIntro() {
-  introT = INTRO.end
-  skipHolding = 0
-  walkIntro()
-}
-/** The road he walks up in the opening, to where he starts. */
-const introWalk = introOn ? walkOf(goosePlay.plain.start, goosePlay.plain.road) : []
-/** The way on up the road from where he starts, the goslings bolting along it. */
-const introAhead = introOn ? roadAheadOf(goosePlay.plain.start, goosePlay.plain.road) : { x: 0, z: -1 }
-walkIntro()
 // The lit areas see every wall that stops the rats.
 areas.setWalls(new Walls(run.walls()))
+const opening = createOpening(goosePlay, spawnTree(goosePlay.plain))
 /** The torch as the swarm reads it: where the holder is, its reach as a share of the swarm's full light, and lit. */
 const light: Light = { x: run.holder.x, z: run.holder.z, strength: 0, on: false }
 /** Hand the swarm the torch as the run has it, and the debug switch: true if it went out or was relit. */
@@ -824,41 +815,6 @@ const CROWN_FROM = 0.4
 const BURNING_TURN = 0.6
 /** The burning tree as the dead trees lay it, with them. */
 let burningTree: DeadTree | undefined
-/** He walks up the road as the opening has him, facing the way he walks. */
-function walkIntro() {
-  if (introWalk.length === 0) return
-  // The lights as the settings have them, as the play will once it starts: the spawn brazier's strength the panel's.
-  goosePlay.place()
-  // The burning branch no light till it lands, falling from the crown.
-  goosePlay.landBranch(branchLanded(introT))
-  const { at, facing } = walkAt(introWalk, introT)
-  Object.assign(goosePlay.holder, at)
-  Object.assign(goosePlay.facing, facing)
-}
-/** Whether the opening has put the goslings where they wait, its last word on them: then the play has them. */
-let introSettled = false
-/**
- * How to skip the opening, at the foot of the screen while it runs, in the hold hint's hand and key: "hold to skip" by a
- * Space key filling as it is held, or on a pad by its round button.
- */
-const SKIP_KEY = 'box-sizing:border-box;font-size:24px;line-height:1.2;padding:1px 14px;border:3px solid #f6ead0;border-radius:11px;background:#0007;box-shadow:0 3px 0 #f6ead099'
-const skipHint = introOn ? document.createElement('div') : undefined
-const skipFill = document.createElement('div')
-const skipSpace = document.createElement('div')
-/** As tall as the Space key, borders and all, px. */
-const skipPad = createPadButton(37)
-if (skipHint) {
-  skipHint.style.cssText = 'position:fixed;right:28px;bottom:24px;display:flex;align-items:center;gap:10px;opacity:0;transition:opacity 0.6s;font-family:Gaegu,cursive;font-weight:700;font-size:26px;color:#f6ead0;text-shadow:0 2px 4px #000c;pointer-events:none'
-  skipSpace.style.cssText = `${SKIP_KEY};position:relative;overflow:hidden;width:96px;text-align:center`
-  skipFill.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:0;background:#e9a23b;opacity:0.6'
-  const label = document.createElement('span')
-  label.textContent = 'space'
-  label.style.position = 'relative'
-  skipSpace.append(skipFill, label)
-  const word = (text: string) => Object.assign(document.createElement('span'), { textContent: text })
-  skipHint.append(word('hold to skip'), skipSpace, skipPad.element)
-  document.body.append(skipHint)
-}
 /** Whether flame `k` of the burning tree is due to be drawn again: at TREE_FLAME_RATE, each flame's beat its own way round the second. Its first drawing at once. */
 function treeFlameDue(own: { drawnAt: number }, k: number): boolean {
   const beat = Math.floor(beats.clock * TREE_FLAME_RATE + ((k * 0.618034) % 1))
@@ -876,34 +832,13 @@ const TREE_FIRE_ROOM = 1
 let introFlashing = false
 const footFireAt = new Vector3()
 /** The strike on the burning tree as the opening has it, its bolt and sparks the hollow log's of 2026-10-24, its sparks shorter-lived. */
-const introLightning = introOn && pitLight >= 0 ? createLightning(1, { rising: false }) : undefined
+const introLightning = opening.on && pitLight >= 0 ? createLightning(1, { rising: false }) : undefined
 if (introLightning) {
   Object.assign(introLightning.look.bolt, { foot: 0xffbb00, top: 0x34a4f9, fade: 8, brightness: 1.3, thickness: 0.15, height: 0.45, jagged: 1.15, seconds: 0.8, drift: 1.05, ease: 7.5 })
   Object.assign(introLightning.look.sparks, { near: 0xff822e, far: 0xff7b00, fade: 4, brightness: 2.6, count: 128, size: 0.055, seconds: 0.55, reach: 4.5, ease: 7.5, fall: 0.6, round: true })
   introLightning.look.flash = 0.73
 }
-/**
- * A soft light over him and his goslings through the opening, only to lead the eye to them: gentle, a pale
- * pool `height` m over him, coming up over its first `fadeIn` s and gone over its last `fadeOut` s; no shadow from it.
- */
-const introLightLook = { show: true, color: 0xdde4ff, intensity: 2, reach: 5, height: 2.6, fadeIn: 1.5, fadeOut: 2 }
-const introLight = introOn ? fakeLamps.track(new FakeLamp(introLightLook.color, 0, introLightLook.reach, 0)) : undefined
-if (introLight) {
-  introLight.shadows = false
-  scene.add(introLight)
-}
-/** The opening's light over him as the opening has it now, out once it is over. */
-function introLightFrame() {
-  if (!introLight) return
-  const { show, color, intensity, reach, height, fadeIn, fadeOut } = introLightLook
-  const share = Math.min(1, introT / Math.max(fadeIn, 1e-3), (INTRO.end - introT) / Math.max(fadeOut, 1e-3))
-  introLight.intensity = show && introRunning() ? intensity * Math.max(0, share) : 0
-  if (!(introLight.intensity > 0)) return
-  introLight.color.setHex(color)
-  introLight.distance = reach
-  const { x, z } = goosePlay.holder
-  introLight.position.set(x, standAt(x, z) + height, z)
-}
+const openingShow = createOpeningShow({ opening, goosePlay, goose, camera, renderer, gooseSounds, hisAt, fakeLamps, scene, standAt })
 const sceneFireFoot = new Vector3()
 // The ground laid under each well, where the play stands it.
 ground.setWells(goosePlay.scenes.filter((s) => s.kind === 'well'))
@@ -1428,8 +1363,6 @@ function withDawn(lights: FixedLight[]): FixedLight[] {
 }
 // The bed under the pond's water takes less light, as deep as the water lies.
 ground.setWaterLevel(pondLook.water)
-/** How high he stands at (x, z): on the ground, down the pond's bank and into its water, afloat where it is too deep (pond.ts). */
-const standAt = (x: number, z: number) => groundAt(x, z) + standingIn(pondLook, x, z, pondLook.goose)
 
 /**
  * DEBUG: where things are done, as rings on the ground: orange, a flame's dip, or a scene's fire's zone, the interact
@@ -1803,7 +1736,7 @@ const panel = noPanel || filming ? undefined : dev?.createPanel(settings, tuning
     refillZones,
     dark: darkLook,
     feel,
-    introLight: introLight && introLightLook,
+    introLight: openingShow.introLight && openingShow.introLightLook,
     // The pond folder lays the pond again on every change.
     pond: { look: pondLook, changed: () => {
         pond.set(pondLook)
@@ -1984,7 +1917,7 @@ function controlsState(loading: boolean): ControlsState {
   if (editMode?.on || document.activeElement instanceof HTMLInputElement) return 'none'
   if (loading) return 'loading'
   if (settings.paused) return 'paused'
-  if (introRunning()) return 'opening'
+  if (opening.running()) return 'opening'
   if (outroRunning()) return againShown() ? 'playAgain' : 'ending'
   return 'play'
 }
@@ -2003,7 +1936,7 @@ function controlsFrame(loading: boolean) {
   // words Resume and Play again are buttons themselves, and a second there would be one too many.
   const touchShown = !!thumbs && (phone || commands.device === 'touch')
   thumbsShown = touchShown && (state === 'opening' || state === 'play')
-  thumbs?.draw(gooseControls.thumbs, { stick: touchShown && state === 'play', button: thumbsShown, pause: touchShown && (state === 'opening' || state === 'play' || state === 'ending') }, state === 'opening' ? skipHolding / SKIP_HOLD : 0)
+  thumbs?.draw(gooseControls.thumbs, { stick: touchShown && state === 'play', button: thumbsShown, pause: touchShown && (state === 'opening' || state === 'play' || state === 'ending') }, state === 'opening' ? opening.skipHolding / SKIP_HOLD : 0)
 }
 /** His walk as it eases: the way he moves and the share of his pace he moves at, as x and z. */
 const walking = { x: 0, z: 0 }
@@ -2040,7 +1973,7 @@ addEventListener(
     if (!(event.code in WALK_KEYS) && !(event.code in DIAL) && event.code !== SPACE) return
     // A panel button last clicked keeps the focus, and Space would press it. Before the play, the loading screen's
     // Enter keeps its focus.
-    if (event.code === SPACE && !introRunning() && document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    if (event.code === SPACE && !opening.running() && document.activeElement instanceof HTMLElement) document.activeElement.blur()
     event.preventDefault()
     pressed.add(event.code)
   },
@@ -2214,7 +2147,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
     islandFireFlame.place(sceneFireFoot.set(islandFireAt.x, islandFireAt.y + own.foot * size, islandFireAt.z))
   }
   burningTreeFrame(newBeat)
-  introLightFrame()
+  openingShow.introLightFrame()
   // In the torch, the lamp burns where the torch rests, the head's sway left out (2026-10-11): it moves with him
   // and never swings with his head. Else it hangs over the goose, easing after it.
   if (look.lamp.inFlame) lamp.position.copy(torchRest)
@@ -2728,7 +2661,7 @@ function cameraLeanFrame(dt: number) {
   let x = 0
   let y = 0
   let z = 0
-  if (!introRunning() && !outroRunning() && Number.isNaN(goosePlay.fallen) && torchFilledOnce()) {
+  if (!opening.running() && !outroRunning() && Number.isNaN(goosePlay.fallen) && torchFilledOnce()) {
     const { holder, run } = goosePlay
     let near = -1
     let off = lean.from
@@ -2794,13 +2727,13 @@ function gooseFrame(dt: number, held: number) {
   goosePlay.setPumpkins(gooseScenes.pumpkinBodies(goosePlay))
   deadTreesMesh.placeOwn(gooseScenes.ownTrees(goosePlay))
   // Calm until the strike: he and his goslings walk. Struck, he jumps in fright and they cower, till they bolt.
-  const calm = introRunning() && introT < INTRO.strike
+  const calm = opening.running() && opening.t < INTRO.strike
   goose.setCalm(calm)
-  goose.setStartle(introRunning() ? startled(introT) : undefined)
+  goose.setStartle(opening.running() ? startled(opening.t) : undefined)
   goose.setDying(dyingAt())
   goslings.calm = calm
-  goslings.scared = introRunning() && cowering(introT)
-  shoutFrame()
+  goslings.scared = opening.running() && cowering(opening.t)
+  openingShow.shoutFrame()
   biteFrame()
   torchFrame(dt, held)
   rumbleFrame()
@@ -2808,12 +2741,12 @@ function gooseFrame(dt: number, held: number) {
   gooseSoundsFrame(dt)
   islandGeese.direct(outroCue())
   outroFrame()
-  if (introOn && !introSettled) introGoslings()
+  if (opening.on && !opening.settled) opening.goslingsFrame()
   // Bolting in the opening, none is in its scene yet: up its tree or down its well.
   islandGeese.object.visible = outroRunning() || islandNear()
   if (islandGeese.object.visible) islandGeese.update(dt, held)
-  goslings.update(goosePlay, dt, held, !introOn || introSettled ? (k) => gooseScenes.lift(goosePlay, k) : undefined, outroRunning() ? outroAct : undefined)
-  skipHintFrame()
+  goslings.update(goosePlay, dt, held, !opening.on || opening.settled ? (k) => gooseScenes.lift(goosePlay, k) : undefined, outroRunning() ? outroAct : undefined)
+  openingShow.skipHintFrame(commands)
 }
 
 /** How far past the island's waterline the camera's view wakes its geese, m: their shadows and a little more. */
@@ -2824,53 +2757,6 @@ function islandNear(): boolean {
   let widest = 0
   for (let k = 0; k < 16; k++) widest = Math.max(widest, islandShoreAt(pondLook.island, (k / 16) * Math.PI * 2))
   return inView(middle.x, middle.z, widest + ISLAND_SHADOWS)
-}
-
-/** His goslings in the opening, walking round his back: not a ghost's, who follows it in the graveyard. */
-const openingBrood = () => goosePlay.goslings.flatMap((g, k) => (g && goosePlay.plain.braziers[k]!.follows === undefined ? [k] : []))
-
-/**
- * The goslings as the opening has them: walking round his back, bolting up the plain, then where each waits; the
- * spawn's own, freezing, running only to his place at the light's edge. Over or skipped, each where he waits.
- */
-function introGoslings() {
-  const play = goosePlay
-  const found = openingBrood()
-  found.forEach((k, index) => Object.assign(play.goslings[k]!, goslingAt(introT, k, index, found.length, play.holder, play.facing, introAhead, play.waitsAt[k]!, k === pitLight)))
-  introSettled = !introRunning()
-}
-
-/** His shouts after his goslings as they bolt: HONK! over his head, one at each of INTRO.shouts, popping up and rising off it, SHOUT_SHOWS s each. */
-const SHOUT_SHOWS = 0.9
-const shouts = introOn
-  ? INTRO.shouts.map(() => {
-      const word = document.createElement('div')
-      word.textContent = 'HONK!'
-      word.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;opacity:0;white-space:nowrap;font-family:Gaegu,cursive;font-weight:700;font-size:46px;line-height:1;color:#f6ead0;text-shadow:0 2px 4px #000c'
-      document.body.append(word)
-      return word
-    })
-  : []
-const shoutAt = new Vector3()
-/** The last of his shouts heard. */
-let shoutsHeard = -1
-function shoutFrame() {
-  shouts.forEach((word, k) => {
-    const age = introT - INTRO.shouts[k]!
-    const shown = introRunning() && age >= 0 && age < SHOUT_SHOWS
-    if (shown && k > shoutsHeard) {
-      shoutsHeard = k
-      gooseSounds?.play('honk', hisAt())
-    }
-    word.style.opacity = shown ? String(Math.min(1, age / 0.06) * Math.min(1, (SHOUT_SHOWS - age) / 0.35)) : '0'
-    if (!shown) return
-    shoutAt.set(goose.object.position.x, goose.object.position.y + 1.05, goose.object.position.z).project(camera)
-    const box = renderer.domElement.getBoundingClientRect()
-    const x = box.left + ((shoutAt.x + 1) / 2) * box.width + (k % 2 ? 34 : -34)
-    const y = box.top + ((1 - shoutAt.y) / 2) * box.height - 46 * Math.min(1, age / 0.45)
-    const pop = age < 0.1 ? 0.6 + (age / 0.1) * 0.75 : Math.max(1, 1.35 - (age - 0.1) * 1.2)
-    word.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%) rotate(${k % 2 ? 9 : -9}deg) scale(${pop})`
-  })
 }
 
 /** Whether the rats have rushed in yet. */
@@ -2919,7 +2805,7 @@ const ratsForGoslings = () => (settings.rats > 0 ? ratsCameFor * RATS_PER_GOSLIN
 function ratsComeFrame(dt: number): boolean {
   const circle = goosePlay.circleHeard
   // Through the opening, or the play started again: none come for those with him.
-  if (introRunning() || circle < ratsCameFor) {
+  if (opening.running() || circle < ratsCameFor) {
     ratsCameFor = circle
     ratsDueIn = -1
     return false
@@ -2931,27 +2817,6 @@ function ratsComeFrame(dt: number): boolean {
   return true
 }
 
-/** How high the words stand over the screen's foot on touch, px: clear of the button. */
-const SKIP_OVER_BUTTON = 102
-function skipHintFrame() {
-  if (!skipHint) return
-  const shown = introRunning() && introT > 0.8 && introT < INTRO.end - 0.6
-  skipHint.style.opacity = shown ? '0.8' : '0'
-  const share = Math.min(1, skipHolding / SKIP_HOLD)
-  const prompted = promptedOf(commands)
-  skipSpace.style.display = prompted ? 'none' : ''
-  // On touch no button of its own: the words stand over the one button there is, which fills.
-  skipPad.update(prompted === 'touch' ? null : prompted, share)
-  skipHint.style.bottom = prompted === 'touch' ? `${SKIP_OVER_BUTTON}px` : '24px'
-  skipFill.style.width = `${Math.round(share * 100)}%`
-}
-/** The skip held through `frame` s of the page: skipped once held SKIP_HOLD s. */
-function skipHoldFrame(frame: number) {
-  if (!introRunning()) return
-  skipHolding = commands.skip ? skipHolding + frame : Math.max(0, skipHolding - 2 * frame)
-  if (skipHolding >= SKIP_HOLD) skipIntro()
-}
-
 /**
  * The burning tree: its lamp as lit as the opening has it; a flame on each cluster of its crown, grown in as the fire
  * reaches it from the top down, swaying with its branch; one at its foot once the fire is down to its lowest; and the
@@ -2960,7 +2825,7 @@ function skipHoldFrame(frame: number) {
 function burningTreeFrame(newBeat: boolean) {
   if (pitLight < 0) return
   const stop = look.stopMotion
-  lights.setLamp(pitLight, fireLook.lamp, crownFireLook.intensity * litShare(introT))
+  lights.setLamp(pitLight, fireLook.lamp, crownFireLook.intensity * litShare(opening.t))
   const { height, width, foot } = crownFireLook
   if (!burningTree) return
   camera.updateMatrixWorld()
@@ -2972,7 +2837,7 @@ function burningTreeFrame(newBeat: boolean) {
   if (!treeSeen) for (const own of [...crownFires, ...trunkFires]) if (own) own.fire.object.visible = false
   ;(treeSeen ? gooseScenes.burningFlames(burningTree, crownAt) : []).forEach(({ up }, k) => {
     const own = (crownFires[k] ??= { fire: plainFlame(), size: 0.7 + 0.6 * ((k * 0.618034) % 1), drawnAt: -Infinity })
-    const size = own.size * flameGrown(introT, CROWN_FROM + (1 - CROWN_FROM) * up)
+    const size = own.size * flameGrown(opening.t, CROWN_FROM + (1 - CROWN_FROM) * up)
     // Out of the camera's view, neither drawn nor shaped: the crown is mostly over the game's frame.
     const seen = crownView.intersectsSphere(crownSphere.set(crownAt[k]!, crownFireLook.height * own.size))
     own.fire.object.visible = look.flame.enabled && size > 0 && seen
@@ -2983,7 +2848,7 @@ function burningTreeFrame(newBeat: boolean) {
   })
   ;(treeSeen ? gooseScenes.burningTrunk(burningTree, trunkAt) : []).forEach(({ radius }, k, all) => {
     const own = (trunkFires[k] ??= { fire: plainFlame(), size: 0.8 + 0.4 * ((k * 0.618034 + 0.3) % 1), drawnAt: -Infinity })
-    const size = own.size * flameGrown(introT, (CROWN_FROM * (k + 1)) / (all.length + 1))
+    const size = own.size * flameGrown(opening.t, (CROWN_FROM * (k + 1)) / (all.length + 1))
     own.fire.object.visible = look.flame.enabled && size > 0
     if (!own.fire.object.visible) return
     // Out on the trunk's side toward the camera, wrapping it.
@@ -3003,7 +2868,7 @@ function burningTreeFrame(newBeat: boolean) {
     const d = Math.hypot(start.x - at.x, start.z - at.z) || 1
     const x = at.x + ((start.x - at.x) / d) * FOOT_FIRE
     const z = at.z + ((start.z - at.z) / d) * FOOT_FIRE
-    const grown = flameGrown(introT, 0)
+    const grown = flameGrown(opening.t, 0)
     footFire.object.visible = look.flame.enabled && grown > 0 && treeSeen
     if (footFire.object.visible) {
       footFire.set({ ...look.flame, height: footFireLook.height * grown, width: footFireLook.width * grown, glow: fireLook.glow, lean: 0 })
@@ -3012,9 +2877,9 @@ function burningTreeFrame(newBeat: boolean) {
     }
   }
   if (introLightning) {
-    const struck = introT >= INTRO.strike ? INTRO.strike : Number.NaN
-    introLightning.update(introT, [{ at: burningTree, due: INTRO.strike, time: struck }], goosePlay.holder, standAt)
-    const flash = Math.max(flashAt(introT - INTRO.strike), afterglow(introT)) * introLightning.look.flash * (calm ? 0.2 : 1)
+    const struck = opening.t >= INTRO.strike ? INTRO.strike : Number.NaN
+    introLightning.update(opening.t, [{ at: burningTree, due: INTRO.strike, time: struck }], goosePlay.holder, standAt)
+    const flash = Math.max(flashAt(opening.t - INTRO.strike), afterglow(opening.t)) * introLightning.look.flash * (calm ? 0.2 : 1)
     if (flash > 0 || introFlashing) flashFrame(flash)
     introFlashing = flash > 0
   }
@@ -3052,7 +2917,7 @@ function branchFrame(newBeat: boolean, held: number) {
   const away = Math.atan2(branch.z - tree.z, branch.x - tree.x)
   branchTo.set(branch.x, standAt(branch.x, branch.z) + BRANCH_LIFT, branch.z)
   branchFrom.set(tree.x + Math.cos(away) * BRANCH_FROM_OUT, groundAt(tree.x, tree.z) + BRANCH_FROM_UP, tree.z + Math.sin(away) * BRANCH_FROM_OUT)
-  const fall = introOn ? branchAt(introT, branchFrom, branchTo) : { at: branchTo, tumble: 0, shown: true, landed: true }
+  const fall = opening.on ? branchAt(opening.t, branchFrom, branchTo) : { at: branchTo, tumble: 0, shown: true, landed: true }
   burningBranch.object.visible = fall.shown
   burningBranch.place(lyingPose(branchAtNow.set(fall.at.x, fall.at.y, fall.at.z), away + BRANCH_TURN, length, BRANCH_RISE, fall.tumble, branchLaid))
   burningBranch.end(branchFlameAt)
@@ -3072,13 +2937,11 @@ function branchFrame(newBeat: boolean, held: number) {
 /** The lights as the rats feel them, the burning branch's flaring as it lands in the opening. */
 function branchFlared<T extends FixedLight>(placed: readonly T[]): readonly T[] {
   const k = goosePlay.branch?.light
-  if (k === undefined || !introRunning()) return placed
-  const flare = branchFlare(introT)
+  if (k === undefined || !opening.running()) return placed
+  const flare = branchFlare(opening.t)
   return flare === 1 ? placed : placed.map((one, j) => (j === k ? { ...one, reach: one.reach * flare } : one))
 }
 
-/** The goose game's sounds (goosesounds.ts): none in a take, or with `?mute`; M mutes them. */
-const gooseSounds = !filming && !url.has('mute') ? createGooseSounds(camera) : undefined
 /**
  * Its music: the track looped under it all (goosesounds.ts' `music`); or, with `?lullaby`, the lullaby made as it plays
  * (goosemusic.ts), growing with his goslings, `?music=N` holding it at layer N. Neither with `?nomusic`.
@@ -3105,11 +2968,6 @@ if (gooseSounds) {
     // The takes as ElevenLabs gave them come from the dev server alone.
     if (import.meta.env.DEV) dev?.mountTakesPanel()
   }
-}
-/** Where he is heard from: his middle, where the play has him. */
-const hisAt = () => {
-  const { x, z } = goosePlay.holder
-  return { x, y: standAt(x, z) + 0.4, z }
 }
 /** Whether the strike's fright has been heard; which goslings were with him last frame. */
 let frightHeard = false
@@ -3160,7 +3018,7 @@ const ISLAND_JITTER = [0.6, 1.4] as const
 const ISLAND_GAIN = [0.45, 0.75] as const
 let islandCallWait = 0
 function islandCallsFrame(dt: number) {
-  if (!pondLook.island.show || introRunning()) return
+  if (!pondLook.island.show || opening.running()) return
   const stage = outroStage
   let close = 1
   if (stage) {
@@ -3212,7 +3070,7 @@ function peepWordsFrame(dt: number) {
 let excitedWait = 0
 /** The nearest gosling still waiting, if the goose has lit his torch once and the gosling is within EXCITED_FROM m, peeping the quicker the nearer the goose comes. */
 function excitedFrame(dt: number) {
-  if (!gooseSounds || introRunning() || dt <= 0 || !torchFilledOnce()) return
+  if (!gooseSounds || opening.running() || dt <= 0 || !torchFilledOnce()) return
   const { holder } = goosePlay
   let near = -1
   let off = EXCITED_FROM
@@ -3278,11 +3136,11 @@ const CHAT_GAIN = 0.75
 const HIS_HEAD = 0.95
 let chatHeard = 0
 function chatFrame() {
-  for (let line = CHAT[chatHeard]; line && introT >= line.at; line = CHAT[++chatHeard]) {
+  for (let line = CHAT[chatHeard]; line && opening.t >= line.at; line = CHAT[++chatHeard]) {
     // Skipped past, or come to the strike: unsaid.
-    if (!introRunning() || introT >= INTRO.strike) continue
+    if (!opening.running() || opening.t >= INTRO.strike) continue
     if (typeof line.who === 'number') {
-      const found = openingBrood()
+      const found = opening.brood()
       if (found.length) happyPeep(found[line.who % found.length]!, CHAT_GAIN)
       continue
     }
@@ -3314,10 +3172,10 @@ const leavesLoop = gooseSounds?.loop('leaves')
 function gooseSoundsFrame(dt: number) {
   if (!gooseSounds) return
   gooseSounds.hushed = settings.paused || !loaded
-  gooseMusic?.frame(!introRunning(), goosePlay.circle, goosePlay.goslings.filter(Boolean).length)
+  gooseMusic?.frame(!opening.running(), goosePlay.circle, goosePlay.goslings.filter(Boolean).length)
   if (backgroundMusic) {
     if (outroRunning()) musicIn = Math.max(0, musicIn - dt / MUSIC_FADE_OUT)
-    else if (!introRunning() && !gooseSounds.hushed && gooseSounds.context.state === 'running') musicIn = Math.min(1, musicIn + dt / MUSIC_FADE)
+    else if (!opening.running() && !gooseSounds.hushed && gooseSounds.context.state === 'running') musicIn = Math.min(1, musicIn + dt / MUSIC_FADE)
     backgroundMusic.set(musicIn * musicIn)
   }
   const at = hisAt()
@@ -3328,7 +3186,7 @@ function gooseSoundsFrame(dt: number) {
     gooseSounds.patter(k, here, dt, swimmingIn(pondLook, g.x, g.z, pondLook.gosling))
     const back = g.state !== 'waiting'
     // Back with him: a run of happy peeps, each after the last at a gap of its own.
-    if (back && withHer[k] === false && !introRunning()) {
+    if (back && withHer[k] === false && !opening.running()) {
       const [least, most] = FOUND_PEEPS
       const peeps = least + Math.floor(Math.random() * (most - least + 1))
       for (let p = 0, after = 0; p < peeps; p++, after += FOUND_GAP[0] + Math.random() * (FOUND_GAP[1] - FOUND_GAP[0])) happyPeep(k, 1, after)
@@ -3340,16 +3198,16 @@ function gooseSoundsFrame(dt: number) {
   islandCallsFrame(dt)
   outroPeepsFrame()
   chatFrame()
-  if (introOn && !openingSkipped) {
+  if (opening.on && !openingSkipped) {
     openingClock += dt
-    if (!introRunning() && openingClock < INTRO.end - 0.1) openingSkipped = true
+    if (!opening.running() && openingClock < INTRO.end - 0.1) openingSkipped = true
   }
-  if (introRunning() && !frightHeard && introT >= INTRO.strike) {
+  if (opening.running() && !frightHeard && opening.t >= INTRO.strike) {
     frightHeard = true
     gooseSounds.play('fright', at)
     const tree = run.lights()[pitLight]
     if (tree) gooseSounds.play('thunder', { x: tree.x, y: standAt(tree.x, tree.z) + 2, z: tree.z })
-    openingBrood().forEach((k) => {
+    opening.brood().forEach((k) => {
       const g = goosePlay.goslings[k]!
       const here = { x: g.x, y: standAt(g.x, g.z) + 0.2, z: g.z }
       for (const [soonest, latest] of COWER_PEEPS) gooseSounds.play('cower_peep', here, 1, soonest + Math.random() * (latest - soonest))
@@ -3358,7 +3216,7 @@ function gooseSoundsFrame(dt: number) {
   goosePlay.goslings.forEach((g, k) => {
     const was = goslingWas[k]
     goslingWas[k] = g && { x: g.x, z: g.z }
-    if (!g || !was || dt <= 0 || !introRunning() || introT < INTRO.bolt || goosePlay.plain.braziers[k]!.follows !== undefined) return
+    if (!g || !was || dt <= 0 || !opening.running() || opening.t < INTRO.bolt || goosePlay.plain.braziers[k]!.follows !== undefined) return
     const pace = Math.hypot(g.x - was.x, g.z - was.z) / dt
     if (pace < PANIC_PACE[0] || pace > PANIC_PACE[1]) return
     panicWait[k] = (panicWait[k] ?? Math.random() * PANIC_PEEPS[0]) - dt
@@ -3371,7 +3229,7 @@ function gooseSoundsFrame(dt: number) {
     callsAfterHeard++
     gooseSounds.play('honk', at, after.gain)
   }
-  if (!introRunning() && dt > 0) {
+  if (!opening.running() && dt > 0) {
     mutterWait -= dt
     if (mutterWait <= 0) {
       mutterWait = MUTTER_PAUSE[0] + Math.random() * (MUTTER_PAUSE[1] - MUTTER_PAUSE[0])
@@ -3380,7 +3238,7 @@ function gooseSoundsFrame(dt: number) {
   }
   run.lights().forEach((light, k) => {
     const loop = (fireLoops[k] ??= gooseSounds.loop(k === pitLight ? 'fire_crackling' : 'fire_calm'))
-    loop.set(k === pitLight ? litShare(introT) : light.on ? 1 : 0, { x: light.x, y: standAt(light.x, light.z) + 0.6, z: light.z })
+    loop.set(k === pitLight ? litShare(opening.t) : light.on ? 1 : 0, { x: light.x, y: standAt(light.x, light.z) + 0.6, z: light.z })
   })
   torchLoop?.set(torchHeard.level, { x: at.x, y: at.y + 0.5, z: at.z }, torchHeard.faster)
   // From the shore nearest him, or from him once he is in.
@@ -3424,7 +3282,7 @@ function ghostsNear(): boolean {
 }
 /** Now and then, the ghost nearest him moans, from where it walks, if near enough. */
 function ghostsHeardFrame(dt: number) {
-  if (!ghosts || !gooseSounds || introRunning() || dt <= 0) return
+  if (!ghosts || !gooseSounds || opening.running() || dt <= 0) return
   ghostWait -= dt
   if (ghostWait > 0) return
   ghostWait = GHOST_PAUSE[0] + Math.random() * (GHOST_PAUSE[1] - GHOST_PAUSE[0])
@@ -3527,7 +3385,7 @@ function holdHintFrame() {
   holdShown = false
   if (!holdHint) return
   holdHint.prompt(promptedOf(commands))
-  if (introRunning() || outroRunning() || goosePlay.down) return holdHint.update(null, 0)
+  if (opening.running() || outroRunning() || goosePlay.down) return holdHint.update(null, 0)
   const well = goosePlay.scenes.find((s) => s.kind === 'well' && s.near)
   const winching = well?.kind === 'well'
   const tree = goosePlay.scenes.find((s) => s.kind === 'tree' && s.near)
@@ -3575,7 +3433,7 @@ const darkOn = new Vector3()
 /** His life, shown on the frame alone: its colour draining with it, grey as it runs out; his death's dark swirling in as he falls, black, coming back as he wakes; in full colour and clear through the opening and the ending. */
 function lifeFrame() {
   const { fallen, woken } = goosePlay
-  const scripted = introRunning() || outroRunning()
+  const scripted = opening.running() || outroRunning()
   const { after, finish, progress } = darkLook
   // The fall as long as his death and the dark take, read live; his torch dying over both, so the rats close in slowly
   // and never bury him as he dies.
@@ -3707,7 +3565,7 @@ let sinceIntro = 0
  * coming, and peeps happily instead (excitedFrame). With none left waiting, the badge stays on the gosling leading him home, quiet, till the ending.
  */
 function callHintFrame(dt: number) {
-  if (!callHint || introRunning()) return
+  if (!callHint || opening.running()) return
   if (outroRunning()) {
     callBadge?.update(null, 0, dt)
     return callHint.update(null, dt)
@@ -3792,7 +3650,7 @@ function aheadFrame() {
   const { branch } = goosePlay
   const branchLying = branch !== undefined && !branch.carried && branch.landed
   // In the opening, the branch's alone, Space skipping it till it ends.
-  if ((introRunning() && !branchLying) || outroRunning() || goosePlay.atRefill || (goosePlay.atBranch && !introRunning()) || goosePlay.scenes.some((s) => s.near)) return aheadHint.update(null, 0)
+  if ((opening.running() && !branchLying) || outroRunning() || goosePlay.atRefill || (goosePlay.atBranch && !opening.running()) || goosePlay.scenes.some((s) => s.near)) return aheadHint.update(null, 0)
   const { holder } = goosePlay
   const box = renderer.domElement.getBoundingClientRect()
   if (branch && branchLying) {
@@ -4116,7 +3974,7 @@ function enterWhenAsked(go: () => void) {
 }
 
 /** Whether a shot is in over the orbit: the opening's or the ending's. */
-const shotIn = () => introRunning() || outroRunning()
+const shotIn = () => opening.running() || outroRunning()
 /** The orbit's camera kept, to put back once the frame is drawn. */
 const orbitAt = new Vector3()
 const orbitTurn = new Quaternion()
@@ -4129,11 +3987,11 @@ const STILL_CAMERA = { x: 0, y: 0, z: 0 }
 function standAtShots(): boolean {
   const knocked = !calm && !shotIn() && cameraKnock.lengthSq() > 0
   const moved = shotIn() || knocked
-  if (moved && introRunning()) {
+  if (moved && opening.running()) {
     orbitAt.copy(camera.position)
     orbitTurn.copy(camera.quaternion)
     // The game's own camera, thrown about by the strike.
-    const shake = calm ? STILL_CAMERA : shakeAt(introT)
+    const shake = calm ? STILL_CAMERA : shakeAt(opening.t)
     camera.position.add(looking.set(shake.x, shake.y, shake.z))
     camera.lookAt(controls.target.x + shake.x * 0.6, controls.target.y + shake.y * 0.6, controls.target.z + shake.z * 0.6)
   } else if (moved && outroRunning()) {
@@ -4419,7 +4277,7 @@ let runToTakeUp = keeping ? keptRun() : undefined
 let keepIn = KEEP_EVERY
 /** The run kept now, unless he is yet to have a run worth keeping, or it is over. */
 function keepTheRun() {
-  if (!keeping || !goosePlay.armed || introRunning() || outroRunning() || goosePlay.down) return
+  if (!keeping || !goosePlay.armed || opening.running() || outroRunning() || goosePlay.down) return
   keepRun(goosePlay.saved())
 }
 if (keeping) {
@@ -4430,7 +4288,7 @@ if (keeping) {
 function keptRunFrame(frame: number) {
   if (!keeping) return
   if (runToTakeUp) {
-    skipIntro()
+    opening.skip()
     rushed = true
     goosePlay.restore(runToTakeUp)
     ratsCameFor = goosePlay.circleHeard
@@ -4455,7 +4313,7 @@ function watchFrames(ms: number) {
   if (ms > watched.worst) [watched.worst, watched.next] = [ms, watched.worst]
   else if (ms > watched.next) watched.next = ms
   if (now - watched.from < 1000) return
-  benchTools?.logToServer({ kind: 'second', ms: Math.round(now), opening: Math.round(introT * 10) / 10, frames: watched.frames, worst: Math.round(watched.worst), next: Math.round(watched.next), rats: swarm.count, drawn: rats.drawn, step: quality.level })
+  benchTools?.logToServer({ kind: 'second', ms: Math.round(now), opening: Math.round(opening.t * 10) / 10, frames: watched.frames, worst: Math.round(watched.worst), next: Math.round(watched.next), rats: swarm.count, drawn: rats.drawn, step: quality.level })
   Object.assign(watched, { frames: 0, worst: 0, next: 0, from: now })
 }
 
@@ -4487,7 +4345,7 @@ renderer.setAnimationLoop(() => {
   if (!loading) keptRunFrame(frame)
   const dt = settings.paused || loading ? 0 : Math.min(frame, FRAME_CAP)
   beats.clock += dt
-  if (introRunning()) introT = Math.min(INTRO.end, introT + dt)
+  if (opening.running()) opening.t = Math.min(INTRO.end, opening.t + dt)
   if (outroRunning()) outroT = Math.min(OUTRO.end, outroT + dt)
   controlsFrame(loading)
   // The chase camera's hold on the mouse let go, for a click to reach the veil.
@@ -4503,7 +4361,7 @@ renderer.setAnimationLoop(() => {
   }
   enterPad?.update(besideOf(commands))
   againPad?.update(besideOf(commands))
-  if (!loading) skipHoldFrame(frame)
+  if (!loading) opening.skipFrame(commands.skip, frame)
   const newBeat = beats.frame(lookChanged)
   const stop = look.stopMotion
   // The run's time: held on the beat, and on a baked frame of the clip when snapping, so a held pose is a pose and not a blend.
@@ -4533,7 +4391,7 @@ renderer.setAnimationLoop(() => {
   if (!settings.paused && !loading) {
     if (outroRunning()) {
       walkOutro()
-    } else if (!introRunning()) {
+    } else if (!opening.running()) {
       // His walk eased to the one asked: a little weight to him, starting and stopping.
       const share = walkFrame(heading(commands.walk), dt)
       // Slower in the water: his walking pace given way to his swimming one as he takes to it.
@@ -4556,7 +4414,7 @@ renderer.setAnimationLoop(() => {
         stood = Number.NaN
       }
     } else {
-      walkIntro()
+      opening.walk()
     }
   }
   gooseFrame(dt, held)
@@ -4572,7 +4430,7 @@ renderer.setAnimationLoop(() => {
   // The burning branch's light flaring as it lands, before the dawn's comes first of them.
   const keptOff = withDawn([...branchFlared(goosePlay.lights())])
   swarmTime.value = swarm.time
-  const drawn = wakeFlare(branchFlared(introRunning() && pitLight >= 0 ? placed.map((p, k) => (k === pitLight ? { ...p, reach: p.reach * litShare(introT) } : p)) : placed))
+  const drawn = wakeFlare(branchFlared(opening.running() && pitLight >= 0 ? placed.map((p, k) => (k === pitLight ? { ...p, reach: p.reach * litShare(opening.t) } : p)) : placed))
   lights.update(drawn)
   skyFog.lightUp(drawn, run.torch, run.torch.lit && settings.on, nightLights.torchFlare)
   refillZonesFrame(drawn)
@@ -4613,8 +4471,8 @@ renderer.setAnimationLoop(() => {
   const wanted = fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, Math.round((settings.rats + ratsForGoslings()) * quality.step.rats * benchRatShare))
   // The goose game's goslings in the dark pull the rats near them (#188).
   // Held till the strike, but stepped once on the loading screen with the rest, so its first step builds nothing.
-  const ratsHeld = introOn && !ratsOut(introT) && !loading
-  if (introOn && !rushed && ratsOut(introT) && dark) {
+  const ratsHeld = opening.on && !ratsOut(opening.t) && !loading
+  if (opening.on && !rushed && ratsOut(opening.t) && dark) {
     rushed = true
     rushIn(dark, 0, wanted)
     // The ground rumbles under them.
@@ -4673,7 +4531,7 @@ renderer.setAnimationLoop(() => {
     shadowed.dirty = false
   }
   // In the opening, none till the strike brings them.
-  if (introOn) rats.object.visible = ratsOut(introT)
+  if (opening.on) rats.object.visible = ratsOut(opening.t)
   fallingLeaves?.update(dt, followed.x, followed.z)
   islandTree.update(dt)
   if (ghosts) {
@@ -4704,7 +4562,7 @@ renderer.setAnimationLoop(() => {
   // The loading's frames are slow by design, and say nothing of the device; and the opening is the page's first
   // impression, not to be seen stepping up and down. A step is taken at the head of the next frame: resized here, past
   // this frame's drawing, the canvas would show empty, a black frame.
-  if (adapt && !loading && !introRunning() && quality.frame(frame * 1000, start)) qualityDue = true
+  if (adapt && !loading && !opening.running() && quality.frame(frame * 1000, start)) qualityDue = true
   if (!loading && url.get('bench') === 'load') watchFrames(frame * 1000)
   if (!loading) {
     if (!benchMade) {
