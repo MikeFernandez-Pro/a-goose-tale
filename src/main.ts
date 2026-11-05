@@ -141,6 +141,8 @@ addEventListener('hashchange', () => {
 })
 /** The developer's page's tools, fetched on that page alone. */
 const dev = debugOn ? await import('./devtools') : undefined
+/** Whether the player's system asks for less motion: no thrown camera, and the strike's flash a fifth as bright. */
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
 /** Whether the pointer is a finger: a phone, or a tablet. */
 const phone = matchMedia('(pointer: coarse)').matches
 /** The touch stick and button (#198): on a phone, or with `?touch` to try them elsewhere. */
@@ -487,7 +489,10 @@ const renderer = new WebGPURenderer({ antialias: true, forceWebGL, requiredLimit
 const maxDpr = Number(url.get('dpr')) || maxPixelRatio(devicePixelRatio, innerWidth, innerHeight)
 renderer.setPixelRatio(maxDpr)
 renderer.setSize(innerWidth, innerHeight)
-document.body.append(renderer.domElement)
+renderer.domElement.setAttribute('role', 'img')
+renderer.domElement.setAttribute('aria-label', 'A Goose Tale, a game played by eye: a gander with a torch crosses a night full of rats to bring his goslings to their mother. WASD or the arrow keys walk, Space interacts, Escape pauses, M mutes.')
+const pageMain = document.querySelector('main') ?? document.body
+pageMain.append(renderer.domElement)
 await renderer.init()
 cannotDraw.stop = () => renderer.setAnimationLoop(null)
 if (phone) {
@@ -1877,7 +1882,7 @@ let againPad: PadButton | undefined
 /** Who made it, a link at the foot of the screen, coming in before Play again: at the foot, so the title stands where the loading screen has it. */
 const outroBy = outroAgain ? document.createElement('a') : undefined
 if (outroCard && outroTitle) {
-  outroCard.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;opacity:0;pointer-events:none;z-index:20'
+  outroCard.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;opacity:0;pointer-events:none;z-index:20;visibility:hidden'
   outroTitle.style.cssText = 'font-family:Gaegu,cursive;font-weight:700;font-size:min(13vw,128px);color:#f6ead0;opacity:0'
   outroTitle.textContent = 'A Goose Tale'
   const slot = document.createElement('div')
@@ -1886,7 +1891,7 @@ if (outroCard && outroTitle) {
     outroAgain.className = 'enter'
     outroAgain.textContent = 'Play again'
     againPad = padBeside(outroAgain)
-    outroAgain.style.cssText = 'opacity:0;pointer-events:none'
+    outroAgain.style.cssText = 'opacity:0;pointer-events:none;visibility:hidden'
     let again = false
     const once = () => {
       if (again || !againShown()) return
@@ -1904,7 +1909,7 @@ if (outroCard && outroTitle) {
     outroBy.href = 'https://www.mike-fernandez.dev/'
     outroBy.target = '_blank'
     outroBy.rel = 'noopener'
-    outroBy.style.cssText = 'position:absolute;bottom:max(20px,env(safe-area-inset-bottom));font:700 22px/1.2 Gaegu,cursive;color:#f6ead0;text-decoration:none;opacity:0;pointer-events:none'
+    outroBy.style.cssText = 'position:absolute;bottom:max(20px,env(safe-area-inset-bottom));font:700 22px/1.2 Gaegu,cursive;color:#f6ead0;text-decoration:none;opacity:0;pointer-events:none;visibility:hidden'
     outroCard.append(outroBy)
   }
   document.body.append(outroCard)
@@ -1955,15 +1960,21 @@ function outroFrame() {
   heartsFrame()
   if (!outroRunning()) return
   dawnFrame(morningOf(outroT))
-  if (outroCard) outroCard.style.opacity = String(fadeOf(outroT))
+  // Hidden until each shows, not only see-through: else Tab and a screen reader find them long before the ending.
+  if (outroCard) {
+    outroCard.style.opacity = String(fadeOf(outroT))
+    outroCard.style.visibility = fadeOf(outroT) > 0 ? '' : 'hidden'
+  }
   if (outroTitle) outroTitle.style.opacity = String(titleOf(outroT))
   if (outroAgain) {
     outroAgain.style.opacity = String(againOf(outroT))
     outroAgain.style.pointerEvents = againShown() ? 'auto' : 'none'
+    outroAgain.style.visibility = againShown() ? '' : 'hidden'
   }
   if (outroBy) {
     outroBy.style.opacity = String(byOf(outroT) * 0.75)
     outroBy.style.pointerEvents = byOf(outroT) > 0 ? 'auto' : 'none'
+    outroBy.style.visibility = byOf(outroT) > 0 ? '' : 'hidden'
   }
 }
 /** The swarm's lights with the dawn's first: reaching out from the two of them as it comes up, the rats draining off out of it. */
@@ -2610,7 +2621,7 @@ const keysDown = new Set<string>()
 let clicked = false
 const gooseControls = new GooseControls(phone ? 'touch' : 'keyboard')
 /** The thumbs on a touch screen, in A Goose Tale with the phone version on; none filmed. */
-const thumbs = goosePlay && !filming && touchOn ? createThumbs() : undefined
+const thumbs = goosePlay && !filming && touchOn ? createThumbs(() => setPaused(true)) : undefined
 /** The screen, as the controls read the thumbs on it. */
 const viewport = () => ({ width: innerWidth, height: innerHeight })
 /** Whether the touch stick and button are drawn this frame. */
@@ -2643,7 +2654,7 @@ function controlsFrame(loading: boolean) {
   // words Resume and Play again are buttons themselves, and a second there would be one too many.
   const touchShown = !!thumbs && (phone || commands.device === 'touch')
   thumbsShown = touchShown && (state === 'opening' || state === 'play')
-  thumbs?.draw(gooseControls.thumbs, { stick: touchShown && state === 'play', button: thumbsShown }, state === 'opening' ? skipHolding / SKIP_HOLD : 0)
+  thumbs?.draw(gooseControls.thumbs, { stick: touchShown && state === 'play', button: thumbsShown, pause: touchShown && (state === 'opening' || state === 'play' || state === 'ending') }, state === 'opening' ? skipHolding / SKIP_HOLD : 0)
 }
 /** His walk as it eases: the way he moves and the share of his pace he moves at, as x and z. */
 const walking = { x: 0, z: 0 }
@@ -2668,11 +2679,14 @@ const DIAL: Record<string, number> = { KeyQ: 1, KeyE: -1 }
 const DIAL_RATE = 1.2
 /** The reach as dialled, before the slider's step rounds it. */
 let dialled = runTuning.torchReach
+/** The pause screen's sound key, which takes Enter and Space for itself: elsewhere there they resume. */
+let soundKey: HTMLButtonElement | undefined
 // Captured on the way down: lil-gui stops keys from bubbling out of the panel.
 addEventListener(
   'keydown',
   (event) => {
     if (event.target instanceof HTMLInputElement) return
+    if (event.target === soundKey && (event.code === 'Enter' || event.code === 'NumpadEnter' || event.code === SPACE)) return
     if (!event.repeat) keysDown.add(event.code)
     if (!(event.code in WALK_KEYS) && !(event.code in DIAL) && event.code !== SPACE) return
     // A panel button last clicked keeps the focus, and Space would press it. Before the play, the loading screen's
@@ -3673,7 +3687,7 @@ function burningTreeFrame(newBeat: boolean) {
   if (introLightning) {
     const struck = introT >= INTRO.strike ? INTRO.strike : Number.NaN
     introLightning.update(introT, [{ at: burningTree, due: INTRO.strike, time: struck }], goosePlay.holder, standAt)
-    const flash = Math.max(flashAt(introT - INTRO.strike), afterglow(introT)) * introLightning.look.flash
+    const flash = Math.max(flashAt(introT - INTRO.strike), afterglow(introT)) * introLightning.look.flash * (calm ? 0.2 : 1)
     if (flash > 0 || introFlashing) flashFrame(flash)
     introFlashing = flash > 0
   }
@@ -4610,7 +4624,10 @@ function whenBuilt(then: () => void) {
 
 /** The share built, 0 to 1, on the loading screen: its count. */
 function showLoaded(share: number) {
-  if (loadingShare) loadingShare.textContent = `${Math.round(share * 100)} %`
+  if (!loadingShare) return
+  const percent = Math.round(share * 100)
+  loadingShare.textContent = `${percent} %`
+  loadingShare.setAttribute('aria-valuenow', String(percent))
 }
 
 /** When the bench last logged how the loading stands, ms. */
@@ -4807,15 +4824,18 @@ const orbitAt = new Vector3()
 const orbitTurn = new Quaternion()
 const looking = new Vector3()
 
+/** No shake, where less motion is asked for. */
+const STILL_CAMERA = { x: 0, y: 0, z: 0 }
+
 /** The camera stood at the shots as far in as they are, over the orbit, for this frame's drawing: true if it moved, to be put back after. */
 function standAtShots(): boolean {
-  const knocked = !shotIn() && cameraKnock.lengthSq() > 0
+  const knocked = !calm && !shotIn() && cameraKnock.lengthSq() > 0
   const moved = shotIn() || knocked
   if (moved && introRunning()) {
     orbitAt.copy(camera.position)
     orbitTurn.copy(camera.quaternion)
     // The game's own camera, thrown about by the strike.
-    const shake = shakeAt(introT)
+    const shake = calm ? STILL_CAMERA : shakeAt(introT)
     camera.position.add(looking.set(shake.x, shake.y, shake.z))
     camera.lookAt(controls.target.x + shake.x * 0.6, controls.target.y + shake.y * 0.6, controls.target.z + shake.z * 0.6)
   } else if (moved && outroRunning()) {
@@ -4849,8 +4869,9 @@ function standAtShots(): boolean {
  */
 const pauseVeil = filming ? undefined : document.createElement('div')
 let resumePad: PadButton | undefined
+let resumeKey: HTMLButtonElement | undefined
 if (pauseVeil) {
-  pauseVeil.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#0009;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:25;font-family:Gaegu,cursive;font-weight:700;color:#f6ead0;text-shadow:0 2px 4px #000c'
+  pauseVeil.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#0009;opacity:0;transition:opacity 0.2s;pointer-events:none;visibility:hidden;z-index:25;font-family:Gaegu,cursive;font-weight:700;color:#f6ead0;text-shadow:0 2px 4px #000c'
   const word = document.createElement('div')
   word.textContent = 'paused'
   word.style.cssText = 'font-size:min(11vw,104px);line-height:1'
@@ -4859,7 +4880,18 @@ if (pauseVeil) {
   resume.textContent = 'Resume'
   resumePad = padBeside(resume)
   resume.addEventListener('click', () => setPaused(false))
+  resumeKey = resume
+  pauseVeil.setAttribute('role', 'dialog')
+  pauseVeil.setAttribute('aria-label', 'Paused')
   pauseVeil.append(word, resume)
+  // M's work where there is no M: a phone, or a player on the mouse.
+  if (gooseSounds) {
+    const sounds = gooseSounds
+    soundKey = document.createElement('button')
+    soundKey.className = 'enter'
+    soundKey.addEventListener('click', () => (sounds.muted = !sounds.muted))
+    pauseVeil.append(soundKey)
+  }
   document.body.append(pauseVeil)
 }
 /** The game paused or going on, the panel's pause button saying which. */
@@ -4869,12 +4901,26 @@ function setPaused(on: boolean) {
 }
 /** Whether the game pauses on its own here: in the opening, the play or the ending's card, not in edit mode. */
 const pausesHere = () => loaded && !editMode?.on && !againShown()
-/** The veil over the paused game, and Resume's button as the device last used has it. */
+/** Whether the veil showed last frame. */
+let veilShown = false
+/** The veil over the paused game, focus on Resume while it shows, and Resume's button as the device last used has it. */
 function pauseFrame() {
   if (!pauseVeil) return
   const shown = settings.paused && loaded && !editMode?.on
   pauseVeil.style.opacity = shown ? '1' : '0'
   pauseVeil.style.pointerEvents = shown ? 'auto' : 'none'
+  if (shown !== veilShown) {
+    veilShown = shown
+    // Hidden once it has faded, out of Tab's way and a screen reader's.
+    pauseVeil.style.transition = shown ? 'opacity 0.2s' : 'opacity 0.2s,visibility 0s 0.2s'
+    pauseVeil.style.visibility = shown ? 'visible' : 'hidden'
+    if (shown) resumeKey?.focus({ preventScroll: true })
+    else if (document.activeElement instanceof HTMLElement && pauseVeil.contains(document.activeElement)) document.activeElement.blur()
+  }
+  if (soundKey && gooseSounds) {
+    const says = gooseSounds.muted ? 'Sound off' : 'Sound on'
+    if (soundKey.textContent !== says) soundKey.textContent = says
+  }
   resumePad?.update(besideOf(commands))
 }
 // Losing the window pauses the game where it would pause on Start, typing in a field or not, and so does the page
@@ -5120,6 +5166,14 @@ let qualityDue = false
 /** Built on the first frame the game is in, with the load's time known. */
 let bench: PhoneBench | undefined
 let benchMade = false
+
+// What is drawn over the game for the eye, its hints and marks: a screen reader has the canvas's words instead. Not on
+// the developer's page, whose panels are read.
+if (!debugOn) {
+  for (const child of document.body.children) {
+    if (child !== pauseVeil && child !== outroCard && child.tagName !== 'MAIN' && child.tagName !== 'BUTTON') child.setAttribute('aria-hidden', 'true')
+  }
+}
 
 renderer.setAnimationLoop(() => {
   const start = performance.now()

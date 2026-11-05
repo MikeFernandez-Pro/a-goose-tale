@@ -19,6 +19,8 @@ const RESTING = 0.6
 const TOUCHED = 0.95
 /** How far the button sinks under a thumb. */
 const SUNK = 0.9
+/** The pause key's width, px: a thumb's least target. It stands at the screen's top right, out of the way of both thumbs. */
+const PAUSE_KEY = 44
 /** What a contact landing on belongs to, never a thumb. */
 const BUTTONS = 'button, a, input, select, textarea, label'
 
@@ -27,8 +29,8 @@ export interface Thumbs {
   take(): { touches: TouchContact[]; tapped: boolean }
   /** Every contact down let go, as cancelled, at the next take. */
   letGo(): void
-  /** The stick and the button drawn as `reading` has them, each only if `shown`, the button filled `share` of the way, 0 to 1. */
-  draw(reading: TouchReading, shown: { stick: boolean; button: boolean }, share: number): void
+  /** The stick, the button and the pause key drawn as `reading` has them, each only if `shown`, the button filled `share` of the way, 0 to 1. */
+  draw(reading: TouchReading, shown: { stick: boolean; button: boolean; pause: boolean }, share: number): void
 }
 
 /** A ring `size` px across, centred on where it is put, in the hints' ink; filled faintly with `fill`. */
@@ -58,8 +60,8 @@ function holdThePage() {
   document.addEventListener('gesturestart', (event) => event.preventDefault())
 }
 
-/** The shell on the page, listening; the page held still at once where the pointer is a finger, else from the first touch. */
-export function createThumbs(): Thumbs {
+/** The shell on the page, listening; the page held still at once where the pointer is a finger, else from the first touch. `pause` when its key is tapped: a phone has no Escape. */
+export function createThumbs(pause: () => void): Thumbs {
   let touches: TouchContact[] = []
   let tapped = false
   /** The contacts forwarded and still down, where they last were. */
@@ -110,6 +112,17 @@ export function createThumbs(): Thumbs {
   sign.innerHTML = touchSignDrawn(BUTTON_RADIUS * 1.5)
   button.append(fill, sign)
 
+  const pauseKey = document.createElement('button')
+  pauseKey.setAttribute('aria-label', 'Pause')
+  pauseKey.style.cssText = `position:fixed;top:16px;right:16px;width:${PAUSE_KEY}px;height:${PAUSE_KEY}px;box-sizing:border-box;padding:0;display:none;align-items:center;justify-content:center;gap:5px;border:3px solid ${INK};border-radius:50%;background:#0003;box-shadow:0 2px 4px #000c;opacity:${RESTING};z-index:30`
+  for (let bar = 0; bar < 2; bar++) {
+    const drawn = document.createElement('span')
+    drawn.style.cssText = `width:5px;height:16px;border-radius:2px;background:${INK}`
+    pauseKey.append(drawn)
+  }
+  pauseKey.addEventListener('click', pause)
+  document.body.append(pauseKey)
+
   return {
     take() {
       const taken = { touches, tapped }
@@ -123,6 +136,7 @@ export function createThumbs(): Thumbs {
       place(base, shown.stick ? (reading.stick?.middle ?? layout.stick) : null)
       place(knob, shown.stick ? (reading.stick?.knob ?? layout.stick) : null)
       place(button, shown.button ? layout.button : null, reading.button ? SUNK : 1)
+      pauseKey.style.display = shown.pause ? 'flex' : 'none'
       fill.style.width = `${Math.round(Math.min(1, Math.max(0, share)) * 100)}%`
       const stickHeld = `${reading.stick ? TOUCHED : RESTING}`
       base.style.opacity = knob.style.opacity = stickHeld

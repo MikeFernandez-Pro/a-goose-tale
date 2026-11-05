@@ -14,12 +14,12 @@ vertex animation textures on the GPU, with no skeleton or mixer on the CPU.
 
 ## Controls
 
-| | Keyboard | Gamepad |
-| --- | --- | --- |
-| Walk | WASD or the arrow keys | the left stick or the d-pad |
-| Interact | Space, pressed or held | the bottom face button |
-| Pause | Escape | Start |
-| Mute | M | |
+| | Keyboard | Gamepad | Touch |
+| --- | --- | --- | --- |
+| Walk | WASD or the arrow keys | the left stick or the d-pad | a thumb on the screen's left half |
+| Interact | Space, pressed or held | the bottom face button | the round button |
+| Pause | Escape | Start | the top right button |
+| Mute | M | | the pause screen's Sound key |
 
 ## Run it locally
 

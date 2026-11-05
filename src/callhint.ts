@@ -110,6 +110,7 @@ export function createPeepWords(): PeepWords {
       const box = document.createElement('div')
       box.textContent = word
       box.style.cssText = `position:fixed;left:0;top:0;opacity:0;pointer-events:none;white-space:nowrap;font-family:Gaegu,cursive;font-weight:700;font-size:${PEEP_SIZE}px;line-height:1;color:${INK};text-shadow:0 1px 3px #000c`
+      box.setAttribute('aria-hidden', 'true')
       document.body.append(box)
       const side = Math.random() < 0.5 ? -1 : 1
       peeps.push({ box, at: { ...at }, age: -after, shows: within(PEEP_SHOWS), rise: within(PEEP_RISE), drift: side * Math.random() * 8, tilt: side * Math.random() * PEEP_TILT })
@@ -170,6 +171,7 @@ export function createCallHint(called?: (far: number) => void, word: (far: numbe
     const box = document.createElement('div')
     box.textContent = word(far)
     box.style.cssText = `position:fixed;left:0;top:0;transform-origin:50% 100%;pointer-events:none;white-space:nowrap;font-family:Gaegu,cursive;font-weight:700;font-size:34px;line-height:1;color:${INK};text-shadow:0 2px 4px #000c`
+    box.setAttribute('aria-hidden', 'true')
     document.body.append(box)
     // A burst's later honks a little smaller, each to its own side.
     const side = Math.random() < 0.5 ? -1 : 1

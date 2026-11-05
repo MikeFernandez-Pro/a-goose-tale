@@ -52,6 +52,8 @@
         transition: opacity 0.6s ease-out;
       }
       #loading.loaded { opacity: 0; pointer-events: none; }
+      #loading h1 { margin: 0; font: inherit; }
+      #loading noscript { font-size: 26px; }
       /* The share, then the Enter key in its place: one slot as tall as the key, so the title never moves. */
       #loading .slot { height: 64px; margin-top: 12px; display: flex; align-items: flex-start; justify-content: center; }
       #loading .share { font-size: 26px; opacity: 0.6; font-variant-numeric: tabular-nums; }
@@ -62,14 +64,16 @@
         background: #0007; border: 3px solid #f6ead0; border-radius: 11px; box-shadow: 0 3px 0 #f6ead099;
         transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
       }
-      .enter:hover, .enter:focus-visible { background: #f6ead01a; outline: none; }
+      .enter:hover, .enter:focus-visible { background: #f6ead01a; }
+      .enter:focus { outline: none; }
+      .enter:focus-visible { outline: 3px solid #fff6e4; outline-offset: 3px; }
       .enter:active { transform: translateY(3px); box-shadow: 0 0 0 #f6ead099; }
       /* What the loading screen says when it is stuck, and its key to try again: over the slot's edge, so the title never moves. */
       #loading .trouble { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 16px; font-size: 26px; text-align: center; }
     </style>
   </head>
   <body>
-    <div id="loading"><div>A Goose Tale</div><div class="slot"><div class="share">0 %</div></div></div>
+    <main><div id="loading"><h1>A Goose Tale</h1><div class="slot"><div class="share" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">0 %</div></div><noscript>A Goose Tale needs JavaScript to play.</noscript></div></main>
     <script>
       // The loading screen's way out. Here and not in main.ts, since main.ts may be the file that did not come. A file
       // the game cannot start without, lost: the share gives way to the words and a key to load the page again, the run
