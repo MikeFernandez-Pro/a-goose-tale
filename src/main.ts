@@ -114,7 +114,7 @@ import { createGraves, mountGraveControls, scatterGravePumpkins, type GraveGroun
 import { createGraveCandles, mountCandleControls } from './gravecandles'
 import { gooseThemeOf, layInto } from './goosethemes'
 import { RemoteSwarm } from './swarm-remote'
-import { GpuSwarm } from './gpuswarm'
+import { GpuSwarm, MOST_FRAME } from './gpuswarm'
 import { nextAfterFailure, watchForDrawFailure } from './cannotdraw'
 import { PhoneBench, logFetched, logLatePipelines, logPageTrouble, logPipelineTimes, logToServer, makeShadersNew, type BenchCost, type BenchPlace } from './phonebench'
 import { keptRun, keepRun, dropKeptRun } from './keptrun'
@@ -221,8 +221,11 @@ const SUN_SHADOW_DEPTH = 80
  */
 const SUN_SHADOW_SIZE = 1024
 const SOFTNESS_TEXELS = 2048
-/** The most game time a frame carries, s: a hitch moves the light, the clock and the camera no further than a frame at 30 would. */
-const FRAME_CAP = 1 / 30
+/**
+ * The most game time a frame carries, s: as much as the swarm can catch up in one, so that on a slow phone he keeps the
+ * rats' pace, and a hitch moves the light, the clock and the camera no further.
+ */
+const FRAME_CAP = MOST_FRAME
 /** How far past the goose game's plain the floor runs, m: out of sight in the fog from anywhere he can stand. */
 const FLOOR_PAST = 20
 /** How far past the fog's far edge the swarm may set a rat down, m, before the walk's own margin: a rat's length at the panel's usual scale, and the placing step's run. */

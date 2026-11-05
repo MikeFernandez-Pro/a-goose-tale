@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import type { ComputeNode, StorageBufferAttribute } from 'three/webgpu'
 import { computeWGSL, unassignedReads } from './test-wgsl'
 import { GpuCull, HELD } from './gpucull'
-import { GpuSwarm, MOST_STEPS, StepClock, type Device } from './gpuswarm'
+import { GpuSwarm, MOST_FRAME, MOST_STEPS, StepClock, type Device } from './gpuswarm'
 import { FLICKER, IDLE, MAX_LIGHTS, MAX_TARGETS, RUN, Swarm, WALK, arenaRadiusFor, defaultTuning, pullTargets, shoreLight, type FixedLight, type Light, type Target } from './swarm'
 import { STEP } from './swarm-remote'
 import { MAX_WALLS } from './walls'
@@ -83,6 +83,17 @@ describe('StepClock', () => {
     expect(clock.advance(0.5 + STEP / 4, false)).toBe(MOST_STEPS)
     expect(clock.alpha).toBeCloseTo(0.25, 3)
     expect(clock.advance(STEP * 0.75, false)).toBe(1)
+  })
+
+  it('a frame carries as much play as the swarm steps, at 15 fps as at 60', () => {
+    for (const fps of [15, 20, 30, 60]) {
+      const clock = new StepClock()
+      let steps = 0
+      for (let frame = 0; frame < fps; frame++) steps += clock.advance(1 / fps, false)
+      const played = fps * Math.min(1 / fps, MOST_FRAME)
+      expect(played).toBeCloseTo(1, 5)
+      expect(steps * STEP).toBeCloseTo(played, 5)
+    }
   })
 
   it('steps nothing while paused, and owes nothing for the pause', () => {
