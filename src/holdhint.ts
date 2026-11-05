@@ -85,7 +85,7 @@ export function createPadButton(size: number, display = 'block'): PadButton {
   }
 }
 
-/** The arrow, pointing right, as the badge's is (goslingbadge.prototype.ts) but with no outline, in the words' ink and shadow: how big, px. */
+/** The arrow, pointing right, as the badge's is (goslingbadge.ts) but with no outline, in the words' ink and shadow: how big, px. */
 const ARROW = 30
 const ARROW_PATH = 'M-5 -8 Q1 -3 6 0 Q1 3 -5 8'
 const arrowDrawn = `<svg viewBox="-12 -12 24 24" width="${ARROW}" height="${ARROW}" style="display:block;overflow:visible;filter:drop-shadow(0 2px 4px #000c)">

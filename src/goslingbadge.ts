@@ -1,4 +1,4 @@
-// Trial, `?marker`: the calling gosling's badge, there all the time he calls,
+// `?marker`: the calling gosling's badge, there all the time he calls,
 // not just as he honks. The gosling painted whole, on his own colour, in a ring
 // drawn in the game's own hand, as its words are, in their cream ink, the ring
 // boiling a little as a drawing's line does; or, with `?marker=icon`, a gosling
@@ -241,7 +241,7 @@ export function mountBadgeControls(): void {
   const container = document.createElement('div')
   container.style.cssText = 'position:fixed;bottom:8px;left:780px;z-index:1000'
   document.body.append(container)
-  const gui = new GUI({ title: 'gosling badge (prototype)', container, width: 240 } as ConstructorParameters<typeof GUI>[0])
+  const gui = new GUI({ title: 'gosling badge', container, width: 240 } as ConstructorParameters<typeof GUI>[0])
   gui.add(portraitLook, 'zoom', 0.5, 5, 0.01).name('zoom')
   gui.add(portraitLook, 'x', 0, 1, 0.005).name('offset x')
   gui.add(portraitLook, 'y', 0, 1, 0.005).name('offset y')

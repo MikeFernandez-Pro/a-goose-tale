@@ -15,11 +15,11 @@ import { MAX_EMBERS } from './embers'
 import type { FlameLook } from './flame'
 import type { FireShadowLook } from './fireshadow'
 import type { FeatherLook } from './feathers'
-import { characterLabel, swims, walks, type MeatLook, type MeatPart } from './meat'
+import { characterLabel, swims, walks, type GooseLook, type GoosePart } from './goose'
 import type { PaintLook, ShellLook } from './shell'
 import type { LevelsLook, Part, StaggerLook, TrailLook, Variant } from './rats'
 import type { ToonLook } from './toon'
-import type { NoiseSeeThrough } from './blockout'
+import type { NoiseSeeThrough } from './seethrough'
 import { FLEE_REACTION, FLEE_TURN, type Tuning } from './swarm'
 import type { Level, RunTuning } from './run'
 import type { FireScene, GooseSettings, ZoneSetting } from './gooseplay'
@@ -136,8 +136,8 @@ export interface Look {
   /** The depth of field, the tabletop's shallow focus. */
   dof: DofLook
   bloom: BloomLook
-  /** The meat at the light. */
-  meat: MeatLook
+  /** The goose at the light. */
+  goose: GooseLook
   /** The flame on top of it. */
   flame: FlameLook
   /** The trails the glowing eyes leave. */
@@ -624,7 +624,7 @@ function addRun(gui: GUI, settings: Settings, run: RunPanel): { folder: GUI; rea
     folder.add(goose, 'refillHold', 0.2, 10, 0.1).name('a fire fills the torch in s')
     folder.add(goose, 'lightLetGo', 0.1, 5, 0.05).name('let go unlit, the torch goes out in s')
     folder.add(goose, 'treeHold', 0.1, 5, 0.05).name('the dead tree gosling called down in s')
-    folder.add(goose, 'herBite', 0, 1, 0.01).name('a rat bites his life a second')
+    folder.add(goose, 'hisBite', 0, 1, 0.01).name('a rat bites his life a second')
     folder.add(goose, 'healAfter', 0, 10, 0.1).name('life heals after s unbitten')
     folder.add(goose, 'heal', 0, 2, 0.01).name('life heals a second')
     // How he feels to play: his walk's ease, and a bite on him.
@@ -716,7 +716,7 @@ function addRun(gui: GUI, settings: Settings, run: RunPanel): { folder: GUI; rea
 }
 
 /** The goose game's camera folder: the follow's lag, the field of view, and the capture of where the camera is, shown to copy. */
-/** The see-through round the goose: its hole as the sewer's is, its dither's Perlin noise. */
+/** The see-through round the goose: its hole, its dither's Perlin noise. */
 function addGooseSeeThrough(gui: GUI, { look, changed }: { look: NoiseSeeThrough; changed(): void }): void {
   const folder = gui.addFolder('see-through (noise dithering)')
   folder.add(look, 'enabled').name('on').onChange(changed)
@@ -1532,10 +1532,10 @@ function addLook(gui: GUI, settings: Settings, look: Look, changed: PanelEvents,
   // The tilt-shift last, its controls each telling the look themselves.
   if (tilt) addTiltFolder(post, tilt.shift, changed.look, tilt.placed)
 
-  const meat = addCharacterFolder(gui, look.meat)
+  const goose = addCharacterFolder(gui, look.goose)
   const flame = addFlameFolder(gui, look.flame, fires)
 
-  for (const folder of [lamp, sun, fill, fog, rats, levels, ground, ...frame, ...lens, meat, flame]) folder.onChange(changed.look)
+  for (const folder of [lamp, sun, fill, fog, rats, levels, ground, ...frame, ...lens, goose, flame]) folder.onChange(changed.look)
 }
 
 /** The look of the rats as the rats folder and the levels of detail folder edit it: their colours, variants, eyes, shell, strokes, steps and levels. */
@@ -1703,14 +1703,14 @@ export function addLens(gui: GUI, look: Pick<PostLook, 'dof' | 'bloom'>, few = f
 }
 
 
-/** The character's folder: on, its size and clips, its parts' colours, its stripes, shell, strokes and steps. */
-export function addCharacterFolder(gui: GUI, look: MeatLook): GUI {
-  const meat = gui.addFolder(characterLabel)
-  meat.add(look, 'enabled').name('on')
-  meat.add(look, 'height', 0.1, 2, 0.01).name('scale (height m)')
-  meat.add(look, 'lift', 0, 2, 0.01).name('off the ground m')
+/** The character's folder: on, its size and clips, its parts' colours, shell, strokes and steps. */
+export function addCharacterFolder(gui: GUI, look: GooseLook): GUI {
+  const goose = gui.addFolder(characterLabel)
+  goose.add(look, 'enabled').name('on')
+  goose.add(look, 'height', 0.1, 2, 0.01).name('scale (height m)')
+  goose.add(look, 'lift', 0, 2, 0.01).name('off the ground m')
   // A character that swims has its clips' speeds in a folder of their own, by its goslings'; the rest keep them here.
-  const clips = swims ? gui.addFolder(`${characterLabel} animations`) : meat
+  const clips = swims ? gui.addFolder(`${characterLabel} animations`) : goose
   clips.add(look, 'idleSpeed', 0, 3, 0.05).name('idle animation speed')
   clips.add(look, 'runSpeed', 0, 3, 0.05).name('run animation speed')
   if (walks) {
@@ -1723,26 +1723,20 @@ export function addCharacterFolder(gui: GUI, look: MeatLook): GUI {
     clips.add(look, 'swimSpeed', 0, 3, 0.05).name('swim animation speed')
     // Its changes handed on to the character's folder, as if made there: the page takes the character's look from
     // that folder's changes, and lil-gui passes a change only to a folder's parents.
-    const forwarded = meat as unknown as { _callOnChange(controller: unknown): void }
+    const forwarded = goose as unknown as { _callOnChange(controller: unknown): void }
     clips.onChange(({ controller }) => forwarded._callOnChange(controller))
   }
-  meat.add(look, 'castShadow').name('casts shadows')
-  const colours = meat.addFolder('colours')
+  goose.add(look, 'castShadow').name('casts shadows')
+  const colours = goose.addFolder('colours')
   for (const part of look.parts) {
     colours.addColor(part, 'color').name(part.name)
-    if (part.glow !== undefined) colours.add(part as Required<MeatPart>, 'glow', 0, 10, 0.1).name(`${part.name} intensity`)
+    if (part.glow !== undefined) colours.add(part as Required<GoosePart>, 'glow', 0, 10, 0.1).name(`${part.name} intensity`)
   }
-  const stripes = meat.addFolder(`stripes on the ${look.parts[0]?.name ?? 'first part'}`)
-  stripes.add(look.stripes, 'enabled').name('on')
-  stripes.addColor(look.stripes, 'color').name('colour')
-  stripes.add(look.stripes, 'count', 1, 120, 1).name('stripes along its height')
-  stripes.add(look.stripes, 'width', 0, 1, 0.01).name('width (share of the gap)')
-  stripes.add(look.stripes, 'angle', { horizontal: 0, vertical: 90 }).name('direction')
-  addShell(meat, look)
-  addPaint(meat, look.paint, 'strokes up its height')
-  addToon(meat, look.toon)
+  addShell(goose, look)
+  addPaint(goose, look.paint, 'strokes up its height')
+  addToon(goose, look.toon)
 
-  return meat
+  return goose
 }
 
 /**
@@ -1779,7 +1773,7 @@ export function addFlameFolder(gui: GUI, look: FlameLook, fires?: FiresPanel): G
   torch.add(look, 'glow', 0, 8, 0.05).name('intensity (1 = its colours)')
   torch.add(look, 'height', 0.02, 0.5, 0.005).name('height m')
   torch.add(look, 'width', 0.01, 0.3, 0.005).name('width m')
-  torch.add(look, 'lift', -0.4, 0.3, 0.005).name('up from the meat m')
+  torch.add(look, 'lift', -0.4, 0.3, 0.005).name('up from the goose m')
   torch.add(look, 'offsetX', -0.2, 0.2, 0.001).name('to its left m')
   torch.add(look, 'offsetZ', -0.2, 0.2, 0.001).name('ahead of it m')
   torch.add(look, 'lean', 0, 1, 0.01).name('lean rad a m/s')

@@ -1,8 +1,7 @@
 // What the game plays by, past the run's and the swarm's own defaults: how the
 // rats run and crowd, how far off they notice the holder, and how
-// fast the holder walks. The 3D page (main.ts) and the 2D prototype
-// (twod.prototype.ts) both read these, so the two play alike: the 2D page
-// tests the play the 3D page will have, never a copy of its numbers.
+// fast the holder walks. The page (main.ts) and the tests both read these, so
+// the tests play what the page has, never a copy of its numbers.
 import { defaultTuning, type Tuning } from './swarm'
 
 /** How far off a rat notices the holder, m: past the fog, so a rat that comes is never seen setting off, and short of the level, so the far rats seethe where they are. */
@@ -26,8 +25,8 @@ export const RAT_SIZE = 1.75
  * The crowd as it was with the goose, 2026-10-08, brought back on 2026-10-11:
  * the rats keep off the light by 0.45 m, so they hold where the lamp's pool
  * ends (the lamp reaches 2.3 times the light's hard radius), writhe at a metre
- * a second, and pile 1.4 high over two and a half gaps. Pressed in to 0.2 m
- * with the pumpkin kid, they stood inside the bright pool. Since 2026-10-10 they read
+ * a second, and pile 1.4 high over two and a half gaps. Pressed in to 0.2 m,
+ * they stood inside the bright pool. Since 2026-10-10 they read
  * the light's walk a fifth of a second ahead: a rat in the way of the holder
  * running at it gets out of the way, where it was caught and turned in the
  * light. The swarm's own defaults stay the ones its tests pin, where a writhe

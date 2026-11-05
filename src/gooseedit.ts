@@ -5,7 +5,7 @@
 // wheel turns it about its own place (Shift, a degree at a time); with Alt, a
 // drag raises and lowers it and the wheel sizes it, as drawn only, and R puts
 // both back. Only the drawing and the paused play move; Save writes the route the pieces now make
-// to src/gooseroute.json through the dev server, as the 2D page does, and
+// to src/gooseroute.json through the dev server, and
 // loads the page again, so the play lays its rules out afresh on it.
 import { BoxHelper, Plane, Raycaster, Vector2, Vector3, type Camera, type Object3D, type Scene } from 'three/webgpu'
 import { layShown, type EditPiece } from './goosescenes'

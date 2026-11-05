@@ -1,7 +1,7 @@
 // A Goose Tale: a swarm of rats held off by a light (ADR-0044), and the goose game, the one page it keeps since
 // 2026-10-30 (the woods, the sewers, the hall, the levels of detail's page and the bare arena are at the tag
 // last-light-before-goose-only). The goose, the torch in his beak, crosses the night plain one way on the route
-// laid on its 2D page (plain.ts, goose2d.html), from brazier to brazier to the pond, played by the goose play
+// saved in gooseroute.json (plain.ts), from brazier to brazier to the pond, played by the goose play
 // (gooseplay.ts), which the page feeds the keys and draws: his goslings waiting at the braziers and in his circle,
 // as the goose in miniature (goslings.ts), and the pond, a hollow in the floor inside a noisy shore (pond.ts).
 // The swarm steps at a fixed rate, on the GPU on WebGPU and in a worker on WebGL 2 (ADR-0053); each frame the
@@ -68,7 +68,7 @@ import { createPanel, createReadouts, lightAndPause, type GooseFeel, type Look, 
 import type { PlaySwarm } from './play'
 import { PipelineSlices } from './pipelineslices'
 import { GoosePlay, MOST_BITERS, eased, inZone, type FireScene, type SceneState, type Zone } from './gooseplay'
-import { createGoslingBadge, mountBadgeControls } from './goslingbadge.prototype'
+import { createGoslingBadge, mountBadgeControls } from './goslingbadge'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './goslings'
 import { BURNING_LIGHT, BURNING_MODEL, CAGE_FIRE_LIGHT, PIT_BOWL, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_BOWL, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece, type SceneFireLook } from './goosescenes'
 import { createEditMode, layPieces } from './gooseedit'
@@ -92,12 +92,12 @@ import { defaultRollingLook, rollAgain, rollingGround } from './rolling'
 import { createWater, defaultWaterLook, WATER_LOOKS } from './water'
 import { defaultTreeWindLook } from './treesway'
 import { createLights, litMask, type LightLook } from './lights'
-import { createBlockout, defaultNoiseSeeThrough, noiseSeeThrough, seeThroughZone } from './blockout'
+import { defaultNoiseSeeThrough, noiseSeeThrough, seeThroughZone } from './seethrough'
 import { LitAreas } from './litareas'
 import { seenTexture } from './seen'
 import { Walls, nearestWalls, type Wall } from './walls'
 import { LEVELS, RAT, Rats } from './rats'
-import { createMeat, defaultMeat, goose } from './meat'
+import { createGoose, defaultGoose } from './goose'
 import { createFlame, createFlames, defaultFlame, type Flame } from './flame'
 import { createEmbers } from './embers'
 import { branchColours, branchPose, carriedPose, createBranch, lyingPose } from './branch'
@@ -105,13 +105,13 @@ import { createFeathers } from './feathers'
 import { createSmoke } from './smoke'
 import { defaultTuning, shoreLight, sightEdge, type Dark, type FixedLight, type Ground, type Light, type ViewPlane } from './swarm'
 import { createTiltShift } from './tiltshift'
-import { createFallingLeaves, defaultFallLook, mountFallControls } from './fallingleaves.prototype'
+import { createFallingLeaves, defaultFallLook, mountFallControls } from './fallingleaves'
 import { FakeLamp, createFakeLamps, shown as drawnInScene } from './fakelamps'
 import { createFireShadow, defaultFireShadowLook } from './fireshadow'
-import { createGhosts, createPlainGhosts, mountGhostControls } from './ghosts.prototype'
-import { defaultGraveLook, ghostAt, inGraveyard, layGraveyard } from './graveyard.prototype'
-import { createGraves, mountGraveControls, scatterGravePumpkins, type GraveGround } from './graves.prototype'
-import { createGraveCandles, mountCandleControls } from './gravecandles.prototype'
+import { createGhosts, createPlainGhosts, mountGhostControls } from './ghosts'
+import { defaultGraveLook, ghostAt, inGraveyard, layGraveyard } from './graveyard'
+import { createGraves, mountGraveControls, scatterGravePumpkins, type GraveGround } from './graves'
+import { createGraveCandles, mountCandleControls } from './gravecandles'
 import { gooseThemeOf, layInto } from './goosethemes'
 import { RemoteSwarm } from './swarm-remote'
 import { GpuSwarm } from './gpuswarm'
@@ -147,10 +147,10 @@ const touchOn = phone || url.has('touch')
 /** No panel but on the developer's page, nor there with `?nopanel` or on a phone: the whole screen is the game and the thumbs. */
 const noPanel = !debugOn || url.has('nopanel') || phone
 /**
- * A trial, on by default in the goose game since 2026-10-30 (the tilt, the graveyard, the marker, the cheap bloom),
+ * A feature, on by default in the goose game since 2026-10-30 (the tilt, the graveyard, the marker, the cheap bloom),
  * `?key=0` turning it off.
  */
-const trialOn = (key: string) => url.get(key) !== '0'
+const featureOn = (key: string) => url.get(key) !== '0'
 /** The light's height above the ground where its holder carries it, when it is not in the torch. */
 const LIGHT_HEIGHT = 1.1
 /**
@@ -333,10 +333,10 @@ const look: Look = {
   // A hot lamp with no falloff, its intensity whatever the strength, its reach at full strength; at the strength
   // the light starts at it ends well inside the light's hard radius, so the
   // holder stands in a pool, and the front presses on from the dark.
-  // On trial: the lamp burns in the meat's torch, half a metre up, rather than hanging over it. The warm orange
+  // The lamp burns in the goose's torch, half a metre up, rather than hanging over it. The warm orange
   // the torch had before Halloween (2026-10-11): the pumpkin orange clipped to flat red on the earth.
   lamp: { color: 0xff8442, intensity: 13, reach: 6.9, falloff: 0, lag: 0.08, inFlame: true },
-  // The light and the fog as it was on 2026-10-08 before the pumpkin kid (01304fa^), brought back on 2026-10-11, under the
+  // The light and the fog as it was on 2026-10-08 (01304fa^), brought back on 2026-10-11, under the
   // effects as they stood before the 3D game (4aa332e): the look of the
   // goose's screenshots. A bright moon straight overhead, its shadows fairly sharp and not quite black, over the
   // ambient occlusion that carries the mass's volume.
@@ -433,11 +433,11 @@ const look: Look = {
   dof: { enabled: true, onLight: true, focus: 7.8, focal: 5, bokeh: 1.7, glow: 0.6 },
   // A halo round the eyes, at half the frame's resolution: on everywhere, it costs a fixed slice of the frame (benched 2026-10-10).
   // A halo round the eyes, at half the frame's resolution: on everywhere, it costs a fixed slice of the frame (benched 2026-10-10).
-  bloom: { enabled: true, strength: 1, radius: 0.1, resolution: 0.5, cheap: trialOn('cheapbloom'), blurGlow: 0.6 },
+  bloom: { enabled: true, strength: 1, radius: 0.1, resolution: 0.5, cheap: featureOn('cheapbloom'), blurGlow: 0.6 },
   // The eyes' trails on, as the panel left them on 2026-10-08: a quarter second long, a centimetre and a half wide, needle-tapered,
   // swaying hard and fading fast; smooth, wiggling wide and slow at the tail. In the eyes' own colour.
-  // The meat at the light, half a metre high, in its own colours, shaded as the rats start.
-  meat: defaultMeat(),
+  // The goose at the light, half a metre high, in its own colours, shaded as the rats start.
+  goose: defaultGoose(),
   flame: defaultFlame(),
   // The eyes' trails as the panel left them on 2026-10-07: short, a centimetre wide, needle-tapered, swaying hard, bright amber; no wiggle yet.
   trails: { enabled: true, seconds: 0.11, width: 0.01, strength: 4, wave: 2, taper: 1.9, fade: 6, wiggle: 0, wiggleSpeed: 1.6, color: 0xffbe0a, eyeColour: false },
@@ -673,9 +673,9 @@ const lookInverse = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(
 const lookWorld = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(() => camera.matrixWorld)
 const skyOnScreen = skyAt(lookWorld.mul(vec4(getViewPosition(screenUV, float(0.5), lookInverse), 0)).xyz.normalize())
 scene.fogNode = fog(skyHere.add((fogLitColor as unknown as Node<'vec3'>).mul(fogGlow)) as unknown as typeof fogColor, fogAmount)
-// The goose (meat.ts) burns its torch at the cup's top: the flame sunk into it, as the panel set it on 2026-10-08;
+// The goose (goose.ts) burns its torch at the cup's top: the flame sunk into it, as the panel set it on 2026-10-08;
 // and as bright as the plain's fires (`fireLook`), asked for on 2026-10-29.
-if (goose) Object.assign(look.flame, { lift: -0.09, offsetX: -0.009, offsetZ: 0.022, glow: 2.8 })
+Object.assign(look.flame, { lift: -0.09, offsetX: -0.009, offsetZ: 0.022, glow: 2.8 })
 /** Where the fog goes solid, m from the light, as the panel has it: the ring the swarm brings rats round past, fog or no fog. */
 let fogEdge = 1
 
@@ -760,10 +760,10 @@ const ground = await floor(look.floor.texture, {
 // Starting by the burning tree's branch, he carries no torch of his own: the branch, picked up, is his torch.
 /** The burning branch, where the route lays one, held by its butt in his bill: out to his right, forward and up, under half as long as he is tall, a fifth of it back past his bill. */
 const BRANCH_HELD = { way: [-0.75, 0.42, 0.5], length: 0.4, behind: 0.2 } as const
-const meat = await createMeat(ROUTE.start.branch !== undefined ? { torchless: BRANCH_HELD } : {})
-scene.add(meat.object)
-// The panel starts the meat's parts at the colours its character or its file has.
-look.meat.parts = meat.parts.map((part) => ({ ...part }))
+const goose = await createGoose(ROUTE.start.branch !== undefined ? { torchless: BRANCH_HELD } : {})
+scene.add(goose.object)
+// The panel starts the goose's parts at the colours its character or its file has.
+look.goose.parts = goose.parts.map((part) => ({ ...part }))
 const flame = createFlame()
 scene.add(flame.object)
 const embers = createEmbers()
@@ -784,7 +784,7 @@ for (const torch of [flame.object, embers.object, smoke.object]) {
 }
 /** Where the torch's end and its flame's light are, this frame. */
 const torchEnd = new Vector3()
-/** Where the torch rests this frame, the arm's sway left out: the swarm's light stands there. */
+/** Where the torch rests this frame, the head's sway left out: the swarm's light stands there. */
 const torchRest = new Vector3()
 const flameAt = new Vector3()
 const flameTip = new Vector3()
@@ -803,14 +803,14 @@ const flameDraw = (channel: number) => {
 scene.add(ground.mesh)
 // The frame goes through one scene pass and the effects after it: the ambient occlusion under its fog, the outlines, the palette.
 // With `?tilt` (the goose game's default), the tilt-shift: the depth of field's blur by a band across the screen (tiltshift.ts).
-const tilt = trialOn('tilt') ? createTiltShift() : undefined
+const tilt = featureOn('tilt') ? createTiltShift() : undefined
 // With the tilt, the depth of field off as the page opens: the tilt's band is the blur (the dof folder still turns it on).
 if (tilt) look.dof.enabled = false
 const post = createPost(renderer, scene, camera, { color: skyOnScreen, amount: fogAmount }, tilt, lean)
 
 // ---------------------------------------------------------------- swarm
 const tuning = defaultTuning()
-// The game's crowd (gameplay.ts), which the 2D page plays by too.
+// The game's crowd (gameplay.ts).
 Object.assign(tuning, CROWD)
 /** How far off the goose game's rats notice him, m: short of every theme's fog, so the rats further off are seen wandering.
  * 6 since 2026-10-29 (4.5 from 2026-10-27), set from the rats' pull folder. */
@@ -935,7 +935,7 @@ const rollingLook = defaultRollingLook()
 const pondPlace = { x: pondLook.x, z: pondLook.z, widest: widestShore(pondLook) }
 /** The goose game's rolling ground (rolling.ts) over its floor: what the floor is laid on, and the rats, the goose and the scenes stand on. */
 const gooseGround = rollingGround(goosePlain, pondPlace, gooseFloorBox, rollingLook)
-// Leaves falling round him, to the rolling ground (fallingleaves.prototype.ts), with a panel of their own.
+// Leaves falling round him, to the rolling ground (fallingleaves.ts), with a panel of their own.
 const fallingLeaves = url.get('leaves') === '0' ? undefined : createFallingLeaves(gooseGround, defaultFallLook())
 if (fallingLeaves) scene.add(fallingLeaves.object)
 // On WebGPU the rats are culled and drawn on the GPU (ADR-0052); WebGL 2, or `?batch`, draws them as the batch.
@@ -951,7 +951,7 @@ const gpuCull = url.has('cpustep') ? undefined : rats.gpuCull
 const playSwarm = (ground: Ground) =>
   (gpuCull ? new GpuSwarm(gpuCull, renderer, capacity, SEED, 0, arenaScale, undefined, ground, seen.texture) : new RemoteSwarm(capacity, SEED, 0, arenaScale, ground))
 /**
- * The goose game, on the route saved from its 2D page, its rats the panel's budget and `?seed`'s, walking at the panel's pace. The
+ * The goose game, on its saved route, its rats the panel's budget and `?seed`'s, walking at the panel's pace. The
  * dead tree stands where the route has it, or `?tree=N` m ahead of his start.
  */
 const treeAhead = Number(url.get('tree')) || null
@@ -962,7 +962,7 @@ const goosePlay = new GoosePlay<GpuSwarm | RemoteSwarm>(
 /** The ground's height under (x, z): the goose game's rolling plain. */
 const groundAt = (x: number, z: number) => gooseGround.at(x, z)
 
-// The level and its rules, the goose play's. Its torch, as on its 2D page: it burns down, its light shrinking with the
+// The level and its rules, the goose play's. Its torch: it burns down, its light shrinking with the
 // fuel in a straight line to nothing, and grows back as he fills it at a fire. A and E (Q and E on a QWERTY keyboard)
 // turn its reach up and down; F gives it a light that never burns down, and puts it out again.
 const level = goosePlay.level
@@ -1008,7 +1008,7 @@ function torchChanged(): boolean {
 torchChanged()
 /**
  * The torch as the swarm and the lit areas read it: where the torch rests,
- * the arm's sway left out; `light` stands at
+ * the head's sway left out; `light` stands at
  * the holder, for the walk, the camera and the fog. Its reach and its lit
  * are the torch's.
  */
@@ -1041,19 +1041,19 @@ goosePlay.setWater(pondWater(pondLook))
 const goslingSpeeds = defaultGoslingSpeeds()
 const goslingSize = { height: GOSLING_HEIGHT }
 const goslings = goosePlay && pondLook && (await createGoslings(goosePlay, pondLook, goslingSpeeds, groundAt, goslingSize))
-// PROTOTYPE (`?ghosts`, `=float`, `=rag` or `=ball`, `&ghostcount=`): ghost geese, cloth sheets on the GPU (ghosts.prototype.ts); WebGPU only.
-// `?graveyard` (the goose game's default, ball ghosts): they walk the graveyard's chain behind the last fire as the 2D page
-// lays it (graveyard.prototype.ts), on the play's clock, so they meet where and when they meet there.
+// Ghost geese (`?ghosts`, `=float`, `=rag` or `=ball`, `&ghostcount=`), cloth sheets on the GPU (ghosts.ts); WebGPU only.
+// `?graveyard` (the goose game's default, ball ghosts): they walk the graveyard's chain behind the last fire as
+// graveyard.ts lays it, on the play's clock, so they meet where and when they meet there.
 const graveyard = (() => {
-  if (!goosePlay || !trialOn('graveyard')) return undefined
+  if (!goosePlay || !featureOn('graveyard')) return undefined
   const k = goosePlay.plain.braziers.length - 1
   const fire = goosePlay.plain.braziers[k]
   // The fire before it, not a ghost's gosling's brazier, which stands in the graveyard.
   const before = goosePlay.plain.braziers.slice(0, k).reverse().find((b) => b.follows === undefined)
-  return fire && before ? layGraveyard(defaultGraveLook('chain'), fire, goosePlay.level.lights[k]?.reach ?? fire.reach, before) : undefined
+  return fire && before ? layGraveyard(defaultGraveLook(), fire, goosePlay.level.lights[k]?.reach ?? fire.reach, before) : undefined
 })()
 const ghosts = goosePlay && graveyard && backend !== 'WebGPU'
-  ? createPlainGhosts(groundAt, { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook('chain').speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) }, fakeLamps)
+  ? createPlainGhosts(groundAt, { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook().speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) }, fakeLamps)
   : goosePlay && (url.has('ghosts') || graveyard) && backend === 'WebGPU'
   ? await createGhosts(
       renderer,
@@ -1061,14 +1061,14 @@ const ghosts = goosePlay && graveyard && backend !== 'WebGPU'
       groundAt,
       url.get('ghosts') || 'ball',
       Number(url.get('ghostcount') ?? 4),
-      graveyard && { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook('chain').speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) },
+      graveyard && { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook().speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) },
       fakeLamps,
     )
   : undefined
 if (ghosts) scene.add(ghosts.object)
 /** The old road's middle as last laid, for the graves to keep off: none till it is, and they are laid again then. */
 let gravesRoad: readonly { x: number; z: number }[] = []
-// Its graves over its ground among the ghosts' paths (graves.prototype.ts), clear of the crossings, out of the pond, and off the
+// Its graves over its ground among the ghosts' paths (graves.ts), clear of the crossings, out of the pond, and off the
 // road out to its faded edge, though not to the furthest its edge wavers out: close by it, as old graves stand by a way.
 const graveGround: GraveGround | undefined = graveyard && {
   paths: graveyard.ghosts.map((g) => g.path.points),
@@ -1079,7 +1079,7 @@ const graveGround: GraveGround | undefined = graveyard && {
 }
 const graves = graveGround && goosePlay ? await createGraves(graveGround, groundAt) : undefined
 if (graves) scene.add(graves.object)
-// Candles at the graves' feet (gravecandles.prototype.ts), laid again whenever the graves are.
+// Candles at the graves' feet (gravecandles.ts), laid again whenever the graves are.
 const graveCandles = graves ? await createGraveCandles(groundAt) : undefined
 if (graveCandles) scene.add(graveCandles.object)
 const layGraveCandles = () => graves && graveCandles?.lay(graves.footprints())
@@ -1125,7 +1125,7 @@ if (ghosts && !noPanel)
 const GRAVE_PUMPKIN_RADIUS = 0.4
 /**
  * A few of the well's pumpkins in the graveyard by the road, clear of its graves, looking back down the road at him
- * coming (graves.prototype.ts): again whenever the road or the graves are laid again.
+ * coming (graves.ts): again whenever the road or the graves are laid again.
  */
 function layGravePumpkins() {
   if (!graveyard || !graveGround || !gooseScenes) return
@@ -1134,7 +1134,7 @@ function layGravePumpkins() {
   gooseScenes.layLoosePumpkins(scatterGravePumpkins(graveGround, gravesRoad, back, stones, gooseScenes.pumpkinKinds, GRAVE_PUMPKIN_RADIUS))
 }
 // The ghosts' lights handed to the swarm after the play's own, so the rats keep out of them as out of a brazier's:
-// patched onto the play from here, to keep the prototype out of gooseplay.ts.
+// patched onto the play from here, to keep them out of gooseplay.ts.
 if (ghosts && goosePlay) {
   const playLights = goosePlay.lights.bind(goosePlay)
   goosePlay.lights = () => [...playLights(), ...ghosts.lights]
@@ -1152,7 +1152,7 @@ const gooseScenes =
 if (gooseScenes) scene.add(gooseScenes.object)
 feel.key.taken = gooseScenes?.keyTaken
 // Its shell laid now, before the panel reads the cart's and the corpse's highlight and rim, which start as it.
-gooseScenes?.setShell(look.meat)
+gooseScenes?.setShell(look.goose)
 // The old road's arches over it out in the dark between its fires (arches.ts), as the road folder edits them.
 const archLook = defaultArchLook()
 // Their slabs and their toon shell, as the doors folder edits them: the road's and the floor's as the page opens, the
@@ -1240,7 +1240,7 @@ if (bushesMesh) {
   scene.add(bushesMesh.object)
   bushesMesh.object.position.setY(bushLook.y)
 }
-// The goose game's see-through (blockout.ts): the dead trees between the camera and him, and nothing else since the
+// The goose game's see-through (seethrough.ts): the dead trees between the camera and him, and nothing else since the
 // user's of 2026-10-26, dithered away round him by Perlin noise, as the see-through folder sets it: on 2026-10-26 a
 // wide hole, 4 m round, cut from him on, in finer blots. A tree's trunk is kept whole
 // (DeadTreesMesh.trunk), so it stands there whatever is dithered away above it: up to 0.09 of its height, under the
@@ -1724,7 +1724,7 @@ const islandGeese = pondLook && pond
         island: () => islandMiddle(pondLook),
         nest: () => nestAt(nestPlace),
         ground: (x, z) => groundOf(pondLook, x, z),
-        gooseScale: () => meat.modelScale(),
+        gooseScale: () => goose.modelScale(),
         free: (x, z) =>
           groundOf(pondLook, x, z) > pondLook.water + PLAY_DRY &&
           (!tent?.object.visible || Math.hypot(x - tent.object.position.x, z - tent.object.position.z) > tent.reach() + PLAY_CLEAR) &&
@@ -1982,7 +1982,7 @@ function heartsFrame() {
     const shown = outroRunning() && !!outroStage && age >= 0 && age < HEART_SHOWS
     mark.style.opacity = shown ? String(Math.min(1, age / 0.3) * Math.min(1, (HEART_SHOWS - age) / 1)) : '0'
     if (!shown) return
-    heartFrom.set(outroStage!.pair.x, meat.object.position.y + HEART_UP, outroStage!.pair.z).project(camera)
+    heartFrom.set(outroStage!.pair.x, goose.object.position.y + HEART_UP, outroStage!.pair.z).project(camera)
     const box = renderer.domElement.getBoundingClientRect()
     const share = age / HEART_SHOWS
     const x = box.left + ((heartFrom.x + 1) / 2) * box.width + heart.side * HEART_SCATTER * Math.min(1, age / 1.2) + Math.sin(age * 1.8 + k) * HEART_LOOP
@@ -2015,8 +2015,6 @@ function withDawn(lights: FixedLight[]): FixedLight[] {
 }
 // The bed under the pond's water takes less light, as deep as the water lies.
 ground.setWaterLevel(pondLook.water)
-const walls = createBlockout(level)
-scene.add(walls.object)
 /** How high he stands at (x, z): on the ground, down the pond's bank and into its water, afloat where it is too deep (pond.ts). */
 const standAt = (x: number, z: number) => groundAt(x, z) + standingIn(pondLook, x, z, pondLook.goose)
 
@@ -2109,17 +2107,17 @@ scene.add(rats.object)
 // projector's mask of them, drawn every frame, the floor's shader reading it.
 const fireShadowLook = defaultFireShadowLook()
 const fireShadow = moon === 'none' ? undefined : createFireShadow(renderer, fakeLamps, fireShadowLook, [ground.mesh])
-const fireCasters = [meat.object, ...(goslings ? [goslings.object] : [])]
+const fireCasters = [goose.object, ...(goslings ? [goslings.object] : [])]
 const gooseMiddle = new Vector3()
 /** The fire's shadow not drawn, and the share of the rats asked for: for `?bench` to price them. */
 let fireShadowsHeld = false
 let benchRatShare = 1
 function layFireShadows(): void {
   if (!fireShadow || fireShadowsHeld) return
-  meat.object.getWorldPosition(gooseMiddle)
+  goose.object.getWorldPosition(gooseMiddle)
   const ground = groundAt(gooseMiddle.x, gooseMiddle.z)
-  gooseMiddle.y = ground + look.meat.height * 0.5
-  fireShadow.update(drawnInScene(meat.object) ? fireCasters : [], gooseMiddle, look.meat.height, ground)
+  gooseMiddle.y = ground + look.goose.height * 0.5
+  fireShadow.update(drawnInScene(goose.object) ? fireCasters : [], gooseMiddle, look.goose.height, ground)
 }
 // The panel starts each part at the colour the model was made in.
 look.rats.parts = rats.parts.map((part) => ({ ...part }))
@@ -2228,36 +2226,36 @@ function lookChanged() {
   ground.material.set(look.floor.shell)
   ground.material.setPaint(look.floor.paint)
   ground.material.setToon(look.floor.toon)
-  meat.set(look.meat)
+  goose.set(look.goose)
   // The goslings' down the goose's white, glowing as his does.
-  const white = look.meat.parts.find((part) => part.glow !== undefined)
+  const white = look.goose.parts.find((part) => part.glow !== undefined)
   if (goslings && white) goslings.setDown(white.color, white.glow!)
   if (islandGeese && white) islandGeese.setDown(white.color, white.glow!)
   // Their rim his.
-  goslings?.setRim(look.meat)
-  islandGeese?.setRim(look.meat)
-  gooseScenes?.setShell(look.meat)
-  graves?.setShell(look.meat)
-  graveCandles?.setShell(look.meat)
-  tent?.setShell(look.meat)
-  picnic?.setShell(look.meat)
-  islandTree?.setShell({ ...look.meat, ...deadTreeShine })
+  goslings?.setRim(look.goose)
+  islandGeese?.setRim(look.goose)
+  gooseScenes?.setShell(look.goose)
+  graves?.setShell(look.goose)
+  graveCandles?.setShell(look.goose)
+  tent?.setShell(look.goose)
+  picnic?.setShell(look.goose)
+  islandTree?.setShell({ ...look.goose, ...deadTreeShine })
   // The dead trees in the scenes' shell, with a highlight and a rim of their own: none of either to start, matt, as the
   // user asked on 2026-10-26, the dead trees folder's to give them.
-  deadTreesMesh?.setShell({ ...look.meat, ...deadTreeShine })
-  bushesMesh?.setShell(look.meat)
+  deadTreesMesh?.setShell({ ...look.goose, ...deadTreeShine })
+  bushesMesh?.setShell(look.goose)
   flame.set(look.flame)
   embers.set(look.flame.embers)
   smoke.set(look.flame.smoke)
   // The burning branch in the dead trees' shell, as their wood is; its embers the torch's.
-  burningBranch?.setShell({ ...look.meat, ...deadTreeShine })
+  burningBranch?.setShell({ ...look.goose, ...deadTreeShine })
   branchEmbers?.set(look.flame.embers)
   // The torch out, burnt down or put out: its flame, its smoke and its embers go with it.
   flame.object.visible &&= light.on
   embers.object.visible &&= light.on
   smoke.object.visible &&= light.on
   // The character hidden takes its torch with it: the lamp alone stays, burning where the flame would.
-  meat.object.visible &&= settings.character
+  goose.object.visible &&= settings.character
   flame.object.visible &&= settings.character
   embers.object.visible &&= settings.character
   smoke.object.visible &&= settings.character
@@ -2346,7 +2344,7 @@ if (filming) document.documentElement.classList.add('film')
 
 // In the goose game F, a debug key, gives the torch a light that never burns down, held full each frame; and puts it out
 // again for real, its fuel gone, so nothing holds the rats off his circle until a fire fills it. Taken here first, before the panel's own F, which only hides the light from the rats. 0 to 5 on the
-// top row, debug keys too, as on the 2D page, stand him back where he starts, by the well's zone, the dead tree's, the
+// top row, debug keys too, stand him back where he starts, by the well's zone, the dead tree's, the
 // cage's and, on 5, the pond; on 6 in the water just off its island, facing it. Any other number, or 0 to 5 on the keypad, gives him that many goslings at
 // once, 0 none (the key's place, so the AZERTY row needs no shift).
 /** The goose game's torch held full each frame, its F debug key's. */
@@ -2361,7 +2359,7 @@ function standOffIsland() {
   facing.x = 0
   facing.z = -1
 }
-/** PROTOTYPE: at the graveyard's entrance, facing in. */
+/** At the graveyard's entrance, facing in. */
 function standAtGraveyard() {
   if (!graveyard || !goosePlay) return
   const { holder, facing } = goosePlay.run
@@ -2816,7 +2814,7 @@ let owed = 0
 /** Where the lamp hangs: easing after the light's shown place by the lamp's lag, the held frames' worth of it on the beat. */
 const lampAt = { x: light.x, z: light.z }
 let lampOwed = 0
-/** The light's own pace, m/s, as of the last frame: the meat runs by it. */
+/** The light's own pace, m/s, as of the last frame: the goose runs by it. */
 const lightPace = { x: 0, z: 0, wasX: light.x, wasZ: light.z }
 /** How high he stands, m: easing after the ground under him, so a step up is a step, not a jump. */
 let stood = Number.NaN
@@ -2851,11 +2849,11 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   }
   const under = standAt(shown.x, shown.z)
   stood = Number.isNaN(stood) ? under : stood + (under - stood) * (1 - Math.exp(-dt / STAND_EASE))
-  meat.object.position.set(shown.x, stood, shown.z)
+  goose.object.position.set(shown.x, stood, shown.z)
   // The flame drawn again on the beat, or every frame smooth, where it wavers on the clock.
   if (!stop.enabled || newBeat) flame.shape(flameDraw, lightPace.x, lightPace.z)
-  flame.place(meat.tip(torchEnd, flame.offset(flameOffset)))
-  meat.restTip(torchRest, flameOffset)
+  flame.place(goose.tip(torchEnd, flame.offset(flameOffset)))
+  goose.restTip(torchRest, flameOffset)
   flame.centre(flameAt)
   // The scenes' fires burn while their lights are lit, drawn again as the torch's is, each in its own look, its lamp with it.
   sceneFires.forEach(({ owner, light, fire }, i) => {
@@ -2901,8 +2899,8 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   }
   burningTreeFrame(newBeat)
   introLightFrame()
-  // In the torch, the lamp burns where the torch rests, the arm's sway left out (2026-10-11): it moves with the child
-  // and never swings with his arm. Else it hangs over the meat, easing after it.
+  // In the torch, the lamp burns where the torch rests, the head's sway left out (2026-10-11): it moves with him
+  // and never swings with his head. Else it hangs over the goose, easing after it.
   if (look.lamp.inFlame) lamp.position.copy(torchRest)
   else lamp.position.set(lampAt.x, LIGHT_HEIGHT + stood, lampAt.z)
   fogCentre.value.set(shown.x, shown.z)
@@ -3112,7 +3110,7 @@ function plainBraziers(play: GoosePlay<PlaySwarm>): EditPiece[] {
 }
 
 /**
- * The route the edited pieces now make, written over src/gooseroute.json by the dev server, as the 2D page saves it,
+ * The route the edited pieces now make, written over src/gooseroute.json by the dev server,
  * and the page loaded again on it; or why not. Not with a debug placement on, which would be saved with it.
  */
 async function saveEditedRoute(pieces: EditPiece[]): Promise<string | undefined> {
@@ -3124,7 +3122,7 @@ async function saveEditedRoute(pieces: EditPiece[]): Promise<string | undefined>
   // The road as the route laid it, by hand or not at all: the edit mode moves none of it.
   const { road } = goosePlay.plain
   const route: Route = { start: { ...start }, braziers, pond: { ...pond }, ...(road ? { road: structuredClone(road) } : {}) }
-  // To the millimetre, as the 2D page saves it.
+  // To the millimetre.
   const body = JSON.stringify(toSave(route), (_, v: unknown) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v))
   const response = await fetch('/goose-route', { method: 'POST', body }).catch(() => undefined)
   if (!response?.ok) return `not saved: ${response ? await response.text() : 'no dev server'}`
@@ -3245,7 +3243,7 @@ function sceneFirePanel(kind: FireScene) {
 }
 
 /** The goose's bones by name, the cage's key carried on one of them. */
-const gooseBone = (name: string) => meat.bone(name)
+const gooseBone = (name: string) => goose.bone(name)
 
 /** The goose game's frame past the play, `dt` of play on, at the held time `held`: the goslings where it has them. */
 /** When a bite on him was last heard and seen, s of the play; how hard it was, 0 to 1; and which way it came from, on the ground. */
@@ -3274,7 +3272,7 @@ function biteFrame() {
     gooseSounds?.play(bite.sound === 'honk' ? 'bite_honk' : 'bite_hiss', herAt(), biteHard)
     biteCame.x = goosePlay.biteFrom.x
     biteCame.z = goosePlay.biteFrom.z
-    biteBody.set(meat.object.position.x, meat.object.position.y + BITE_BODY, meat.object.position.z)
+    biteBody.set(goose.object.position.x, goose.object.position.y + BITE_BODY, goose.object.position.z)
     feathers.burst(biteBody, biteCame, biteHard)
     goslingsFright(t)
   }
@@ -3284,12 +3282,12 @@ function biteFrame() {
   // Squashed at the bite, through his height a third of the way back, stretched a little two thirds back, still at the end.
   const flinch = through(bite.lasts)
   const squash = bite.squash * biteHard * Math.cos(flinch * 1.5 * Math.PI) * (1 - flinch)
-  meat.object.scale.set(1 + squash / 2, 1 - squash, 1 + squash / 2)
+  goose.object.scale.set(1 + squash / 2, 1 - squash, 1 + squash / 2)
   // The flash, held whole a moment and fading; the edges with it, the more as his life runs low.
   const fade = through(bite.flashLasts)
   const flash = biteHard * (fade < FLASH_HELD ? 1 : ((1 - fade) / (1 - FLASH_HELD)) ** 2)
-  meat.material.flash.color.value.set(bite.flashColour)
-  meat.material.flash.strength.value = bite.flash * flash
+  goose.material.flash.color.value.set(bite.flashColour)
+  goose.material.flash.strength.value = bite.flash * flash
   post.hurt(bite.edge * flash * (EDGE_FULL_LIFE + (1 - EDGE_FULL_LIFE) * (1 - goosePlay.life)), bite.edgeColour)
   // The knock: the camera snapped the way the bite pushes him, away from the rats, and a little down, at once; springing
   // back past where it was, then settling.
@@ -3415,7 +3413,7 @@ const leanHead = new Vector3()
  * the little one, the more the nearer, all of it by `near` m, `pull` of the way from him to the gosling as drawn, up a tree or
  * down a well, `most` m at most, up but never down; easing there over `ease` s, and back once the gosling is with him. Slid,
  * never turned, so the keys walk him the way they always do. Held back as his torch runs low, `low` on: every metre
- * framed toward the child is a metre of the dark on his other side not seen.
+ * framed toward him is a metre of the dark on his other side not seen.
  */
 function cameraLeanFrame(dt: number) {
   const { lean } = feel
@@ -3473,7 +3471,7 @@ function dyingAt(): number | undefined {
   const { speed } = feel.death
   if (!Number.isNaN(fallen)) return fallen * speed
   const shown = (t - deathShownAt) * speed
-  return shown >= 0 && shown < meat.deathLength + DEATH_SHOWN_HOLD ? shown : undefined
+  return shown >= 0 && shown < goose.deathLength + DEATH_SHOWN_HOLD ? shown : undefined
 }
 
 function gooseFrame(dt: number, held: number) {
@@ -3491,9 +3489,9 @@ function gooseFrame(dt: number, held: number) {
   if (gooseScenes) deadTreesMesh?.placeOwn(gooseScenes.ownTrees(goosePlay))
   // Calm until the strike: he and his goslings walk. Struck, he jumps in fright and they cower, till they bolt.
   const calm = introRunning() && introT < INTRO.strike
-  meat.setCalm(calm)
-  meat.setStartle(introRunning() ? startled(introT) : undefined)
-  meat.setDying(dyingAt())
+  goose.setCalm(calm)
+  goose.setStartle(introRunning() ? startled(introT) : undefined)
+  goose.setDying(dyingAt())
   if (goslings) {
     goslings.calm = calm
     goslings.scared = introRunning() && cowering(introT)
@@ -3565,7 +3563,7 @@ function shoutFrame() {
     }
     word.style.opacity = shown ? String(Math.min(1, age / 0.06) * Math.min(1, (SHOUT_SHOWS - age) / 0.35)) : '0'
     if (!shown) return
-    shoutAt.set(meat.object.position.x, meat.object.position.y + 1.05, meat.object.position.z).project(camera)
+    shoutAt.set(goose.object.position.x, goose.object.position.y + 1.05, goose.object.position.z).project(camera)
     const box = renderer.domElement.getBoundingClientRect()
     const x = box.left + ((shoutAt.x + 1) / 2) * box.width + (k % 2 ? 34 : -34)
     const y = box.top + ((1 - shoutAt.y) / 2) * box.height - 46 * Math.min(1, age / 0.45)
@@ -3741,11 +3739,11 @@ function branchFrame(newBeat: boolean, held: number) {
   const stop = look.stopMotion
   lights.setLamp(branch.light, fireLook.lamp, branchFireLook.intensity)
   // As long lying as carried, as he is drawn now.
-  const { carrier, butt, end } = meat.held
+  const { carrier, butt, end } = goose.held
   const length = carrier.localToWorld(branchButt.copy(butt)).distanceTo(carrier.localToWorld(branchAtNow.copy(end)))
   if (branch.carried) {
-    burningBranch.object.visible = meat.object.visible
-    burningBranch.place(carriedPose(meat.held, branchLaid))
+    burningBranch.object.visible = goose.object.visible
+    burningBranch.place(carriedPose(goose.held, branchLaid))
     branchFire.object.visible = branchEmbers.object.visible = false
     return
   }
@@ -3990,7 +3988,7 @@ function chatFrame() {
       continue
     }
     gooseSounds?.play(line.who, herAt())
-    const { position } = meat.object
+    const { position } = goose.object
     peepWords?.peep({ x: position.x, y: position.y + HER_HEAD, z: position.z }, 0, HER_WORD)
   }
 }
@@ -4024,7 +4022,7 @@ function gooseSoundsFrame(dt: number) {
     backgroundMusic.set(musicIn * musicIn)
   }
   const at = herAt()
-  gooseSounds.walk(at, dt, pondLook ? swimmingIn(pondLook, at.x, at.z, pondLook.goose) : 0, meat.footfalls)
+  gooseSounds.walk(at, dt, pondLook ? swimmingIn(pondLook, at.x, at.z, pondLook.goose) : 0, goose.footfalls)
   goosePlay.goslings.forEach((g, k) => {
     if (!g) return
     const here = { x: g.x, y: standAt(g.x, g.z) + 0.1, z: g.z }
@@ -4296,7 +4294,7 @@ function lifeFrame() {
   // His death's dark: swirling in over `finish` s once his death has played `after` s; or held at the folder's progress, to see it.
   const falling = !Number.isNaN(fallen)
   const dark = progress >= 0 ? progress : falling && !scripted ? Math.min(1, Math.max(0, fallen - after) / Math.max(finish, 1e-3)) : 0
-  darkOn.set(meat.object.position.x, meat.object.position.y + 0.4, meat.object.position.z).project(camera)
+  darkOn.set(goose.object.position.x, goose.object.position.y + 0.4, goose.object.position.z).project(camera)
   post.dark(dark, (darkOn.x + 1) / 2, (1 - darkOn.y) / 2, falling ? fallen : clock, darkLook)
 }
 
@@ -4317,8 +4315,8 @@ function wakeFlare(placed: readonly FixedLight[]): readonly FixedLight[] {
 }
 
 /**
- * Trial, `?marker` (the goose game's default, the portrait), `?marker=icon` or `?marker=doodle`: the calling gosling's badge
- * (goslingbadge.prototype.ts), there all the time he calls and on over his head as the goose comes, quiet, till the goose has
+ * `?marker` (the goose game's default, the portrait) or `?marker=doodle`: the calling gosling's badge
+ * (goslingbadge.ts), there all the time he calls and on over his head as the goose comes, quiet, till the goose has
  * him; its honks small, said rather than shouted, over
  * the gosling's head in view alone, none by the badge, and heard barely far off, louder as the goose comes; and his torch
  * out, or at the cage with its key, what to do written over where it is done (aheadFrame).
@@ -4330,7 +4328,7 @@ const badgeLook = url.get('marker') === 'doodle' ? 'doodle' : url.get('marker') 
  */
 const BADGE_FIT_SIDE = 800
 const badgeFit = () => (phone ? Math.min(1, Math.min(innerWidth, innerHeight) / BADGE_FIT_SIDE) : 1)
-const callBadge = goosePlay && !filming && trialOn('marker') ? createGoslingBadge(badgeLook, badgeFit) : undefined
+const callBadge = goosePlay && !filming && featureOn('marker') ? createGoslingBadge(badgeLook, badgeFit) : undefined
 if (callBadge && badgeLook === 'portrait' && !noPanel) mountBadgeControls()
 /** The badge's honk, as said, and how big it is written; whether its gosling is in view, for it to be written at all. */
 const BADGE_WORD = '*honk*'
@@ -4475,7 +4473,7 @@ function callHintFrame(dt: number) {
 }
 
 /**
- * Trial, `?marker`: what to do, written over where it is done, at the screen's edge on its side out of view, only
+ * `?marker`: what to do, written over where it is done, at the screen's edge on its side out of view, only
  * where the badge does not already say it: near the well, over its winch; near the dead tree, over where the gosling is called
  * down, or with the goose's torch out, over its fire; at the cage, over the cage, to find its key, then with it to unlock it;
  * nothing near a ghost's gosling. Never over a fire for his torch out: the hold indicator over him says it once he is at one.
@@ -5057,7 +5055,7 @@ function createBench(): PhoneBench | undefined {
       benchLook('rat trails', (on) => (look.trails.enabled = on)),
       { name: 'rat depth pre-pass', off: () => rats.setPrepass(!prepassOn), on: () => rats.setPrepass(prepassOn) },
       benchHide('falling leaves', fallingLeaves?.object),
-      benchHide('goose and goslings', meat.object, goslings && goslings.object),
+      benchHide('goose and goslings', goose.object, goslings && goslings.object),
       ...(graveyard && ghosts ? [{ ...benchHide('ghosts', ghosts.object), place: 'graveyard' }] : []),
       ...(waterMeshes.length > 0 ? [{ ...benchHide('water', ...waterMeshes), place: 'pond' }] : []),
     ]),
@@ -5228,9 +5226,9 @@ renderer.setAnimationLoop(() => {
   fogTime.value = held
   water?.update(held)
   // In the pond he swims, afloat, his water clips taking over from his land ones.
-  meat.setSwimming(pondLook ? swimmingIn(pondLook, shown.x, shown.z, pondLook.goose) : 0)
+  goose.setSwimming(pondLook ? swimmingIn(pondLook, shown.x, shown.z, pondLook.goose) : 0)
   // The goose, standing, turned the way the play has him face: to the chase camera's look.
-  meat.pose(held, lightPace.x, lightPace.z, goosePlay && Math.atan2(goosePlay.facing.x, goosePlay.facing.z))
+  goose.pose(held, lightPace.x, lightPace.z, goosePlay && Math.atan2(goosePlay.facing.x, goosePlay.facing.z))
   post.seed(stop.enabled && look.grain.grainOnBeat ? beat : Math.floor(clock * look.grain.grainSpeed), stop.enabled && stop.paperOnBeat ? beat : 0)
 
   // Q and E, the debug keys, turn the torch's reach up and down: it moves at the dial's rate while one is held, and the panel shows it.
@@ -5304,7 +5302,6 @@ renderer.setAnimationLoop(() => {
   // The shots over the orbit, before anything reads the camera for this frame's drawing.
   const shot = standAtShots()
   seeThroughAt.set(shown.x, stood + 0.8, shown.z)
-  walls.seeThroughTo(seeThroughAt)
   gooseSee?.subject.value.set(seeThroughAt.x, stood + gooseSeeLook.height, seeThroughAt.z)
   if (gooseSee) gooseSeeZone?.update(gooseSee.subject.value, camera, gooseSeeLook)
   cutSeenThrough()

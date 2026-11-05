@@ -1,6 +1,6 @@
 // The graves' inscriptions: where on a stone's front its words go.
 import { describe, expect, it } from 'vitest'
-import { findPanel, slabPanel } from './inscriptions.prototype'
+import { findPanel, slabPanel } from './inscriptions'
 
 type Rect = [left: number, bottom: number, right: number, top: number, z: number, facing?: 1 | -1]
 

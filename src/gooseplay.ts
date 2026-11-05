@@ -135,7 +135,7 @@ export interface GooseSettings {
   seed: number
   /** How long a full torch burns, s, read at the start. */
   torch: number
-  /** The route, read at the start: the one saved from the 2D page unless given another. */
+  /** The route, read at the start: the one saved unless given another. */
   route: Route
   /** Whether the last gosling, found, leads the goose on home ahead of him instead of joining his circle. Read at the start. */
   lastGuides: boolean
@@ -194,7 +194,7 @@ export interface GooseSettings {
   /** How far ahead of his start the dead tree stands, m, up the plain, if not in its brazier's place: nothing, there. Read at the start. */
   treeAhead: number | null
   /** How much of his life each rat at him takes a second, of a full life. Read live. */
-  herBite: number
+  hisBite: number
   /** How long nothing has to bite him before his life comes back, s. Read live. */
   healAfter: number
   /** How fast life comes back, of a full life a second. Read live. */
@@ -870,7 +870,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
 
   constructor(settings: Partial<GooseSettings> = {}, drive: PlayDrive<S> = {}) {
     // The dead tree's zone and its gosling's jump: set from the panel on 2026-10-22; the well's, the burning branch's, the burning tree's, the dead tree's again and its brazier's on 2026-11-01.
-    this.settings = { herBite: 0.141, healAfter: 2, heal: 0.25, fall: { lasts: FALL, dims: FALL_DIM }, spawnReach: SPAWN_REACH, spawnFear: 1, wellFireReach: BRAZIER_REACH, rats: 2000, pace: LIGHT_SPEED, seed: SEED, torch: TORCH, sight: 7, wellHold: 4, treeHold: 2, treeJump: 1.8, refillHold: 1.4, lightLetGo: 0.7, winchZone: { x: 0, z: 0, scaleX: 1.3, scaleY: 1.35 }, treeZone: { x: 0, z: 0, scaleX: 1.7, scaleY: 1.7 }, treeLanding: { x: -0.3, z: 1 }, treeFire: { x: 0, z: 0 }, wellFire: { x: 0, z: 0 }, cageZone: { ...STILL_ZONE }, cageHold: 1.5, cageFire: { x: 0, z: 0 }, keyZone: { ...STILL_ZONE }, keyBeside: { ...KEY_BESIDE }, fireZones: { tree: { x: 0, z: 0, scaleX: 1.5, scaleY: 1.5 }, cage: { ...CAMPFIRE_ZONE } }, branchZone: { x: 0, z: 0, scaleX: 1.1, scaleY: 1.1 }, spawnZone: { x: 0, z: 0, scaleX: 1.1, scaleY: 1.1 }, pitZone: { ...STILL_ZONE }, brazierZone: { ...STILL_ZONE }, fireReach: { tree: 2, cage: BRAZIER_REACH }, wellAhead: null, treeAhead: null, route: ROUTE, lastGuides: false, ...settings }
+    this.settings = { hisBite: 0.141, healAfter: 2, heal: 0.25, fall: { lasts: FALL, dims: FALL_DIM }, spawnReach: SPAWN_REACH, spawnFear: 1, wellFireReach: BRAZIER_REACH, rats: 2000, pace: LIGHT_SPEED, seed: SEED, torch: TORCH, sight: 7, wellHold: 4, treeHold: 2, treeJump: 1.8, refillHold: 1.4, lightLetGo: 0.7, winchZone: { x: 0, z: 0, scaleX: 1.3, scaleY: 1.35 }, treeZone: { x: 0, z: 0, scaleX: 1.7, scaleY: 1.7 }, treeLanding: { x: -0.3, z: 1 }, treeFire: { x: 0, z: 0 }, wellFire: { x: 0, z: 0 }, cageZone: { ...STILL_ZONE }, cageHold: 1.5, cageFire: { x: 0, z: 0 }, keyZone: { ...STILL_ZONE }, keyBeside: { ...KEY_BESIDE }, fireZones: { tree: { x: 0, z: 0, scaleX: 1.5, scaleY: 1.5 }, cage: { ...CAMPFIRE_ZONE } }, branchZone: { x: 0, z: 0, scaleX: 1.1, scaleY: 1.1 }, spawnZone: { x: 0, z: 0, scaleX: 1.1, scaleY: 1.1 }, pitZone: { ...STILL_ZONE }, brazierZone: { ...STILL_ZONE }, fireReach: { tree: 2, cage: BRAZIER_REACH }, wellAhead: null, treeAhead: null, route: ROUTE, lastGuides: false, ...settings }
     this.runTuning.burnRate = 1 / this.settings.torch
     this.plain = laid(this.settings.route)
     const { start, braziers, bounds } = this.plain
@@ -1323,7 +1323,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
         this.biteFrom.x = fromX / from
         this.biteFrom.z = fromZ / from
       }
-      this.life -= this.biters * settings.herBite * dt
+      this.life -= this.biters * settings.hisBite * dt
       this.bittenAt = t
     } else if (t - this.bittenAt >= settings.healAfter) this.life = Math.min(1, this.life + settings.heal * dt)
     if (this.life <= 0) this.fall()

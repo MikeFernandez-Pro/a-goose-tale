@@ -167,7 +167,7 @@ export interface GooseSounds {
   loop(sound: GooseSound, rate?: number): Loop
   /**
    * His feet, `dt` s on, standing at `at`: a step each time a foot comes down in his walk, `footfalls` the count so far
-   * (meat.ts); paddling afloat (0 land to 1 afloat).
+   * (goose.ts); paddling afloat (0 land to 1 afloat).
    */
   walk(at: At, dt: number, afloat: number, footfalls: number): void
   /** Gosling `k`'s feet, `dt` s on, at `at`: a small light step each GOSLING_STRIDE m, none afloat. */

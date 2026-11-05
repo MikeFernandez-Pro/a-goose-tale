@@ -1,7 +1,7 @@
-// The level's walls (#175), as the swarm and the run read them: no renderer,
-// no DOM, tested through the swarm and the run. A wall is a straight piece of
-// the level, WALL_THICKNESS thick, standing on the ground from one point to
-// another; drawn as a grey box (blockout.ts).
+// The walls (#175), as the swarm and the run read them: no renderer, no DOM,
+// tested through the swarm and the run. A wall is a straight piece of the
+// plain, WALL_THICKNESS thick, standing on the ground from one point to
+// another; drawn as the road's broken walls (roadwalls.ts).
 //
 // Two things read walls. Bodies: a rat, or the holder, keeps its own radius
 // off a wall's box, rounded at its ends, and never crosses one, however fast

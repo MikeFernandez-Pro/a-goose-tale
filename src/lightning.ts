@@ -39,7 +39,7 @@
 // at the moment of the strike; and they are timed off the play's own clock,
 // so the play started over strikes again and a paused play holds them. The
 // sparks before a strike rise for the time the script gives before it is due.
-// The bolt comes down beside the struck tree, on the side the child is, not
+// The bolt comes down beside the struck tree, on the side the goose is, not
 // inside its trunk, and stands on the ground's height; or, given no one to
 // come down toward, on the very spot, at the height given it there (the goose
 // game's log, struck on its roots). The line's sides are a
@@ -138,7 +138,7 @@ export interface Lightning {
   /**
    * The strikes at `now`, s of the play: each where the play has it, at the
    * height `groundAt` has for strike `k` there, on the side of its tree toward
-   * `near`, the child, until it lands; on the spot with no one near.
+   * `near`, the goose, until it lands; on the spot with no one near.
    */
   update(now: number, strikes: readonly Strike[], near: Point | null, groundAt: (x: number, z: number, k: number) => number): void
 }
@@ -309,7 +309,7 @@ export function createLightning(count: number, { rising: rises = true }: { risin
         if (bolt === undefined) return
         bolt.due.value = Number.isNaN(strike.due) ? NEVER : strike.due
         bolt.struck.value = Number.isNaN(strike.time) ? NEVER : strike.time
-        // Beside its tree, on the child's side, until it lands; then where it landed.
+        // Beside its tree, on the goose's side, until it lands; then where it landed.
         const landed = !Number.isNaN(strike.time)
         if (landed && bolt.landed) return
         bolt.landed = landed

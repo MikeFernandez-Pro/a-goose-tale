@@ -1,4 +1,4 @@
-// PROTOTYPE: leaves falling round the goose, always on. Brought
+// Leaves falling round the goose, always on. Brought
 // back on 2026-10-25 from the parked leaves prototype
 // (ThreJsJourney/parked/last-light-leaves/leaves.prototype.ts), the falling
 // alone: no litter on the ground, so a leaf lies a while where it lands and
@@ -255,7 +255,7 @@ export function mountFallControls(falling: FallingLeaves): void {
   const container = document.createElement('div')
   container.style.cssText = 'position:fixed;bottom:8px;left:276px;z-index:1000'
   document.body.append(container)
-  const gui = new GUI({ title: 'falling leaves (prototype)', container, width: 240 } as ConstructorParameters<typeof GUI>[0])
+  const gui = new GUI({ title: 'falling leaves', container, width: 240 } as ConstructorParameters<typeof GUI>[0])
   gui.close()
   const { look } = falling
   const changed = () => falling.set()

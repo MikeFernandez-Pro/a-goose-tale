@@ -57,15 +57,15 @@ What the player presses or holds to have the goose act where he stands, whatever
 _Avoid_: interact key (a **key** is the cage's), action, use
 
 **Play step**:
-**A Goose Tale**'s play, one frame at a time, with no drawing: the frame's input read, the run stepped, the goose walking in it, the rats set down, and the swarm moved on. Each page builds one, feeds it the keys and draws what it reports, so the 2D page and the 3D page play the same **plain** the same way; tests walk it on the keys. The 2D page and the tests let it step the CPU swarm; the 3D page steps its own swarm as it draws, and the play reads its rats' places back (ADR-0055).
+**A Goose Tale**'s play, one frame at a time, with no drawing: the frame's input read, the run stepped, the goose walking in it, the rats set down, and the swarm moved on. The page builds one, feeds it the keys and draws what it reports; tests walk it on the keys. The tests let it step the CPU swarm; the page steps its own swarm as it draws, and the play reads its rats' places back (ADR-0055).
 _Avoid_: game loop, controller, engine
 
 **Plain**:
-**A Goose Tale**'s ground, laid by hand on the 2D page: where the goose starts at its south end, a route of braziers heading north, wandering sideways, and the pond a little past the last. Its only **walls** are the **road**'s. Its ground rolls in low swells, flat round its start, its fires, its scenes and the pond; the play stays on the flat x and z, and only the drawing stands things on the swells.
+**A Goose Tale**'s ground, laid by hand: where the goose starts at its south end, a route of braziers heading north, wandering sideways, and the pond a little past the last. Its only **walls** are the **road**'s. Its ground rolls in low swells, flat round its start, its fires, its scenes and the pond; the play stays on the flat x and z, and only the drawing stands things on the swells.
 _Avoid_: map, level (the woods' word, gone with them)
 
 **Road**:
-The old road up the **plain**, its braziers standing along it as its beacons: stone slabs, whole by each fire, thinning out in the dark between to the odd slab sunk in the dirt, running on back past where he starts and ending at the pond. Laid by hand on the 2D page, through points of its own; or else from the fires, passing each a little to one side, at a **scene** on the side away from its body. It says which way to go; the **call** and the **badge** say where a **gosling** is.
+The old road up the **plain**, its braziers standing along it as its beacons: stone slabs, whole by each fire, thinning out in the dark between to the odd slab sunk in the dirt, running on back past where he starts and ending at the pond. Laid by hand, through points of its own; or else from the fires, passing each a little to one side, at a **scene** on the side away from its body. It says which way to go; the **call** and the **badge** say where a **gosling** is.
 _Avoid_: path, track, trail
 
 **Gosling**:

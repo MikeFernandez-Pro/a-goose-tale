@@ -333,7 +333,7 @@ describe('the goose play', () => {
 
   it('hands the swarm every gosling, waiting or in his circle; the rats close on the circle with the torch out, and leave it once he dips the torch in a flame', () => {
     // No bites: the goslings and he stay among the rats whatever they do.
-    const play = new GoosePlay({ route: ROUTE_THREE, torch: 25, rats: 2000, seed: 3, herBite: 0 })
+    const play = new GoosePlay({ route: ROUTE_THREE, torch: 25, rats: 2000, seed: 3, hisBite: 0 })
     // A flame to dip the torch in: the cage's fire, the well's light being its fire pit's and the tree's beside it.
     const first = play.plain.braziers.find((b) => b.scene === 'cage')!
     play.giveGoslings(4)
@@ -507,7 +507,7 @@ describe('the goose play', () => {
   })
 
   it('never takes a gosling of his circle, however long the rats are on it', () => {
-    const play = new GoosePlay({ route: ROUTE_THREE, torch: 25, rats: 2000, seed: 3, herBite: 0 })
+    const play = new GoosePlay({ route: ROUTE_THREE, torch: 25, rats: 2000, seed: 3, hisBite: 0 })
     play.giveGoslings(2)
     play.run.started = true
     play.runTuning.burnRate = 1
@@ -686,8 +686,8 @@ describe('the goose play', () => {
       hold(play, 4 + STEP)
       const g = play.goslings[k]!
       expect(g.state).toBe('circle')
-      const her = { x: play.holder.x - well.x, z: play.holder.z - well.z }
-      const toHer = (p: { x: number; z: number }) => ((p.x - well.x) * her.x + (p.z - well.z) * her.z) / Math.hypot(her.x, her.z) / Math.hypot(p.x - well.x, p.z - well.z)
+      const him = { x: play.holder.x - well.x, z: play.holder.z - well.z }
+      const toHim = (p: { x: number; z: number }) => ((p.x - well.x) * him.x + (p.z - well.z) * him.z) / Math.hypot(him.x, him.z) / Math.hypot(p.x - well.x, p.z - well.z)
       const off = () => Math.hypot(g.x - well.x, g.z - well.z)
       // Up in the bucket, in the well's middle; then on the rim.
       expect(play.hopOf(k)).toMatchObject({ hop: 0 })
@@ -696,13 +696,13 @@ describe('the goose play', () => {
       expect(play.hopOf(k)).toMatchObject({ hop: 1 })
       expect(off()).toBeGreaterThan(WELL_RADIUS - 0.3)
       expect(off()).toBeLessThan(WELL_RADIUS)
-      expect(toHer(g)).toBeGreaterThan(0.99)
+      expect(toHim(g)).toBeGreaterThan(0.99)
       // Down on the ground outside it, still on the goose's side; and from there on the little one's own legs.
       stand(play, HOP)
       expect(play.hopOf(k)).toBeNull()
       expect(off()).toBeGreaterThan(WELL_RADIUS)
       expect(off()).toBeLessThan(WELL_RADIUS + 0.6)
-      expect(toHer(g)).toBeGreaterThan(0.99)
+      expect(toHim(g)).toBeGreaterThan(0.99)
       stand(play, 2)
       expectArcBehind(play)
     })
@@ -761,7 +761,7 @@ describe('the goose play', () => {
 
     it('stops him at its outline from every side, its posts and the pumpkins at its foot as its wall', () => {
       // Never bitten down while he walks at it from every side.
-      const play = new GoosePlay({ ...FEW, wellAhead: 3.5, herBite: 0 })
+      const play = new GoosePlay({ ...FEW, wellAhead: 3.5, hisBite: 0 })
       const well = play.scenes.find((s) => s.kind === 'well')!
       let tried = 0
       for (const { outline, middle } of WELL_BODIES) {
@@ -1672,7 +1672,7 @@ describe('the burning branch', () => {
   })
 
   it('holds the rats off round it, lying there, as any light does', () => {
-    const play = branched({ rats: 2000, herBite: 0 })
+    const play = branched({ rats: 2000, hisBite: 0 })
     let nearest = Infinity
     stand(play, 2)
     stand(play, 4, (p) => {
@@ -1683,7 +1683,7 @@ describe('the burning branch', () => {
   })
 
   it('is picked up only by a press of the interact key within its zone, never by the key held', () => {
-    const play = branched({ herBite: 0 })
+    const play = branched({ hisBite: 0 })
     // Out of its zone, a press does nothing.
     expect(Math.hypot(play.holder.x - lies.x, play.holder.z - lies.z)).toBeGreaterThan(BRANCH_ZONE)
     press(play)
@@ -1701,7 +1701,7 @@ describe('the burning branch', () => {
   })
 
   it('lights his torch full as he picks it up, marked as caught from nothing, its own light gone', () => {
-    const play = branched({ herBite: 0 })
+    const play = branched({ hisBite: 0 })
     expect(onBranch(play, false)).toBe(true)
     expect(play.caughtAt).toBeNaN()
     press(play)
@@ -1718,7 +1718,7 @@ describe('the burning branch', () => {
   })
 
   it('lights nothing at a fire before he has it, and refills it there as any torch once he has', () => {
-    const play = new GoosePlay({ ...FEW, route: byFire, herBite: 0 })
+    const play = new GoosePlay({ ...FEW, route: byFire, hisBite: 0 })
     hold(play, play.settings.refillHold * 2)
     expect(play.run.fuel).toBe(0)
     expect(play.kindled).toBe(0)
@@ -1735,7 +1735,7 @@ describe('the burning branch', () => {
   })
 
   it('is no light and is not picked up while it has not landed, and is once it has', () => {
-    const play = branched({ herBite: 0 })
+    const play = branched({ hisBite: 0 })
     play.landBranch(false)
     const light = play.branch!.light
     expect(play.lights()[light]!.on).toBe(false)
@@ -1757,10 +1757,10 @@ describe('the burning branch', () => {
       stand(play, play.settings.fall.lasts + RISE)
       return play.run.fuel
     }
-    const bare = branched({ herBite: 0 })
+    const bare = branched({ hisBite: 0 })
     expect(fallAndWake(bare)).toBe(0)
     expect(bare.deaths).toBe(1)
-    const armed = branched({ herBite: 0 })
+    const armed = branched({ hisBite: 0 })
     expect(onBranch(armed, false)).toBe(true)
     press(armed)
     expect(fallAndWake(armed)).toBeGreaterThan(0.99)
@@ -1800,7 +1800,7 @@ describe('the bodies on the ground', () => {
   })
 
   it('keeps him out of the dead tree and the brazier by it, wherever the settings move the brazier', () => {
-    const play = new GoosePlay({ ...FEW, herBite: 0 })
+    const play = new GoosePlay({ ...FEW, hisBite: 0 })
     const k = play.plain.braziers.findIndex((b) => b.scene === 'tree')
     for (const before of play.plain.braziers.slice(0, k)) expect(visit(play, before)).toBe(true)
     const tree = play.scenes.find((s) => s.kind === 'tree')!

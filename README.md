@@ -36,9 +36,8 @@ pnpm build      # bakes the rat, then dist/, as deployed
 `models/rat.glb` with the `three-vat bake` command. `dev` and `build` run it
 first, so the baked file is never committed.
 
-The route is laid by hand on its 2D page, `goose2d.html`, and saved to
-`src/gooseroute.json`, which the game plays. Under `pnpm dev`, E on the game's
-page edits it in 3D: the play paused, a click picks a piece, a drag moves it,
+The route is saved in `src/gooseroute.json`, which the game plays. Under
+`pnpm dev`, E on the game's page edits it in 3D: the play paused, a click picks a piece, a drag moves it,
 the wheel turns it, and Save writes the route.
 
 ## Credits and licence

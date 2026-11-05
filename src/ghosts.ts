@@ -1,4 +1,4 @@
-// PROTOTYPE, throwaway (`?ghosts`, `?ghosts=float`, `?ghosts=rag`, `?ghosts=ball`, `&ghostcount=`): ghost geese, a sheet
+// Ghost geese (`?ghosts`, `?ghosts=float`, `?ghosts=rag`, `?ghosts=ball`, `&ghostcount=`), a sheet
 // over a goose that is not there. Asked for on 2026-10-27: characters in the world that haunt and guide
 // him, no light of their own, several of them. For now each goes slowly round a small circle in front
 // of him, walking or idle: the question is whether a sheet over a goose reads as a Halloween ghost, and
@@ -77,7 +77,7 @@ import { FakeLamp, type FakeLamps } from './fakelamps'
 // The ghosts' own goose, brought in on 2026-10-27 (ghostGoose.glb): his rig and clips, no wings, no torch.
 // Its default scene is the skinned goose, off the origin; its other scene, a still preview, is not loaded.
 const MODEL = './models/ghostGoose.glb'
-/** His height, m, as meat.ts draws him: a ghost is his size. */
+/** His height, m, as goose.ts draws him: a ghost is his size. */
 const HEIGHT = 1.05
 /** Points a side of a sheet; its grid is SIDE x SIDE, laid out as a disc. */
 const SIDE = 41
@@ -204,8 +204,6 @@ export interface GhostLook {
   showBodies: boolean
   showGoose: boolean
   showWorn: boolean
-  /** A vacuum's pull on the cloth at full strength (`suck`), m/s^2 a metre off its mouth: the nearer, the harder. */
-  suck: number
 }
 
 // Set from the panel on 2026-10-27: a soft, see-through pale blue sheet, glowing; then again, brighter, with a
@@ -250,7 +248,6 @@ const defaultLook = (preset: Preset): GhostLook => ({
   showBodies: false,
   showGoose: false,
   showWorn: false,
-  suck: 8,
   ...preset.look,
 })
 
@@ -296,14 +293,6 @@ export interface Ghosts {
   wear(): void
   /** `t`, the play's time, s, for a walk's ghosts. */
   update(dt: number, t?: number): void
-  /**
-   * A suction on ghost `g`'s cloth from (x, y, z), a vacuum's mouth, of `strength`, 0 none to 1 full: every free point
-   * drawn toward it, the nearer the harder, and one that reaches it swallowed, held in it from then on. `released`, its
-   * sheet has let go of its body, every point free and weightless while it sucks; `caught`, what is left of it goes in.
-   */
-  suck(g: number, x: number, y: number, z: number, strength: number, released: boolean, caught: boolean): void
-  /** Each ghost's share of its sheet swallowed, read back from the GPU; its light dims with it. */
-  swallowed(): Promise<number[]>
 }
 
 /** The concentric map of the square [-1, 1]^2 onto the unit disc (Shirley and Chiu): the grid laid as a round sheet. */
@@ -330,7 +319,7 @@ function smin(a: number, b: number, k: number): number {
 
 export async function createGhosts(
   renderer: WebGPURenderer,
-  her: { x: number; z: number },
+  him: { x: number; z: number },
   groundAt: (x: number, z: number) => number,
   presetName: string,
   count: number,
@@ -399,10 +388,10 @@ export async function createGhosts(
       bones: preset.ball ? [ball] : COLLIDERS.map((c) => model.getObjectByName(c.bone)!),
       meshes,
       lamp,
-      x: her.x + dx,
-      z: her.z + dz,
-      cx: her.x + dx,
-      cz: her.z + dz,
+      x: him.x + dx,
+      z: him.z + dz,
+      cx: him.x + dx,
+      cz: him.z + dz,
       round: g * 2.39996,
       way: g % 2 ? -1 : 1,
       yaw: 0,
@@ -529,21 +518,13 @@ export async function createGhosts(
   const springLength = instancedArray(springRest, 'vec2')
   const springForce = instancedArray(S, 'vec3')
   // Laid from the rigs every frame, one buffer (a pass may bind 8): the spheres (x, y, z, radius swollen by the
-  // cloth's thickness), then every point's worn place (read only for the worn), then each ghost's ground; then a
-  // vacuum's suction on each ghost (`suck`), its mouth and strength, then whether its sheet is released and caught;
-  // then how far each ghost just jumped.
+  // cloth's thickness), then every point's worn place (read only for the worn), then each ghost's ground; then
+  // how far each ghost just jumped.
   const WORN = count * K
   const FLOORS = WORN + N
-  const SUCKS = FLOORS + count
-  const SUCK_STATES = SUCKS + count
-  const SHIFTS = SUCK_STATES + count
+  const SHIFTS = FLOORS + count
   const laidArray = new Float32Array((SHIFTS + count) * 4)
   const laid = instancedArray(laidArray, 'vec4')
-  // Each point swallowed, 1, the GPU's own to set.
-  const swallowedArray = new Float32Array(N)
-  const swallowed = instancedArray(swallowedArray, 'float')
-  const eaten = new Float32Array(count)
-  const caughtNow = new Array<boolean>(count).fill(false)
 
   // Where each worn point rides: its bone, by index into COLLIDERS, and its place in that bone's space.
   const wornBone = new Int8Array(N).fill(-1)
@@ -646,8 +627,6 @@ export async function createGhosts(
     vertexParams.value.needsUpdate = true
     velocity.value.array.fill(0)
     velocity.value.needsUpdate = true
-    swallowedArray.fill(0)
-    swallowed.value.needsUpdate = true
   }
 
   const stiffness = uniform(look.stiffness)
@@ -655,9 +634,6 @@ export async function createGhosts(
   const damping = uniform(look.damping)
   const gravity = uniform(9.8 * STEP * STEP)
   const wind = uniform(look.wind)
-  /** The suction's pull at full strength, a m off the mouth, as a step's change of speed; and how near is swallowed, m. */
-  const suckAccel = uniform(look.suck * STEP * STEP)
-  const SWALLOW = 0.1
 
   const springPass = Fn(() => {
     If(instanceIndex.greaterThanEqual(uint(S)), () => { Return() })
@@ -673,16 +649,7 @@ export async function createGhosts(
     If(instanceIndex.greaterThanEqual(uint(N)), () => { Return() })
     const p = vertexParams.element(instanceIndex)
     const here = position.element(instanceIndex)
-    const pull = laid.element(p.w.add(uint(SUCKS)))
-    const state = laid.element(p.w.add(uint(SUCK_STATES)))
-    const released = state.x.greaterThan(0.5)
-    // Swallowed, or its ghost caught: held in the mouth.
-    If(swallowed.element(instanceIndex).greaterThan(0.5).or(state.y.greaterThan(0.5)), () => {
-      here.assign(pull.xyz)
-      velocity.element(instanceIndex).assign(vec3(0))
-      Return()
-    })
-    If(p.x.greaterThan(uint(0)).and(released.not()), () => {
+    If(p.x.greaterThan(uint(0)), () => {
       here.assign(laid.element(instanceIndex.add(uint(WORN))).xyz)
       Return()
     })
@@ -692,26 +659,17 @@ export async function createGhosts(
       const f = springForce.element(id)
       v.addAssign(select(springVertex.element(id).x.equal(instanceIndex), f, f.negate()))
     })
-    // A released sheet weightless while it is sucked, so it streams in rather than sagging to the floor.
-    v.y.subAssign(gravity.mul(select(released, float(1).sub(pull.w), float(1))))
-    // The suction: toward the mouth, the harder the nearer, with a drag so the cloth streams in rather than orbits.
-    const toMouth = pull.xyz.sub(here).toVar()
-    const off = toMouth.length().max(1e-4)
-    v.mulAssign(float(1).sub(pull.w.mul(0.004)))
-    v.addAssign(toMouth.div(off).mul(pull.w.mul(suckAccel).div(off.add(0.5))))
+    v.y.subAssign(gravity)
     const gust = triNoise3D(here.mul(0.8), float(0.6), time).sub(0.25).mul(wind).mul(4e-5)
     v.addAssign(vec3(gust, gust.mul(0.3), gust.mul(0.6)))
-    // Out of its spheres, swollen by the cloth's thickness; held where it touches, as cloth on a body is. Released, the
-    // sheet has let go of it and passes through.
-    If(released.not(), () => {
-      Loop({ start: uint(0), end: uint(K), type: 'uint' }, ({ i }) => {
-        const c = laid.element(p.w.mul(uint(K)).add(i))
-        const off = here.add(v).sub(c.xyz).toVar()
-        const dist = off.length().max(1e-6)
-        const pen = c.w.sub(dist).max(0)
-        v.mulAssign(select(pen.greaterThan(0), float(0.7), float(1)))
-        v.addAssign(off.mul(pen.div(dist)))
-      })
+    // Out of its spheres, swollen by the cloth's thickness; held where it touches, as cloth on a body is.
+    Loop({ start: uint(0), end: uint(K), type: 'uint' }, ({ i }) => {
+      const c = laid.element(p.w.mul(uint(K)).add(i))
+      const off = here.add(v).sub(c.xyz).toVar()
+      const dist = off.length().max(1e-6)
+      const pen = c.w.sub(dist).max(0)
+      v.mulAssign(select(pen.greaterThan(0), float(0.7), float(1)))
+      v.addAssign(off.mul(pen.div(dist)))
     })
     const floor = laid.element(p.w.add(uint(FLOORS))).x
     If(here.y.add(v.y).lessThan(floor), () => {
@@ -721,9 +679,6 @@ export async function createGhosts(
     })
     velocity.element(instanceIndex).assign(v)
     here.addAssign(v)
-    If(released.and(pull.w.greaterThan(0)).and(pull.xyz.sub(here).length().lessThan(SWALLOW)), () => {
-      swallowed.element(instanceIndex).assign(1)
-    })
   })().compute(N) as ComputeNode
 
   // Every point carried by its ghost's jump, so its sheet lands in the shape it left, not whipped through its body after it.
@@ -881,7 +836,6 @@ export async function createGhosts(
     if (t !== undefined) seen = t
     now += passed * (walk ? look.walkSpeed / Math.max(walk.speed, 1e-6) : 1)
     stiffness.value = look.stiffness
-    suckAccel.value = look.suck * STEP * STEP
     bend.value = look.bend
     damping.value = look.damping
     gravity.value = 9.8 * look.gravity * STEP * STEP
@@ -917,10 +871,10 @@ export async function createGhosts(
       light.x = ghost.x
       light.z = ghost.z
       light.reach = look.reach
-      light.on = look.lit && !caughtNow[g]
+      light.on = look.lit
       ghost.lamp.visible = light.on
       ghost.lamp.color.set(look.lamp)
-      ghost.lamp.intensity = look.lampStrength * (1 - eaten[g]!)
+      ghost.lamp.intensity = look.lampStrength
       ghost.lamp.distance = look.reach
       ghost.lamp.position.y = look.lampHeight
     })
@@ -936,21 +890,6 @@ export async function createGhosts(
     }
   }
 
-  const suck = (g: number, x: number, y: number, z: number, strength: number, released: boolean, caught: boolean) => {
-    laidArray.set([x, y, z, strength], (SUCKS + g) * 4)
-    laidArray.set([released ? 1 : 0, caught ? 1 : 0], (SUCK_STATES + g) * 4)
-    caughtNow[g] = caught
-    laid.value.needsUpdate = true
-  }
-  const readSwallowed = async () => {
-    const all = new Float32Array(await renderer.getArrayBufferAsync(swallowed.value))
-    return ghosts.map((_, g) => {
-      let n = 0
-      for (let v = 0; v < V; v++) n += all[g * V + v]!
-      return (eaten[g] = n / V)
-    })
-  }
-
   return {
     object,
     look,
@@ -960,8 +899,6 @@ export async function createGhosts(
     lights,
     wear: dress,
     update,
-    suck,
-    swallowed: readSwallowed,
   }
 }
 
@@ -1023,8 +960,6 @@ export function createPlainGhosts(groundAt: (x: number, z: number) => number, wa
         lights[g] = Object.assign(lights[g]!, { x: here.x, z: here.z, reach: look.reach, on: look.lit })
       })
     },
-    suck: () => {},
-    swallowed: () => Promise.resolve(rigs.map(() => 0)),
   }
 }
 
@@ -1033,7 +968,7 @@ export function mountGhostControls(ghosts: Ghosts, more?: (gui: GUI) => void): v
   const container = document.createElement('div')
   container.style.cssText = 'position:fixed;bottom:8px;left:524px;z-index:1000;max-height:90vh;overflow:auto'
   document.body.append(container)
-  const gui = new GUI({ title: 'ghosts (prototype)', container, width: 250 } as ConstructorParameters<typeof GUI>[0])
+  const gui = new GUI({ title: 'ghosts', container, width: 250 } as ConstructorParameters<typeof GUI>[0])
   gui.close()
   // What the page adds (the graves) first, open; the ghosts' own folders after it, shut.
   more?.(gui)

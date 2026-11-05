@@ -23,17 +23,15 @@ const MODELS = join(root, 'public/models')
 // Clips the code plays, per file; files not listed keep every clip.
 const KEEP_CLIPS = {
   'geese.glb': [
-    // the goose (meat.ts)
+    // the goose (goose.ts)
     'idle', 'run', 'walk', 'jump', 'water_idle', 'swim',
     // the goslings (goslings.ts, islandgeese.ts)
     'baby_idle', 'baby_idle_scared', 'baby_run', 'baby_run_happy', 'baby_walk', 'baby_water_idle', 'baby_swim', 'baby_jump', 'baby_shake_dry',
   ],
   // islandgeese.ts
   'gooseMother.glb': ['lady_nest_idle', 'lady_idle', 'lady_run_happy'],
-  // ghosts.prototype.ts: its panel's rig clips
+  // ghosts.ts: its panel's rig clips
   'ghostGoose.glb': ['idle', 'water_idle', 'swim', 'walk', 'shake_dry'],
-  // meat.ts, on kid-ghosts.html
-  'pumpkinKid.glb': ['Idle', 'Run'],
 }
 // Scenes nobody loads: the default scene stays, these go.
 const DROP_SCENES = ['Lady Goose - Preview']

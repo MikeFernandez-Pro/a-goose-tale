@@ -1,5 +1,5 @@
 // The swarm a play sets its rats down in and reads (gooseplay.ts): the CPU
-// swarm, stepped as the play goes (SteppedSwarm), as the tests and the 2D page
+// swarm, stepped as the play goes (SteppedSwarm), as the tests
 // play it; or a page's own, handed to the play, which the 3D page steps on the
 // GPU as it draws and whose rats' places come back a frame or two late.
 import { Swarm, type Dark, type FixedLight, type Ground, type Light, type StepReport, type Target, type Tuning } from './swarm'
@@ -39,7 +39,7 @@ export interface PlaySwarm {
   advance(dt: number, light: Light, tuning: Tuning, lights: readonly FixedLight[], dark?: Dark, targets?: readonly Target[]): StepReport | undefined
 }
 
-/** The CPU swarm, stepped at the worker's pace as the play goes, MOST_STEPS a frame at most: what the tests and the 2D page play. */
+/** The CPU swarm, stepped at the worker's pace as the play goes, MOST_STEPS a frame at most: what the tests play. */
 export class SteppedSwarm extends Swarm implements PlaySwarm {
   /** The time not yet stepped, s, and what the last step measured. */
   private unstepped = 0

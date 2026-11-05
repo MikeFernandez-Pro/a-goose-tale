@@ -6,7 +6,7 @@
 // plain that looked the same everywhere: the road says which way and breaks
 // the sameness.
 //
-// The route may lay it by hand (`Route.road`, placed on the 2D page): the
+// The route may lay it by hand (`Route.road`): the
 // road's middle runs through its points, in their order. Without, it is laid
 // from the fires (`roadPoints`): its middle passes each a little to one side,
 // never through it: on the inside of the way's bend at a brazier; at a scene,

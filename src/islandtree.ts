@@ -13,7 +13,7 @@
 // shade of the tree's colours. There each lives in a compute shader; here each
 // walks a path laid once, from a card of the crown to where it lands on the island
 // or the water, all of it in the vertex shader, as the game's other falling leaves
-// (fallingleaves.prototype.ts): one mesh, no storage and no compute pass. They cast
+// (fallingleaves.ts): one mesh, no storage and no compute pass. They cast
 // no shadow, as those don't.
 import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshLambertNodeMaterial, Sphere, Uint16BufferAttribute, Vector2, Vector3, type BufferAttribute, type Material, type Node, type Texture } from 'three/webgpu'
 import { attribute, float, floor, fract, Fn, mix, mx_noise_vec3, normalLocal, renderGroup, rotate, saturation, sin, smoothstep, step, texture, time, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'

@@ -1,4 +1,4 @@
-// PROTOTYPE, throwaway (2026-10-31): candles at the graves' feet (public/models/candle.glb, brought in on 2026-10-31:
+// Candles at the graves' feet (public/models/candle.glb, brought in on 2026-10-31:
 // one low-poly candle of two flat colours, its wax and its flame, y-up, its foot on the origin, about 0.79 m tall), a
 // handful round each of a share of the graves, on every side, none closer to another than the folder lets nor on a
 // stone, each turned its own way and a little taller or shorter than the next. Its two colours merged into one draw on a palette (palettemesh.ts), the flame glowing in its
@@ -78,7 +78,7 @@ export const defaultCandleLook = (): CandleLook => ({
 export interface GraveCandles {
   readonly object: Mesh
   readonly look: CandleLook
-  /** Lays them again by `graves`, each a grave's middle and its footprint off that (graves.prototype.ts's `footprints`). */
+  /** Lays them again by `graves`, each a grave's middle and its footprint off that (graves.ts's `footprints`). */
   lay(graves: readonly { at: P; outline: readonly P[] }[]): void
   /** Their colours and glows again, as the folder has them. */
   recolour(): void

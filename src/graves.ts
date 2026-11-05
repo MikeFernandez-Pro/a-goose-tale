@@ -1,4 +1,4 @@
-// PROTOTYPE, throwaway (2026-10-27): the graveyard's graves (public/models/graves.glb, seven stones and crosses,
+// The graveyard's graves (public/models/graves.glb, seven stones and crosses,
 // untextured), scattered at random over the graveyard's ground and a way past it, either side of the old road, so the
 // ghosts walk among them, in no rows: each turned to face the nearest path, more or less, leaning as old stones lean,
 // all at one scale, so each keeps its size beside the others as the file has them. None reaches a ghost's way (its own
@@ -32,7 +32,7 @@ import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { ShellToonMaterial, type ShellLook, type PaintLook } from './shell'
 import { NO_COLOUR, NO_NORMALS, setLayer } from './texturesets'
 import { random } from './swarm'
-import { createInscriptions, inscribable, inscribe, mountInscriptionControls, type Inscriptions } from './inscriptions.prototype'
+import { createInscriptions, inscribable, inscribe, mountInscriptionControls, type Inscriptions } from './inscriptions'
 import type { ToonLook } from './toon'
 import type { ShineLook } from './panel'
 

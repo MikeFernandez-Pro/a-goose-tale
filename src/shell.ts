@@ -36,7 +36,6 @@ import {
   type DataTexture,
   EnvironmentNode,
   Vector2,
-  Vector3,
   LightingModel,
   MeshToonNodeMaterial,
   type LightingModelDirectInput,
@@ -52,8 +51,6 @@ import {
   cameraViewMatrix,
   diffuseColor,
   float,
-  fract,
-  fwidth,
   materialColor,
   mix,
   normalView,
@@ -92,17 +89,6 @@ export interface ShellLook {
 }
 
 /** What a painted-normals folder edits. */
-/** A part striped in a second colour, across its rest pose: how many stripes, how wide, and which way they run. */
-export interface StripeLook {
-  enabled: boolean
-  color: number
-  /** How many stripes fit along the model's height. */
-  count: number
-  /** How much of each stripe's band the stripe fills, 0 to 1. */
-  width: number
-  /** Which way they run, degrees: 0 level, round the body; 90 upright, up and down it. */
-  angle: number
-}
 
 export interface PaintLook {
   /** How far a stroke tilts the normal: 0 none, the bump scale. */
@@ -233,19 +219,6 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   readonly glow = { part: uniform(-1), strength: uniform(0) }
   /** A flash over the whole body, its colour times this, added as emission, lit or in the dark: a bite on him (main.ts biteFrame). */
   readonly flash = { color: uniform(new Color(0xffffff)), strength: uniform(0) }
-  /**
-   * The striped part's index, -1 none: `color` in stripes `width` of each
-   * band wide, a band every `period` along `axis`, by the rest position, in
-   * the model's units. Compiled in only on a shell made `striped`;
-   * `setStripes` is nothing on the rest.
-   */
-  readonly stripes = {
-    part: uniform(-1),
-    color: uniform(new Color(0xffffff)),
-    axis: uniform(new Vector3(0, 1, 0)),
-    period: uniform(1),
-    width: uniform(0.5),
-  }
   /** Its toon steps, at the default to start. */
   readonly gradient: DataTexture
   /** What scales its rim per drawing, as made; none, and the look's rim alone. */
@@ -261,11 +234,10 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     parts = 0,
     tint,
     painted,
-    striped = false,
     rimScale,
     specularScale,
     ...parameters
-  }: ConstructorParameters<typeof MeshToonNodeMaterial>[0] & { parts?: number; tint?: Node; painted?: Painted; striped?: boolean; rimScale?: RimScale; specularScale?: Node<'float'> } = {}) {
+  }: ConstructorParameters<typeof MeshToonNodeMaterial>[0] & { parts?: number; tint?: Node; painted?: Painted; rimScale?: RimScale; specularScale?: Node<'float'> } = {}) {
     const gradient = createToonGradient()
     super({ ...parameters, gradientMap: gradient })
     this.gradient = gradient
@@ -294,16 +266,6 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
       const part = attribute('part', 'float')
       let colour: Node = this.parts[parts - 1]
       for (let i = parts - 2; i >= 0; i--) colour = select(part.lessThan(i + 0.5), this.parts[i], colour)
-      if (striped) {
-        // The striped part takes its stripes by the rest pose, so they stay on the body as it moves: a
-        // stripe in the middle of each band, its edges softened over a pixel, so they never crawl.
-        const along = attribute('position', 'vec3').dot(this.stripes.axis).div(this.stripes.period)
-        const fromMiddle = fract(along).sub(0.5).abs()
-        const half = this.stripes.width.mul(0.5)
-        const pixel = fwidth(along)
-        const on = float(1).sub(smoothstep(half.sub(pixel), half.add(pixel), fromMiddle))
-        colour = mix(asVec3(colour), this.stripes.color, on.mul(step(part.sub(this.stripes.part).abs(), 0.5)))
-      }
       const glowing = step(part.sub(this.glow.part).abs(), 0.5)
       const tinted = tint === undefined ? asVec3(colour) : asVec3(colour).mul(mix(asVec3(tint), vec3(1), glowing))
       this.colorNode = tinted.mul(materialColor)
@@ -346,22 +308,6 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   setGlow(index: number, strength: number): void {
     this.glow.part.value = index
     this.glow.strength.value = strength
-  }
-
-  /**
-   * Part `index` takes `look`'s stripes, across the rest pose: `look.count`
-   * of them along `extent`, the model's height in its units, running at
-   * `look.angle` from level toward upright, upright being across `side`,
-   * the model's own left-to-right. Off, or -1, and it keeps its colour.
-   */
-  setStripes(index: number, look: StripeLook, side: Vector3, extent: number): void {
-    const angle = (look.angle * Math.PI) / 180
-    this.stripes.part.value = look.enabled ? index : -1
-    this.stripes.color.value.set(look.color)
-    // Level stripes change up the body; upright ones across it.
-    this.stripes.axis.value.set(0, Math.cos(angle), 0).addScaledVector(side, Math.sin(angle)).normalize()
-    this.stripes.period.value = Math.max(1e-6, extent) / Math.max(0.1, look.count)
-    this.stripes.width.value = look.width
   }
 
   /** Take a painted-normals folder's values; nothing on a shell made without them. */

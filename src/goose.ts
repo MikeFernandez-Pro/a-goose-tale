@@ -1,5 +1,5 @@
-// The meat at the centre: the goose, his torch in his beak (a pumpkin kid with a torch in its hand on the kid's ghosts
-// trial), the meat the swarm is starving for, standing at the light where every rat wants to be. A skinned model played
+// The goose at the centre, his torch in his beak, what the swarm is starving for, standing at the light
+// where every rat wants to be. A skinned model played
 // by three's own mixer, not baked: one of it needs no VAT. Its flat colours,
 // a mesh a colour on one rig, are merged into one skinned mesh on the shell
 // material the rats and the floor wear, each colour a part of its own, so it
@@ -10,7 +10,7 @@
 // and as the light walks it runs, blending from the one clip to the other by
 // how fast it goes, and turns to face its way. The blend and the turn move on
 // that clock too, so they step on the beat like the pose. The torch's end is
-// the mouth of the cup at the far end of the torch in its hand: the flame
+// the top of the cup on the torch in its bill: the flame
 // burns on it, carried on the bone that carries it. Made torchless, its own
 // torch is drawn into a point, gone, where its character can go without one,
 // and where it lay is read for a torch of the page's own to lie in its stead:
@@ -35,10 +35,10 @@ import { modelLoader } from './gltf'
 import { gooseDeath } from './goosedeath'
 import { gaitAt, type Gait, type GaitSettings } from './goosegait'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { ShellToonMaterial, type PaintLook, type ShellLook, type StripeLook } from './shell'
+import { ShellToonMaterial, type PaintLook, type ShellLook } from './shell'
 import type { ToonLook } from './toon'
 
-/** The character the meat is: its model and clips, which way it faces, and where its torch burns. */
+/** The goose as a character: its model and clips, which way it faces, and where its torch burns. */
 interface Character {
   /** What the panel calls it. */
   label: string
@@ -69,19 +69,15 @@ interface Character {
   start: number
   /**
    * The bone that carries the torch's end; and the part the end is on, the
-   * torch's cup: the end is the middle of the cup's end furthest from the
-   * bone, for a torch held lying down, or of its top, for one held upright.
+   * torch's cup: the end is the middle of its top.
    */
   carrier: string
   torchPart: string
-  torchEnd: 'far' | 'top'
   /**
    * Every part of its torch, by material, where it can go without one: its handle, its wrap and its cup, gone whole
-   * for a page that carries a torch of its own in its stead (`createMeat`'s `torchless`). None, its torch stays.
+   * for a page that carries a torch of its own in its stead (`createGoose`'s `torchless`). None, its torch stays.
    */
   torchParts?: readonly string[]
-  /** Whether the first part, the pyjamas, starts striped. */
-  striped: boolean
   /** What the panel calls its parts, by material, where the file's names say nothing. */
   partNames: Record<string, string>
   /** The colours its parts start in, by material, where the panel set them over the file's. */
@@ -94,46 +90,6 @@ interface Character {
   height: number
   runSpeed: number
   swimSpeed?: number
-}
-
-// A child in pyjamas with a pumpkin for a head, facing +x as modelled, a torch in the
-// right hand, lying along +x at rest: the flame burns in the metal cup at its far end.
-const PUMPKIN_KID: Character = {
-  label: 'pumpkin kid',
-  model: './models/pumpkinKid.glb',
-  idle: 'Idle',
-  run: 'Run',
-  facing: Math.PI / 2,
-  start: Math.PI,
-  carrier: 'skinned_r_handPlacement_bn',
-  torchPart: 'LightGrey.002',
-  torchEnd: 'far',
-  striped: true,
-  partNames: {
-    PJ_Pants: 'pyjamas',
-    'Material.002': 'hands and feet',
-    PJ_Skin: 'neck',
-    'Material.006': 'pumpkin',
-    'Material.009': 'stem',
-    'DarkWood.002': 'torch handle',
-    'LightGrey.002': 'torch cup',
-  },
-  // Set from the panel on 2026-10-08: the neck the hands' colour, a cream face, a darker stem, a dark wood handle and a cream cup.
-  partColours: {
-    PJ_Pants: 0x424a83,
-    'Material.002': 0xe7a289,
-    PJ_Skin: 0xe7a289,
-    'Material.006': 0xe77729,
-    'Material.008': 0xfefcc3,
-    'Material.010': 0xeeab6d,
-    'Material.009': 0x49302d,
-    'Material.007': 0xa03613,
-    'DarkWood.002': 0x543636,
-    'LightGrey.002': 0xf5f8c9,
-  },
-  // Set from the panel on 2026-10-08: 1.35 m tall, its run played half as fast again.
-  height: 1.35,
-  runSpeed: 1.5,
 }
 
 // The torch in his beak, the flame in the metal cup at its top, on its right; the goose faces -z as modelled, in its
@@ -156,10 +112,8 @@ const GOOSE: Character = {
   start: Math.PI,
   carrier: 'bone_head_2',
   torchPart: 'LightGrey',
-  torchEnd: 'top',
   // The stick across his beak, its yellow wrap and the cup on its right end.
   torchParts: ['DarkWood', 'Yellow', 'LightGrey'],
-  striped: false,
   partNames: {},
   // His white pure white, as set from the panel on 2026-10-29, not glowing at all since the same day (no bloom): his goslings' too.
   partColours: { 'Material.004': 0xffffff },
@@ -171,9 +125,7 @@ const GOOSE: Character = {
   swimSpeed: 3,
 }
 
-/** Which the meat is: the goose in the goose game; the pumpkin kid on the kid's ghosts trial, kid-ghosts.html. */
-export const goose = !location.pathname.endsWith('/kid-ghosts.html')
-const CHARACTER = goose ? GOOSE : PUMPKIN_KID
+const CHARACTER = GOOSE
 
 /** What the panel calls it; and whether it swims, with clips of its own for the water. */
 export const characterLabel = CHARACTER.label
@@ -193,8 +145,6 @@ const LANDED = 0.15
 /** Feet that come down within this share of their gait's round of each other are one step. */
 const ONE_STEP = 0.15
 const UP = new Vector3(0, 1, 0)
-/** The part the stripes go on: the first material, the pumpkin kid's pyjamas. */
-const STRIPED = 0
 /** What the merged geometry keeps of each mesh: what the shell reads, and the skin. */
 const KEPT = ['position', 'normal', 'skinIndex', 'skinWeight', 'part']
 
@@ -229,8 +179,8 @@ function rigidlySkin(geometry: BufferGeometry, mesh: Mesh, body: SkinnedMesh, sl
   like('skinWeight', 1)
 }
 
-/** What the meat folder edits: its place and colours, and its own shell, painted strokes and toon steps. */
-export interface MeatLook extends ShellLook {
+/** What the goose folder edits: its place and colours, and its own shell, painted strokes and toon steps. */
+export interface GooseLook extends ShellLook {
   enabled: boolean
   /** How tall it stands, m, and how far off the ground. */
   height: number
@@ -245,22 +195,20 @@ export interface MeatLook extends ShellLook {
   /** Whether it casts a shadow: the lamp burns right over it, so its own falls under it. */
   castShadow: boolean
   /** Its parts' colours, a material each in the model's order, read once it is loaded. */
-  parts: MeatPart[]
-  /** Stripes on the first part, across its rest pose. */
-  stripes: StripeLook
+  parts: GoosePart[]
   paint: PaintLook
   toon: ToonLook
 }
 
-/** A part of the meat, by what the panel calls it, and its colour; the part that may glow, how bright, 0 not at all. */
-export interface MeatPart {
+/** A part of the goose, by what the panel calls it, and its colour; the part that may glow, how bright, 0 not at all. */
+export interface GoosePart {
   name: string
   color: number
   glow?: number
 }
 
-/** The meat on the ground at its height, its clips as authored, shaded as the rats start, in its parts' own colours. */
-export const defaultMeat = (): MeatLook => ({
+/** The goose on the ground at its height, its clips as authored, shaded as the rats start, in its parts' own colours. */
+export const defaultGoose = (): GooseLook => ({
   enabled: true,
   height: CHARACTER.height,
   lift: 0,
@@ -272,34 +220,32 @@ export const defaultMeat = (): MeatLook => ({
   gait: { threshold: 1.2, blend: 0.4 },
   // The goose's shadow, and his highlight and rim, as set from the panel on 2026-10-26: a pale blue glint; his rim a
   // fainter lilac since 2026-10-29, the goslings' too.
-  castShadow: goose,
+  castShadow: true,
   parts: [],
-  // The pyjamas in pale blue stripes, upright, about 3 cm apart.
-  stripes: { enabled: CHARACTER.striped, color: 0x8fa7c4, count: 40, width: 0.35, angle: 90 },
   sheen: 0,
   specular: 0.27,
   shininess: 30,
   softness: 0.17,
-  specularColor: goose ? 0xc0d8f0 : 0x1c401c,
+  specularColor: 0xc0d8f0,
   rim: true,
-  rimStrength: goose ? 0.64 : 1.24,
+  rimStrength: 0.64,
   rimWidth: 0.37,
   rimSoftness: 0.1,
-  rimColor: goose ? 0xedbefe : 0xe66e2d,
+  rimColor: 0xedbefe,
   paint: { strength: 1.3, density: 2.5, size: 1.75, rounding: 0 },
   toon: { steps: 3, three: [0.03, 0.38, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
 })
 
-export interface Meat {
+export interface Goose {
   /** What the scene adds; move it to the light. */
   readonly object: Group
   readonly material: ShellToonMaterial
   /** Its parts: what the panel calls each, and the colour it starts in, its character's or its file's. */
-  readonly parts: MeatPart[]
+  readonly parts: GoosePart[]
   /** How big it is drawn against its file's own units: the folder's height over its model's. */
   modelScale(): number
-  /** Take the meat folder's values. */
-  set(look: MeatLook): void
+  /** Take the goose folder's values. */
+  set(look: GooseLook): void
   /** Pose it at `time` seconds of its clips, the light walking at (vx, vz) m/s; standing, turning to face `rest`, a yaw, if given. */
   pose(time: number, vx: number, vz: number, rest?: number): void
   /** Turn it to face `yaw` at once, as a page that turns it itself has it: 0 faces +z. */
@@ -320,15 +266,15 @@ export interface Meat {
   /** How long its death clip is, s; 0, it has none. */
   readonly deathLength: number
   /**
-   * Where the end of its bandage is, world space, as last posed and placed:
-   * where the torch burns. Moved by `offset`, m, as the meat faces: x to its
+   * Where the end of its torch is, world space, as last posed and placed:
+   * where the torch burns. Moved by `offset`, m, as the goose faces: x to its
    * left, y up, z ahead, turning with it but never leaning with the bone.
    */
   tip(out: Vector3, offset?: Vector3): Vector3
   /**
    * Where the torch rests: the tip's mean over the idle, carried where the
-   * meat now stands and faces, moved by `offset` as `tip` is. It holds still
-   * while the arm sways, for a mark drawn round the torch that must not.
+   * goose now stands and faces, moved by `offset` as `tip` is. It holds still
+   * while the head sways, for a mark drawn round the torch that must not.
    */
   restTip(out: Vector3, offset?: Vector3): Vector3
   /** Its bone named `name`, as posed: to carry something on it. */
@@ -344,15 +290,15 @@ export interface Meat {
 }
 
 /**
- * How the meat is made: `torchless`, its own torch gone, where its character can go without one (`torchParts`), for a
+ * How the goose is made: `torchless`, its own torch gone, where its character can go without one (`torchParts`), for a
  * page that carries a torch of its own: gripped in the bill where its own handle's middle was, held out along `way`
  * (as modelled, facing +z, +x its left), `length` of its height long, `behind` of that running back past the grip.
  */
-export interface MeatOptions {
+export interface GooseOptions {
   torchless?: { way: readonly [number, number, number]; length: number; behind: number }
 }
 
-export async function createMeat(options: MeatOptions = {}): Promise<Meat> {
+export async function createGoose(options: GooseOptions = {}): Promise<Goose> {
   const gltf = await modelLoader().loadAsync(CHARACTER.model)
   // Only its own armature, where the file holds others; stood up, where the file is z-up.
   if (CHARACTER.armature !== undefined) for (const child of [...gltf.scene.children]) if (child.name !== CHARACTER.armature) gltf.scene.remove(child)
@@ -395,10 +341,8 @@ export async function createMeat(options: MeatOptions = {}): Promise<Meat> {
   const box = geometry.boundingBox!
   // How tall it is as modelled, up its file's own up.
   const modelHeight = CHARACTER.zUp ? box.max.z - box.min.z : box.max.y - box.min.y
-  // Its own left to right, as modelled: square to the way it faces, along the ground.
-  const side = new Vector3(Math.cos(CHARACTER.facing), 0, -Math.sin(CHARACTER.facing))
 
-  const material = new ShellToonMaterial({ parts: names.length, striped: true, painted: { extent: modelHeight } })
+  const material = new ShellToonMaterial({ parts: names.length, painted: { extent: modelHeight } })
   const merged = new SkinnedMesh(geometry, material)
   merged.bind(body.skeleton, body.bindMatrix)
   merged.castShadow = merged.receiveShadow = true
@@ -407,35 +351,25 @@ export async function createMeat(options: MeatOptions = {}): Promise<Meat> {
   for (const mesh of [...skinned, ...loose]) mesh.parent?.remove(mesh)
   holder.add(merged)
 
-  // The torch's end, carried by the bone that carries it: the middle of the cup's end furthest
-  // from the bone, its mouth on a torch held lying down, or the middle of its top, on one held
-  // upright, so the flame burns in the cup and not on its rim. Read where the skin draws it, not where
-  // the file lays it: a rig posed at rest off its bind pose draws it elsewhere.
+  // The torch's end, carried by the bone that carries it: the middle of the cup's top, so the flame
+  // burns in the cup and not on its rim. Read where the skin draws it, not where the file lays it: a
+  // rig posed at rest off its bind pose draws it elsewhere.
   merged.updateMatrixWorld()
   const torchPart = names.indexOf(CHARACTER.torchPart)
   const part = geometry.getAttribute('part')
   const positions = geometry.getAttribute('position')
-  const held = carrier.getWorldPosition(new Vector3())
   const drawn: Vector3[] = []
   for (let i = 0; i < positions.count; i++) {
     if (torchPart >= 0 && part.getX(i) !== torchPart) continue
     drawn.push(merged.localToWorld(merged.applyBoneTransform(i, new Vector3().fromBufferAttribute(positions, i))))
   }
-  let end: Vector3
-  if (CHARACTER.torchEnd === 'top') {
-    const low = new Vector3(Infinity, Infinity, Infinity)
-    const high = new Vector3(-Infinity, -Infinity, -Infinity)
-    for (const at of drawn) {
-      low.min(at)
-      high.max(at)
-    }
-    end = new Vector3((low.x + high.x) / 2, high.y, (low.z + high.z) / 2)
-  } else {
-    // The middle of every point within a hundredth of the model's height of the furthest.
-    const furthest = Math.max(...drawn.map((at) => at.distanceTo(held)))
-    const mouth = drawn.filter((at) => at.distanceTo(held) > furthest - modelHeight * 0.01)
-    end = mouth.reduce((sum, at) => sum.add(at), new Vector3()).divideScalar(mouth.length)
+  const low = new Vector3(Infinity, Infinity, Infinity)
+  const high = new Vector3(-Infinity, -Infinity, -Infinity)
+  for (const at of drawn) {
+    low.min(at)
+    high.max(at)
   }
+  let end = new Vector3((low.x + high.x) / 2, high.y, (low.z + high.z) / 2)
   // Every point of the whole torch, where its character names its parts.
   const whole = CHARACTER.torchParts?.map((name) => names.indexOf(name)).filter((k) => k >= 0) ?? []
   const torchPoints: number[] = []
@@ -563,7 +497,7 @@ export async function createMeat(options: MeatOptions = {}): Promise<Meat> {
   /** How much of its idle, walk and run shows, eased after its gait; the time it was last posed at, and the way it faces. */
   const shares: Pick<Gait, 'idle' | 'walk' | 'run'> = { idle: 1, walk: 0, run: 0 }
   /** Its gait's settings, and how fast its run plays at its stride, from the folder. */
-  let gaitSettings = defaultMeat().gait
+  let gaitSettings = defaultGoose().gait
   let runSpeed = CHARACTER.runSpeed
   /** How far it swims, 0 to 1, eased after the share it was last given. */
   let swimming = 0
@@ -598,7 +532,6 @@ export async function createMeat(options: MeatOptions = {}): Promise<Meat> {
       look.parts.forEach((part, i) => material.parts[i]?.value.set(part.color))
       const glowing = look.parts.findIndex((part) => part.glow !== undefined)
       material.setGlow(glowing, look.parts[glowing]?.glow ?? 0)
-      material.setStripes(STRIPED, look.stripes, side, modelHeight)
       material.set(look)
       material.setPaint(look.paint)
       material.setToon(look.toon)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createPlainGhosts } from './ghosts.prototype'
+import { createPlainGhosts } from './ghosts'
 
 /** Two ghosts walking along x at 1 m/s, a metre apart on z. */
 const walk = { count: 2, reach: 1.75, speed: 1, at: (g: number, t: number) => ({ x: t, z: g }) }
@@ -40,10 +40,8 @@ describe('the plain ghosts, where there is no cloth to draw', () => {
     expect(ghosts.lights[0]!.x).toBe(x)
   })
 
-  it('answers what the cloth ghosts do besides, with nothing to swallow', async () => {
+  it('answers what the cloth ghosts do besides', () => {
     const ghosts = createPlainGhosts(level, walk)
     expect(() => ghosts.wear()).not.toThrow()
-    expect(() => ghosts.suck(0, 0, 0, 0, 1, false, false)).not.toThrow()
-    expect(await ghosts.swallowed()).toEqual([0, 0])
   })
 })

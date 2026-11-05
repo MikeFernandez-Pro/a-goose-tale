@@ -32,7 +32,7 @@ export interface TreeWindLook {
 
 /**
  * The wind to start: justASimpleTree's own for its spooky tree, stiff and dead, 0.1 m at the top; blowing as the falling
- * leaves are carried (fallingleaves.prototype.ts), so the trees bend the way the leaves fall.
+ * leaves are carried (fallingleaves.ts), so the trees bend the way the leaves fall.
  */
 export function defaultTreeWindLook(): TreeWindLook {
   return { strength: 0.1, speed: 0.83, gustSize: 20, direction: -28, flutter: 0.25, branches: 0.6 }

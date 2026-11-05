@@ -1,5 +1,5 @@
 // The goose game's plain (#187): a night plain crossed one way, laid by hand
-// (gooseroute.json, placed on the 2D page, goose2d.html). The goose starts at
+// (gooseroute.json). The goose starts at
 // its south end with a full torch, or, the start `unlit`, with it out, to
 // light at the first brazier, or, by a burning `branch`, with none, the branch
 // lying there to pick up, and heads north, up the screen, from brazier to
@@ -131,7 +131,7 @@ export const WADE = 0.6
 /** How far past the route the box reaches, m: round the pond, and either side of the braziers. */
 const MARGIN = 12
 
-/** The route as last saved from the 2D page. */
+/** The route as last saved. */
 const SAVED = saved as Route
 
 /**

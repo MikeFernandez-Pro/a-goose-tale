@@ -1,8 +1,7 @@
-// The goose game's route, saved from its 2D page (goose2d.html): the dev
+// The goose game's route, saved from its edit mode (gooseedit.ts): the dev
 // server takes the route the page posts to /goose-route and writes it over
-// src/gooseroute.json, which both the 2D page and `#goose` read, so a saved
-// route is the one the 3D page plays on its next load. Nothing ships: a build
-// has no such address.
+// src/gooseroute.json, which the game reads, so a saved route is the one it
+// plays on its next load. Nothing ships: a build has no such address.
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'

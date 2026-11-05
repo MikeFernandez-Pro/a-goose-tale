@@ -1,26 +1,16 @@
-// PROTOTYPE, throwaway (2026-10-27): the graveyard, the goose game's fourth scene, tried top-down on the 2D page
-// (goose2d.html, `?ghosts=chain|procession|cross`). The graves stretch back along the road from the last fire toward
+// The graveyard, the goose game's fourth scene. The graves stretch back along the road from the last fire toward
 // the cage; past the cage his torch dies on the way, and the only light is the ghosts'. Each ghost walks a closed path
 // of its own, round and round, slower than his walk, paying him no heed; where its path crosses the next ghost's, the
 // two pass, their lights meet, and he can go from one to the other. Their lights hold rats off and fill no torch.
 //
-// Three layouts to compare, the paths made from the panel's few settings (drawn by hand once one wins):
-// - chain: a loop each, the loops in a row, each crossing the next; each ghost reaches its crossing with the ghost
-//   ahead as that one reaches it, so a ride kept to perfectly flows on from ghost to ghost. Each loop strays from a
-//   round one and each ghost hurries and dawdles round it, so it seems to wander; but every ghost takes the same
-//   time round, so the meetings keep their time lap after lap.
-// - procession: every ghost one after another on one long path winding to and fro across the graveyard and back
-//   along its side; ghosts on neighbouring legs pass each other going opposite ways.
-// - cross: a figure of eight each, in a row, the front lobe of each crossing the back lobe of the next, timed as the
-//   chain's are.
+// The paths are a chain, made from a few settings: a loop each, the loops in a row, each crossing the next; each ghost
+// reaches its crossing with the ghost ahead as that one reaches it, so a ride kept to perfectly flows on from ghost to
+// ghost. Each loop strays from a round one and each ghost hurries and dawdles round it, so it seems to wander; but
+// every ghost takes the same time round, so the meetings keep their time lap after lap.
 import type { FixedLight } from './swarm'
 
-export type Layout = 'chain' | 'procession' | 'cross'
-export const LAYOUTS: readonly Layout[] = ['chain', 'procession', 'cross']
-
-/** What the graveyard folder sets. */
+/** How the graveyard is laid. */
 export interface GraveLook {
-  layout: Layout
   /** How many ghosts. */
   ghosts: number
   /** Their walk, m/s, and their light's reach, m. */
@@ -28,48 +18,40 @@ export interface GraveLook {
   reach: number
   /** How far past the last fire's light the nearest path comes, m; less than 0, into it. */
   near: number
-  /** chain and cross: each loop's half length along the road and half width across it, m, and how far neighbouring
-   * loops reach into each other, m. */
+  /** Each loop's half length along the road and half width across it, m, and how far neighbouring loops reach into
+   * each other, m. */
   along: number
   across: number
   overlap: number
-  /** chain and cross: every crossing on one side of the road, or on alternate sides; and every ghost going round the
-   * same way, or each the other way to its neighbours, as gears turn, so two meet head on. */
+  /** Every crossing on one side of the road, or on alternate sides; and every ghost going round the same way, or each
+   * the other way to its neighbours, as gears turn, so two meet head on. */
   alternate: boolean
   gears: boolean
-  /** chain and cross: how far each loop strays from a round one, a share of its size, and how much a ghost's pace
-   * changes round it, a share of its mean, so it seems to wander though it keeps to its loop; the wandering's seed. */
+  /** How far each loop strays from a round one, a share of its size, and how much a ghost's pace changes round it, a
+   * share of its mean, so it seems to wander though it keeps to its loop; the wandering's seed. */
   wander: number
   pace: number
   seed: number
-  /** procession: how many legs across the graveyard, how far apart, m, and how wide, m. */
-  legs: number
-  legGap: number
-  width: number
 }
 
 // Measured on 2026-10-27 for meetings open about 1.3 s to 1.5 s, a little tight: two ghosts meet head on going
 // round the same way (geared, they move together where they cross, and stay open twice as long); a narrower light
-// or a quicker walk shuts them sooner; the chain's loops just reaching into each other, the eights' well into.
-// The chain then set on the 2D page the same day: four ghosts on long loops that stray far from round, at one pace;
-// their light 1.75 m, as the 3D page's ghosts were then set.
-export const defaultGraveLook = (layout: Layout = 'chain'): GraveLook => ({
-  layout,
-  ghosts: layout === 'procession' ? 9 : layout === 'chain' ? 4 : 5,
-  speed: layout === 'chain' ? 1 : 1.1,
-  reach: layout === 'chain' ? 1.75 : 1,
+// or a quicker walk shuts them sooner; the loops just reaching into each other.
+// Then set the same day: four ghosts on long loops that stray far from round, at one pace; their light 1.75 m, as the
+// ghosts were then set.
+export const defaultGraveLook = (): GraveLook => ({
+  ghosts: 4,
+  speed: 1,
+  reach: 1.75,
   near: -0.3,
-  along: layout === 'chain' ? 3.05 : 2.2,
-  across: layout === 'cross' ? 1.7 : 2.5,
-  overlap: layout === 'cross' ? 2 : layout === 'chain' ? 0.6 : 0.4,
+  along: 3.05,
+  across: 2.5,
+  overlap: 0.6,
   alternate: false,
   gears: false,
-  wander: layout === 'chain' ? 0.8 : 0.3,
-  pace: layout === 'chain' ? 0 : 0.55,
+  wander: 0.8,
+  pace: 0,
   seed: 1,
-  legs: 5,
-  legGap: 2.3,
-  width: 7,
 })
 
 interface P {
@@ -251,105 +233,57 @@ export function layGraveyard(look: GraveLook, fire: P, fireReach: number, cage: 
   const v = Math.max(look.speed, 0.01)
   const ghosts: Ghost[] = []
   const meetings: Meeting[] = []
-  let outline: P[]
 
-  if (look.layout === 'procession') {
-    // To and fro across the graveyard, from its far end toward the fire, round a half circle at each turn; then out to
-    // its side, back along it past the turns, and across the far end to where it began.
-    const legs = Math.max(1, Math.round(look.legs)) | 1
-    const half = look.width / 2
-    const turn = look.legGap / 2
-    const nearA = nearest
-    const far = nearA + (legs - 1) * look.legGap
-    const outside = half + look.legGap
+  // A loop each, ghost 0 by the fire, the last the first he meets coming from the cage.
+  const step = Math.max(0.1, look.along * 2 - look.overlap)
+  const paths: Path[] = []
+  const rolls = Array.from({ length: n }, (_, k) => random(look.seed * 7919 + k * 104729))
+  // The harmonics a loop strays by, 2 to 5 times round, each weaker; their strengths' sum, to keep the stray in bounds.
+  const HARMONICS = [2, 3, 4, 5]
+  const most = HARMONICS.reduce((sum, h) => sum + 1 / h, 0)
+  for (let k = 0; k < n; k++) {
+    const roll = rolls[k]!
+    const a0 = nearest + look.along + k * step
+    const strays = HARMONICS.map((h) => ({ h, by: ((roll() * 2 - 1) / h / most) * look.wander, at: roll() * TAU }))
+    const stray = (th: number) => 1 + strays.reduce((sum, { h, by, at }) => sum + by * Math.sin(h * th + at), 0)
     const pts: P[] = []
-    const line = (a0: number, c0: number, a1: number, c1: number) => {
-      const k = Math.max(2, Math.ceil(Math.hypot(a1 - a0, c1 - c0) / 0.1))
-      for (let i = 0; i < k; i++) pts.push(world(a0 + ((a1 - a0) * i) / k, c0 + ((c1 - c0) * i) / k))
+    for (let i = 0; i < SAMPLES; i++) {
+      const th = (i / SAMPLES) * TAU
+      const r = stray(th)
+      pts.push(world(a0 + Math.cos(th) * look.along * r, Math.sin(th) * look.across * r))
     }
-    // From (a, c) to (a - legGap, c), bulging out past c on its side.
-    const bend = (a: number, c: number) => {
-      const k = 16
-      for (let i = 0; i < k; i++) {
-        const th = (Math.PI * i) / k
-        pts.push(world(a - turn + Math.cos(th) * turn, c + Math.sign(c) * Math.sin(th) * turn))
-      }
-    }
-    for (let j = 0; j < legs; j++) {
-      const a = far - j * look.legGap
-      const c = j % 2 === 0 ? half : -half
-      line(a, -c, a, c)
-      if (j < legs - 1) bend(a, c)
-    }
-    line(nearA, half, nearA, outside)
-    line(nearA, outside, far + look.legGap, outside)
-    line(far + look.legGap, outside, far + look.legGap, -half)
-    line(far + look.legGap, -half, far, -half)
-    const path = pathOf(pts)
-    // One path: every ghost at one steady pace, or they would walk into each other.
-    for (let k = 0; k < n; k++) ghosts.push({ path, phase: k / n, lap: path.length / v, hurry: [], shift: [], light: { x: 0, z: 0, reach: look.reach, on: true } })
-    outline = [world(nearA - 0.5, -half - 1), world(far + look.legGap + 0.5, -half - 1), world(far + look.legGap + 0.5, outside + 0.5), world(nearA - 0.5, outside + 0.5)]
-  } else {
-    // A loop or a figure of eight each, ghost 0 by the fire, the last the first he meets coming from the cage.
-    const step = Math.max(0.1, look.along * 2 - look.overlap)
-    const paths: Path[] = []
-    const rolls = Array.from({ length: n }, (_, k) => random(look.seed * 7919 + k * 104729))
-    // The harmonics a loop strays by, 2 to 5 times round, each weaker; their strengths' sum, to keep the stray in bounds.
-    const HARMONICS = [2, 3, 4, 5]
-    const most = HARMONICS.reduce((sum, h) => sum + 1 / h, 0)
-    for (let k = 0; k < n; k++) {
-      const roll = rolls[k]!
-      const a0 = nearest + look.along + k * step
-      const strays = HARMONICS.map((h) => ({ h, by: ((roll() * 2 - 1) / h / most) * look.wander, at: roll() * TAU }))
-      const stray = (th: number) => 1 + strays.reduce((sum, { h, by, at }) => sum + by * Math.sin(h * th + at), 0)
-      const pts: P[] = []
-      for (let i = 0; i < SAMPLES; i++) {
-        const th = (i / SAMPLES) * TAU
-        const r = stray(th)
-        if (look.layout === 'chain') pts.push(world(a0 + Math.cos(th) * look.along * r, Math.sin(th) * look.across * r))
-        else {
-          // Bernoulli's lemniscate, its lobes along the road.
-          const s = Math.sin(th)
-          const d = 1 + s * s
-          pts.push(world(a0 + (look.along * r * Math.cos(th)) / d, (look.across * r * 2 * s * Math.cos(th)) / d))
-        }
-      }
-      // Geared: every other ghost goes round the other way.
-      if (look.gears && k % 2 === 1) pts.reverse()
-      paths.push(pathOf(pts))
-    }
-    // One lap's time for all, at the mean of their paces: so each pair meets every lap, as it did the first.
-    const lap = paths.reduce((sum, p) => sum + p.length, 0) / paths.length / v
-    const pace = Math.min(0.9, Math.max(0, look.pace))
-    for (let k = 0; k < n; k++) {
-      const roll = rolls[k]!
-      const weights = [roll(), roll() * 0.6, roll() * 0.35]
-      const sum = weights.reduce((a, b) => a + b, 0) || 1
-      ghosts.push({
-        path: paths[k]!,
-        phase: 0,
-        lap,
-        hurry: weights.map((w) => (w / sum) * pace * (roll() < 0.5 ? -1 : 1)),
-        shift: weights.map(() => roll() * TAU),
-        light: { x: 0, z: 0, reach: look.reach, on: true },
-      })
-    }
-    // Timed from the first he meets toward the fire: each ghost at its crossing with the one ahead as that one is.
-    for (let k = n - 1; k > 0; k--) {
-      const want = look.alternate && (n - 1 - k) % 2 === 1 ? -1 : 1
-      const mid = world(nearest + look.along + (k - 0.5) * step, 0)
-      const x = crossing(paths[k]!, paths[k - 1]!, mid, across, want)
-      if (!x) continue
-      const here = ghosts[k]!
-      const ahead = ghosts[k - 1]!
-      // Ghost k reaches the crossing `t` s in; the one ahead must be at its own side of it then.
-      const t = frac(unwarp(here, x.sp / here.path.length) - here.phase) * lap
-      ahead.phase = frac(unwarp(ahead, x.sq / ahead.path.length) - t / lap)
-      meetings.push({ at: x.at, a: k, b: k - 1, every: 0, open: 0 })
-    }
-    const end = nearest + look.along * 2 + (n - 1) * step
-    const wide = look.across + 1
-    outline = [world(nearest - 0.5, -wide), world(end + 0.5, -wide), world(end + 0.5, wide), world(nearest - 0.5, wide)]
+    // Geared: every other ghost goes round the other way.
+    if (look.gears && k % 2 === 1) pts.reverse()
+    paths.push(pathOf(pts))
+  }
+  // One lap's time for all, at the mean of their paces: so each pair meets every lap, as it did the first.
+  const lap = paths.reduce((sum, p) => sum + p.length, 0) / paths.length / v
+  const pace = Math.min(0.9, Math.max(0, look.pace))
+  for (let k = 0; k < n; k++) {
+    const roll = rolls[k]!
+    const weights = [roll(), roll() * 0.6, roll() * 0.35]
+    const sum = weights.reduce((a, b) => a + b, 0) || 1
+    ghosts.push({
+      path: paths[k]!,
+      phase: 0,
+      lap,
+      hurry: weights.map((w) => (w / sum) * pace * (roll() < 0.5 ? -1 : 1)),
+      shift: weights.map(() => roll() * TAU),
+      light: { x: 0, z: 0, reach: look.reach, on: true },
+    })
+  }
+  // Timed from the first he meets toward the fire: each ghost at its crossing with the one ahead as that one is.
+  for (let k = n - 1; k > 0; k--) {
+    const want = look.alternate && (n - 1 - k) % 2 === 1 ? -1 : 1
+    const mid = world(nearest + look.along + (k - 0.5) * step, 0)
+    const x = crossing(paths[k]!, paths[k - 1]!, mid, across, want)
+    if (!x) continue
+    const here = ghosts[k]!
+    const ahead = ghosts[k - 1]!
+    // Ghost k reaches the crossing `t` s in; the one ahead must be at its own side of it then.
+    const t = frac(unwarp(here, x.sp / here.path.length) - here.phase) * lap
+    ahead.phase = frac(unwarp(ahead, x.sq / ahead.path.length) - t / lap)
+    meetings.push({ at: x.at, a: k, b: k - 1, every: 0, open: 0 })
   }
 
   // The ground the paths really cover, strayed as they are, in the road's frame.
@@ -366,7 +300,7 @@ export function layGraveyard(look: GraveLook, fire: P, fireReach: number, cage: 
       cMin = Math.min(cMin, c)
       cMax = Math.max(cMax, c)
     }
-  outline = [world(aMin - 1, cMin - 1), world(aMax + 1, cMin - 1), world(aMax + 1, cMax + 1), world(aMin - 1, cMax + 1)]
+  const outline = [world(aMin - 1, cMin - 1), world(aMax + 1, cMin - 1), world(aMax + 1, cMax + 1), world(aMin - 1, cMax + 1)]
   const entrance = { ...world(aMax + 1.2, 0), facing: { x: -ux, z: -uz } }
 
   // How often each pair meets and how long the two lights stay open to step across, over a long while.

@@ -1,11 +1,11 @@
-// The torch's flame: the end of the pumpkin kid's torch is alight,
+// The torch's flame: the end of the goose's torch is alight,
 // and the lamp burns in it. A painted flame in the round: three shells one
 // inside the other, each turned about the flame's spine on the outline the
 // card had, in three flat colours, a dark orange edge, an orange body and a
 // pale core, unlit. Each shows its outer face only, so a shell covers what is
 // behind it once, as the card's layer did, and the inner shows through the
 // outer however the camera looks down. It reads the depth but writes none, so
-// the kid's head hides it where it stands in front; its shells drawn in
+// his head hides it where it stands in front; its shells drawn in
 // order, outside in.
 // Its outline is drawn
 // again each beat of the stop motion, as a hand draws each frame of a flame:
@@ -30,12 +30,12 @@ export interface FlameLook {
   /** How tall it burns, m, and how wide at its round foot. */
   height: number
   width: number
-  /** How far its foot stands above the torch's end, m, straight up whichever way the meat leans; below 0, down into the meat. */
+  /** How far its foot stands above the torch's end, m, straight up whichever way the goose leans; below 0, down into the goose. */
   lift: number
   /**
    * How far its foot stands from the torch's end across the ground, m, as
-   * the meat faces: x to its left, z ahead of it; so it may burn off its
-   * top to one side, and turns with the meat. The embers start from it.
+   * the goose faces: x to its left, z ahead of it; so it may burn off its
+   * top to one side, and turns with the goose. The embers start from it.
    */
   offsetX: number
   offsetZ: number
@@ -61,7 +61,7 @@ export interface FlameLook {
   smoke: SmokeLook
 }
 
-/** As the panel set it on 2026-10-07: a slim flame, half see-through, its size flickering and its tip curling hard; standing in the mouth of the cup in the pumpkin kid's hand. */
+/** As the panel set it on 2026-10-07: a slim flame, half see-through, its size flickering and its tip curling hard; standing in the mouth of the cup on his torch. */
 export const defaultFlame = (): FlameLook => ({
   enabled: true,
   height: 0.38,
@@ -242,7 +242,7 @@ export interface Flame {
   readonly object: Group
   /** Take the flame folder's values. */
   set(look: FlameLook): void
-  /** Where its foot stands from the torch's end, m, as the meat faces: x to its left, y up, z ahead. */
+  /** Where its foot stands from the torch's end, m, as the goose faces: x to its left, y up, z ahead. */
   offset(out: Vector3): Vector3
   /** Draw it again, by this drawing's draws, the light walking at (vx, vz) m/s. */
   shape(draw: FlameDraw, vx: number, vz: number): void

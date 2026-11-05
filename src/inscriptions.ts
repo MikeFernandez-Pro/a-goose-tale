@@ -1,4 +1,4 @@
-// PROTOTYPE, throwaway (2026-10-29): words scratched in the slabs, worn: a few wavering lines, as a hand that could
+// Words scratched in the slabs, worn: a few wavering lines, as a hand that could
 // barely write cut them, each starting a little in from where the last did, the last one short. No letters, only
 // their lines; at the game's distance letters could not be read anyway.
 // Where on a stone: the biggest flat rectangle on the plane of its front that most faces the path, found once per kind

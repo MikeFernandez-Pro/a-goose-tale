@@ -146,7 +146,7 @@ export interface Ground {
   walls: readonly Wall[]
   bounds?: Bounds
   lights?: readonly FixedLight[]
-  /** A ring on the ground every rat is set down in, if given: the ground round the round room, its rats appearing outside it (`#hall`). */
+  /** A ring on the ground every rat is set down in, if given: round where the goose starts, its rats appearing outside it. */
   spawnRing?: SpawnRing
 }
 
@@ -386,7 +386,7 @@ export const VIEW_SPREAD = Math.PI / 2
 export const VIEW_DEPTH = 1
 export const VIEW_PLANES = 6
 /**
- * The pile (prototype): a rat pressing into a body ahead of it rides up on
+ * The pile: a rat pressing into a body ahead of it rides up on
  * it, as deep as it is into it and from where that body already rides, so
  * the mass behind a packed front crests over the backs in front. A rat's
  * height, as a multiple of its collision radius; how deep into a body a rat
@@ -573,13 +573,13 @@ export class Swarm {
   private readonly side: Int8Array
   /** The way its wander points, radians: drawn at its spawn, then turned at random each step. */
   readonly whim: Float32Array
-  /** How long it has stood the light's edge, s; how long it stands it; and how long its flinch has left to run. Read by the fear page (prototype/). */
+  /** How long it has stood the light's edge, s; how long it stands it; and how long its flinch has left to run. */
   readonly burn: Float32Array
   readonly tolerance: Float32Array
   readonly flinch: Float32Array
   /** Whether its last flinch was caught from a neighbour (1) rather than its own burn (0). */
   readonly caught: Uint8Array
-  /** Whether the light burns at all: off, no rat ever flinches, and the front holds the edge. For the top-down page (prototype/). */
+  /** Whether the light burns at all: off, no rat ever flinches, and the front holds the edge. */
   fear = true
   /** Whether fear spreads: a flinching neighbour halves what a rat stands. Off, each rat flinches on its own burn alone. */
   contagion = true
@@ -785,9 +785,9 @@ export class Swarm {
   }
 
   /**
-   * The level's walls as they now stand, the nearest picked again as the goose walks: every
+   * The walls as they now stand, the nearest picked again as the goose walks: every
    * light's lit area is worked out again against them. Given `bounds`, the
-   * box rats start in moves with them: the sewers' corridor made wider or narrower.
+   * box rats start in moves with them.
    */
   setWalls(walls: readonly Wall[], bounds?: Bounds): void {
     if (bounds !== undefined) this.bounds = { ...bounds }
@@ -812,8 +812,8 @@ export class Swarm {
 
   /**
    * Set rat `i` down afresh at (x, z), standing, as a newcomer is: a page that
-   * places its rats where it wants them, the 2D prototype's spawn spots, moves
-   * a rat it has no use for where it has one.
+   * places its rats where it wants them moves a rat it has no use for where
+   * it has one.
    */
   setDown(i: number, x: number, z: number): void {
     this.spawn(i, Math.hypot(x, z), Math.atan2(z, x))
