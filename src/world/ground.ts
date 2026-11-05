@@ -692,3 +692,6 @@ const rebuiltNormal = (texel: Node<'vec4'>): Node<'vec3'> => {
   const lean = texel.xy.mul(2).sub(1)
   return vec3(lean, sqrt(max(float(1).sub(dot(lean, lean)), 0)))
 }
+
+/** The floor as the page has it. */
+export type GroundFloor = Awaited<ReturnType<typeof floor>>

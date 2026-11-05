@@ -111,3 +111,6 @@ export function createNightLights(scene: Scene, moon: string) {
   }
   return lights
 }
+
+/** The night's lights as the page has them. */
+export type NightLights = ReturnType<typeof createNightLights>

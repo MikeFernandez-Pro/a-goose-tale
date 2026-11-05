@@ -131,3 +131,12 @@ export function createHoldHint(): HoldHint {
     },
   }
 }
+
+/** The pad's button beside the loading screen's Enter or Play again, `button`, after its word: ENTER_PAD px across. */
+const ENTER_PAD = 32
+export function padBeside(button: HTMLButtonElement): PadButton {
+  const pad = createPadButton(ENTER_PAD, 'inline-block')
+  pad.element.style.cssText += ';margin-left:12px;vertical-align:middle;margin-top:-4px'
+  button.append(pad.element)
+  return pad
+}

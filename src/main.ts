@@ -9,7 +9,6 @@
 // has them. Each light's lit area is worked out on the page for the drawing and the GPU step, and in the worker
 // for its own (ADR-0054).
 import {
-  Color,
   Group,
   Frustum,
   Sphere,
@@ -52,7 +51,7 @@ import { GoosePlay, MOST_BITERS, eased, inZone, type FireScene, type SceneState,
 import { createGoslingBadge, mountBadgeControls } from './ui/goslingbadge'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './characters/goslings'
 import { layPieces, BURNING_LIGHT, BURNING_MODEL, CAGE_FIRE_LIGHT, PIT_BOWL, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_BOWL, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece, type SceneFireLook } from './game/goosescenes'
-import { besideOf, createHoldHint, createPadButton, promptedOf, type PadButton } from './ui/holdhint'
+import { besideOf, createHoldHint, promptedOf, type PadButton, padBeside } from './ui/holdhint'
 import { createThumbs } from './ui/goosethumbs'
 import { BUTTON_RADIUS, STICK_REACH, touchLayout } from './ui/goosetouch'
 import { GooseControls, SPACE, WALK_KEYS, type Commands, type ControlsState, type Walk } from './ui/goosecontrols'
@@ -64,8 +63,8 @@ import { createNest, defaultNeedleLook, defaultNestLeafLook, defaultNestLook } f
 import { createTent } from './world/tent'
 import { createPicnic } from './world/picnic'
 import { createIslandTree } from './world/islandtree'
-import { createIslandGeese, type IslandCue } from './characters/islandgeese'
-import { DRAIN, HEART_SHOWS, OUTRO, againOf, aimOf, byOf, dawnOf, fadeOf, ganderAt, goslingOf, heartsOf, layOutro, morningOf, motherAt, outroDue, peepsOf, planAt, pullOf, titleOf, type Island, type Stage } from './game/gooseoutro'
+import { createIslandGeese } from './characters/islandgeese'
+import { OUTRO, goslingOf, outroDue, peepsOf, pullOf } from './game/gooseoutro'
 import { ROUTE, WADE, keptShown, laid, shownOf, toSave, type Plain, type Point, type Route } from './world/plain'
 import { defaultRollingLook, rollAgain, rollingGround } from './world/rolling'
 import { createWater, defaultWaterLook, WATER_LOOKS } from './world/water'
@@ -93,7 +92,7 @@ import { createGraves, mountGraveControls, scatterGravePumpkins, type GraveGroun
 import { createGraveCandles, mountCandleControls } from './world/gravecandles'
 import { GpuSwarm, MOST_FRAME } from './swarm/gpuswarm'
 import type { BenchCost, BenchPlace, PhoneBench } from './dev/phonebench'
-import { keptRun, keepRun, dropKeptRun } from './game/keptrun'
+import { keptRun, keepRun } from './game/keptrun'
 import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './game/gameplay'
 import { createLightning } from './world/lightning'
 import { flashAt } from './world/weather'
@@ -106,6 +105,7 @@ import { createSkyFog } from './look/skyfog'
 import { createNightLights } from './light/nightlights'
 import { createOpening, SKIP_HOLD } from './game/opening'
 import { createOpeningShow } from './ui/openingshow'
+import { createEnding } from './game/ending'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
@@ -1092,275 +1092,9 @@ const islandGeese = await createIslandGeese(
 )
 scene.add(islandGeese.object)
 
-/**
- * The ending (gooseoutro.ts): once he swims near the island, unless `?outro=0`; its own clock, s, on with the play's,
- * -1 until it starts. Laid out once as it starts, from where they all are, and played to its end, the title staying.
- */
-const outroOn = url.get('outro') !== '0'
-let outroT = -1
-const outroRunning = () => outroT >= 0
-let outroStage: Stage | undefined
-/** His goslings as it starts, those in his circle, in the stage's order. */
-let outroBrood: number[] = []
-/** The island as it is drawn now, the ending's to read. */
-const outroIsland: Island = {
-  get middle() {
-    return islandMiddle(pondLook)
-  },
-  shoreAt: (angle) => islandShoreAt(pondLook.island, angle),
-}
-/** How far ahead of him the last gosling leads him, m, toward the island, out past his body as the camera sees him; and how far off its waterline the gosling keeps. */
-const GUIDE_AHEAD = 3.5
-const GUIDE_OFF_ISLAND = 1
-// The last gosling found leads him on to the island.
-goosePlay.guideTo = (holder) => {
-  const { middle } = outroIsland
-  const dx = middle.x - holder.x
-  const dz = middle.z - holder.z
-  const d = Math.hypot(dx, dz) || 1
-  const keep = outroIsland.shoreAt(Math.atan2(-dz, -dx)) + GUIDE_OFF_ISLAND
-  const lead = Math.min(GUIDE_AHEAD, Math.max(0, d - keep))
-  return { x: holder.x + (dx * lead) / d, z: holder.z + (dz * lead) / d }
-}
-/** How far the camera's follow looks off him, m: toward the middle of the two of them as the ending goes on. */
-const outroAim = { x: 0, z: 0 }
 /** How far the camera's follow leans off him toward a gosling still waiting, m, as it now leans (cameraLeanFrame). */
 const leanAim = { x: 0, y: 0, z: 0 }
-/** The night's lights as the ending starts, to bring the dawn up from. */
-let outroNight: DawnLook | undefined
-/** The ending started: laid out from where he, the mother and every gosling are now. */
-function startOutro() {
-  dropKeptRun()
-  const play = goosePlay
-  outroBrood = play.goslings.flatMap((g, k) => (g?.state === 'circle' || g?.state === 'guiding' ? [k] : []))
-  const { mother, motherYaw, goslings: island } = islandGeese.cast()
-  const brood = outroBrood.map((k) => ({ x: play.goslings[k]!.x, z: play.goslings[k]!.z }))
-  outroStage = layOutro(outroIsland, { gander: { ...play.holder }, mother, door: tent.object.visible ? tent.door() : undefined, motherYaw, island, brood })
-  outroNight = dawnLookOf(look)
-  dawnFloor = undefined
-  outroT = 0
-  outroHeard = -1
-  // In by now, asked for when the last gosling was found; else as soon as it comes.
-  void gooseSounds?.load('outro').then(() => gooseSounds.play('outro'))
-}
-/** He and his goslings where the ending has them, the camera's look with them. */
-function walkOutro() {
-  const stage = outroStage
-  if (!stage) return
-  const { at, facing } = ganderAt(stage, outroT)
-  Object.assign(goosePlay.holder, at)
-  Object.assign(goosePlay.facing, facing)
-  outroBrood.forEach((k, i) => Object.assign(goosePlay.goslings[k]!, planAt(stage.brood[i]!, outroT).at))
-  const aim = aimOf(outroT)
-  outroAim.x = (stage.pair.x - at.x) * aim
-  outroAim.z = (stage.pair.z - at.z) * aim
-}
-/** The island's geese as the ending has them, or nothing before it. */
-function outroCue(): IslandCue | undefined {
-  const stage = outroStage
-  if (!stage) return undefined
-  return { mother: motherAt(stage, outroT), goslings: stage.island.map((_, j) => goslingOf(stage, false, j, outroT)) }
-}
-/** What his gosling `k` does in the ending, shaking dry or hopping, and the way the gosling faces standing, if anything. */
-function outroAct(k: number) {
-  const i = outroBrood.indexOf(k)
-  return outroStage && i >= 0 ? goslingOf(outroStage, true, i, outroT) : undefined
-}
-/** The lights the dawn brings up: the low sun, the sky's fill, and the fires', the torch's among them, dying down; the water's horizon and the floor's colour with them. */
-interface DawnLook {
-  sun: { color: number; intensity: number; x: number; y: number; z: number; softness: number; shadowColor: number; darkness: number }
-  fill: { sky: number; ground: number; intensity: number }
-  lamp: { intensity: number }
-  fires: number
-  water: { horizon: number }
-  floor: { saturation: number; lightness: number }
-}
-/**
- * The dawn as set from the panel on 2026-10-31: a pink sun high on the moon's side, its shadows soft and violet, a
- * pale pink sky over a dark violet ground, the water's horizon turquoise, the floor more coloured; the fires a third
- * of their night's.
- */
-const DAWN: DawnLook = {
-  sun: { color: 0xff94a4, intensity: 4.7, x: -23.5, y: 27, z: 25, softness: 1.5, shadowColor: 0x241d3a, darkness: 0.64 },
-  fill: { sky: 0xffe0f7, ground: 0x221a28, intensity: 0.8 },
-  lamp: { intensity: 2.5 },
-  fires: 0.35,
-  water: { horizon: 0x7cfef5 },
-  floor: { saturation: 1.1, lightness: 0.64 },
-}
-const dawnLookOf = (from: typeof look): DawnLook => ({
-  sun: { color: from.sun.color, intensity: from.sun.intensity, x: from.sun.x, y: from.sun.y, z: from.sun.z, softness: from.sun.softness, shadowColor: from.sun.shadowColor, darkness: from.sun.darkness },
-  fill: { sky: from.fill.sky, ground: from.fill.ground, intensity: from.fill.intensity },
-  lamp: { intensity: from.lamp.intensity },
-  fires: 1,
-  water: { horizon: waterLook.horizon },
-  floor: { saturation: from.floor.saturation, lightness: from.floor.lightness },
-})
-const dawnFrom = new Color()
-const dawnTo = new Color()
-/** The floor's lightness and saturation as the dawn last set them: moved off them from the panel, the floor is the panel's for the rest of the ending. */
-let dawnFloor: { saturation: number; lightness: number } | undefined
-/** How much of their night's light the fires give now, as the dawn comes up. */
-let firesLeft = 1
-/** The dawn brought up `share` of the way from the night it started at: into the look, and the lights set from it. */
-function dawnFrame(share: number) {
-  if (!outroNight) return
-  const mixed = (a: number, b: number) => dawnFrom.setHex(a).lerp(dawnTo.setHex(b), share).getHex()
-  const between = (a: number, b: number) => a + (b - a) * share
-  const night = outroNight
-  Object.assign(look.sun, {
-    color: mixed(night.sun.color, DAWN.sun.color),
-    intensity: between(night.sun.intensity, DAWN.sun.intensity),
-    x: between(night.sun.x, DAWN.sun.x),
-    y: between(night.sun.y, DAWN.sun.y),
-    z: between(night.sun.z, DAWN.sun.z),
-    // The dawn's sun casts shadows, whether or not the night's did.
-    shadows: true,
-    softness: between(night.sun.softness, DAWN.sun.softness),
-    shadowColor: mixed(night.sun.shadowColor, DAWN.sun.shadowColor),
-    darkness: between(night.sun.darkness, DAWN.sun.darkness),
-  })
-  Object.assign(look.fill, { sky: mixed(night.fill.sky, DAWN.fill.sky), ground: mixed(night.fill.ground, DAWN.fill.ground), intensity: between(night.fill.intensity, DAWN.fill.intensity) })
-  look.lamp.intensity = between(night.lamp.intensity, DAWN.lamp.intensity)
-  firesLeft = between(night.fires, DAWN.fires)
-  waterLook.horizon = mixed(night.water.horizon, DAWN.water.horizon)
-  water.set(waterLook)
-  const floorTaken = dawnFloor && (look.floor.saturation !== dawnFloor.saturation || look.floor.lightness !== dawnFloor.lightness)
-  if (!floorTaken) {
-    look.floor.saturation = between(night.floor.saturation, DAWN.floor.saturation)
-    look.floor.lightness = between(night.floor.lightness, DAWN.floor.lightness)
-    dawnFloor = { saturation: look.floor.saturation, lightness: look.floor.lightness }
-    ground.set(look.floor)
-    deadTreesMesh.setGrass(deadTreeGrass, look.floor)
-    islandTree.setGrass(look.floor)
-  }
-  nightLights.dawned(look, light.on)
-}
-/**
- * The night fading out at the ending's end, and the game's title over it, in the hints' hand; under it, in the slot the
- * loading screen's Enter key has, the key to play again, by its button or the controls' confirm once it shows: the page
- * loaded again. Filmed, the title stays alone.
- */
-const outroCard = outroOn ? document.createElement('div') : undefined
-const outroTitle = outroOn ? document.createElement('div') : undefined
-const outroAgain = outroOn && !url.has('film') ? document.createElement('button') : undefined
-const againShown = () => !!outroAgain && outroRunning() && againOf(outroT) > 0
-/** Play again pressed, if it shows. */
-let playAgain: (() => void) | undefined
-/** The pad's button beside the loading screen's Enter or Play again, `button`, after its word: ENTER_PAD px across. */
-const ENTER_PAD = 32
-function padBeside(button: HTMLButtonElement): PadButton {
-  const pad = createPadButton(ENTER_PAD, 'inline-block')
-  pad.element.style.cssText += ';margin-left:12px;vertical-align:middle;margin-top:-4px'
-  button.append(pad.element)
-  return pad
-}
-/** On a pad, its button beside Play again. */
-let againPad: PadButton | undefined
-/** Who made it, a link at the foot of the screen, coming in before Play again: at the foot, so the title stands where the loading screen has it. */
-const outroBy = outroAgain ? document.createElement('a') : undefined
-if (outroCard && outroTitle) {
-  outroCard.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;opacity:0;pointer-events:none;z-index:20;visibility:hidden'
-  outroTitle.style.cssText = 'font-family:Gaegu,cursive;font-weight:700;font-size:min(13vw,128px);color:#f6ead0;opacity:0'
-  outroTitle.textContent = 'A Goose Tale'
-  const slot = document.createElement('div')
-  slot.style.cssText = 'height:64px;margin-top:12px'
-  if (outroAgain) {
-    outroAgain.className = 'enter'
-    outroAgain.textContent = 'Play again'
-    againPad = padBeside(outroAgain)
-    outroAgain.style.cssText = 'opacity:0;pointer-events:none;visibility:hidden'
-    let again = false
-    const once = () => {
-      if (again || !againShown()) return
-      again = true
-      outroAgain.disabled = true
-      location.reload()
-    }
-    outroAgain.addEventListener('click', once)
-    playAgain = once
-    slot.append(outroAgain)
-  }
-  outroCard.append(outroTitle, slot)
-  if (outroBy) {
-    outroBy.textContent = 'a game by Mike Fernandez'
-    outroBy.href = 'https://www.mike-fernandez.dev/'
-    outroBy.target = '_blank'
-    outroBy.rel = 'noopener'
-    outroBy.style.cssText = 'position:absolute;bottom:max(20px,env(safe-area-inset-bottom));font:700 22px/1.2 Gaegu,cursive;color:#f6ead0;text-decoration:none;opacity:0;pointer-events:none;visibility:hidden'
-    outroCard.append(outroBy)
-  }
-  document.body.append(outroCard)
-}
-/**
- * The hearts going up over the two of them once they meet (gooseoutro.ts heartsOf), drawn as the game's words are:
- * each swells in past its size and settles, rises a little and slowly, floats round their heads in loops of HEART_LOOP px, and fades.
- * HEART_WIDE px across at its usual size; HEART_UP m over him it starts, HEART_RISE px it rises, HEART_SCATTER px to
- * its side at the most.
- */
-const HEART_WIDE = 15
-const HEART_UP = 0.9
-const HEART_RISE = 35
-const HEART_SCATTER = 55
-const HEART_LOOP = 10
-/** The heart, cut in facets: its red rim, the paler red inside, and the light caught down its left. */
-const HEART_RIM = '#ff2450'
-const HEART_INSIDE = '#ff5c78'
-const HEART_SHINE = '#ffb8c4'
-const HEART_SVG = `<svg viewBox="120 110 410 315" width="WIDE"><polygon fill="${HEART_RIM}" points="126,237 153,154 263,115 326,175 386,115 497,155 525,237 326,421"/><polygon fill="${HEART_INSIDE}" points="178,244 201,182 281,154 326,197 371,154 453,183 473,247 326,383"/><polygon fill="${HEART_SHINE}" points="201,182 178,244 326,383 190,243 206,181"/></svg>`
-const hearts = outroOn ? heartsOf() : []
-const heartMarks = hearts.map((heart) => {
-  const mark = document.createElement('div')
-  mark.innerHTML = HEART_SVG.replace('WIDE', String(Math.round(HEART_WIDE * heart.size)))
-  mark.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;opacity:0;line-height:0;filter:drop-shadow(0 2px 3px #000c)'
-  document.body.append(mark)
-  return mark
-})
-const heartFrom = new Vector3()
-function heartsFrame() {
-  heartMarks.forEach((mark, k) => {
-    const heart = hearts[k]!
-    const age = outroT - heart.at
-    const shown = outroRunning() && !!outroStage && age >= 0 && age < HEART_SHOWS
-    mark.style.opacity = shown ? String(Math.min(1, age / 0.3) * Math.min(1, (HEART_SHOWS - age) / 1)) : '0'
-    if (!shown) return
-    heartFrom.set(outroStage!.pair.x, goose.object.position.y + HEART_UP, outroStage!.pair.z).project(camera)
-    const box = renderer.domElement.getBoundingClientRect()
-    const share = age / HEART_SHOWS
-    const x = box.left + ((heartFrom.x + 1) / 2) * box.width + heart.side * HEART_SCATTER * Math.min(1, age / 1.2) + Math.sin(age * 1.8 + k) * HEART_LOOP
-    const y = box.top + ((1 - heartFrom.y) / 2) * box.height - HEART_RISE * (1 - (1 - share) ** 2) + Math.cos(age * 1.8 + k) * HEART_LOOP * 0.5
-    const pop = age < 0.3 ? 0.6 + (age / 0.3) * 0.55 : Math.max(1, 1.15 - (age - 0.3) * 0.5)
-    mark.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%) rotate(${heart.side * 12 + Math.sin(age * 1.8 + k) * 8}deg) scale(${pop})`
-  })
-}
-/** The ending a frame on: the dawn, the hearts, the fade and the title. */
-function outroFrame() {
-  heartsFrame()
-  if (!outroRunning()) return
-  dawnFrame(morningOf(outroT))
-  // Hidden until each shows, not only see-through: else Tab and a screen reader find them long before the ending.
-  if (outroCard) {
-    outroCard.style.opacity = String(fadeOf(outroT))
-    outroCard.style.visibility = fadeOf(outroT) > 0 ? '' : 'hidden'
-  }
-  if (outroTitle) outroTitle.style.opacity = String(titleOf(outroT))
-  if (outroAgain) {
-    outroAgain.style.opacity = String(againOf(outroT))
-    outroAgain.style.pointerEvents = againShown() ? 'auto' : 'none'
-    outroAgain.style.visibility = againShown() ? '' : 'hidden'
-  }
-  if (outroBy) {
-    outroBy.style.opacity = String(byOf(outroT) * 0.75)
-    outroBy.style.pointerEvents = byOf(outroT) > 0 ? 'auto' : 'none'
-    outroBy.style.visibility = byOf(outroT) > 0 ? '' : 'hidden'
-  }
-}
-/** The swarm's lights with the dawn's first: reaching out from the two of them as it comes up, the rats draining off out of it. */
-function withDawn(lights: FixedLight[]): FixedLight[] {
-  if (!outroStage) return lights
-  const reach = DRAIN * dawnOf(outroT)
-  return reach > 0 ? [{ x: outroStage.pair.x, z: outroStage.pair.z, reach, on: true }, ...lights] : lights
-}
+const ending = createEnding({ goosePlay, pondLook, islandGeese, tent, look, waterLook, water, ground, deadTreesMesh, deadTreeGrass, islandTree, nightLights, light, gooseSounds, goose, camera, renderer })
 // The bed under the pond's water takes less light, as deep as the water lies.
 ground.setWaterLevel(pondLook.water)
 
@@ -1918,7 +1652,7 @@ function controlsState(loading: boolean): ControlsState {
   if (loading) return 'loading'
   if (settings.paused) return 'paused'
   if (opening.running()) return 'opening'
-  if (outroRunning()) return againShown() ? 'playAgain' : 'ending'
+  if (ending.running()) return ending.againShown() ? 'playAgain' : 'ending'
   return 'play'
 }
 /** The controls' commands for this frame, from the keys and the pads as they now are. */
@@ -2136,7 +1870,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   const lit = islandFireModel.visible
   islandFireFlame.object.visible = look.flame.enabled && lit
   islandFireLamp.color.setHex(fireLook.lamp)
-  islandFireLamp.intensity = lit ? islandFireLook.intensity * firesLeft : 0
+  islandFireLamp.intensity = lit ? islandFireLook.intensity * ending.firesLeft : 0
   islandFireLamp.distance = islandFireLook.reach
   islandFireLamp.position.set(islandFireAt.x, islandFireAt.y + (CAGE_FIRE_LIGHT.height ?? 0) * islandFireLook.size, islandFireAt.z)
   if (islandFireFlame.object.visible) {
@@ -2159,7 +1893,7 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   // The same share of the gap a second whatever the frame rate; held, the frames' worth of it comes on the beat.
   owed += dt
   if (!(stop.enabled && stop.camera) || newBeat) {
-    moved.set(light.x + outroAim.x + leanAim.x, stood + leanAim.y, light.z + outroAim.z + leanAim.z).sub(followed).multiplyScalar(cameraFollow.lag > 0 ? 1 - Math.exp(-owed / cameraFollow.lag) : 1)
+    moved.set(light.x + ending.aim.x + leanAim.x, stood + leanAim.y, light.z + ending.aim.z + leanAim.z).sub(followed).multiplyScalar(cameraFollow.lag > 0 ? 1 - Math.exp(-owed / cameraFollow.lag) : 1)
     followed.add(moved)
     camera.position.add(moved)
     controls.target.add(moved)
@@ -2661,7 +2395,7 @@ function cameraLeanFrame(dt: number) {
   let x = 0
   let y = 0
   let z = 0
-  if (!opening.running() && !outroRunning() && Number.isNaN(goosePlay.fallen) && torchFilledOnce()) {
+  if (!opening.running() && !ending.running() && Number.isNaN(goosePlay.fallen) && torchFilledOnce()) {
     const { holder, run } = goosePlay
     let near = -1
     let off = lean.from
@@ -2739,13 +2473,13 @@ function gooseFrame(dt: number, held: number) {
   rumbleFrame()
   cameraLeanFrame(dt)
   gooseSoundsFrame(dt)
-  islandGeese.direct(outroCue())
-  outroFrame()
+  islandGeese.direct(ending.cue())
+  ending.frame()
   if (opening.on && !opening.settled) opening.goslingsFrame()
   // Bolting in the opening, none is in its scene yet: up its tree or down its well.
-  islandGeese.object.visible = outroRunning() || islandNear()
+  islandGeese.object.visible = ending.running() || islandNear()
   if (islandGeese.object.visible) islandGeese.update(dt, held)
-  goslings.update(goosePlay, dt, held, !opening.on || opening.settled ? (k) => gooseScenes.lift(goosePlay, k) : undefined, outroRunning() ? outroAct : undefined)
+  goslings.update(goosePlay, dt, held, !opening.on || opening.settled ? (k) => gooseScenes.lift(goosePlay, k) : undefined, ending.running() ? ending.act : undefined)
   openingShow.skipHintFrame(commands)
 }
 
@@ -3019,16 +2753,16 @@ const ISLAND_GAIN = [0.45, 0.75] as const
 let islandCallWait = 0
 function islandCallsFrame(dt: number) {
   if (!pondLook.island.show || opening.running()) return
-  const stage = outroStage
+  const stage = ending.stage
   let close = 1
   if (stage) {
-    if (outroT >= OUTRO.settle) return
+    if (ending.t >= OUTRO.settle) return
   } else {
     const { holder } = goosePlay
-    const { middle } = outroIsland
+    const { middle } = ending.island
     const dx = holder.x - middle.x
     const dz = holder.z - middle.z
-    const off = Math.hypot(dx, dz) - outroIsland.shoreAt(Math.atan2(dz, dx))
+    const off = Math.hypot(dx, dz) - ending.island.shoreAt(Math.atan2(dz, dx))
     if (off > ISLAND_SEES) {
       islandCallWait = 0
       return
@@ -3038,21 +2772,21 @@ function islandCallsFrame(dt: number) {
   islandCallWait -= dt
   if (islandCallWait > 0) return
   islandCallWait = (ISLAND_PAUSE[0] + (ISLAND_PAUSE[1] - ISLAND_PAUSE[0]) * close) * (ISLAND_JITTER[0] + Math.random() * (ISLAND_JITTER[1] - ISLAND_JITTER[0]))
-  const island = stage ? [...outroBrood.map((k) => goosePlay.goslings[k]!), ...stage.island.map((_, j) => goslingOf(stage, false, j, outroT).at)] : islandGeese.cast().goslings
+  const island = stage ? [...ending.brood.map((k) => goosePlay.goslings[k]!), ...stage.island.map((_, j) => goslingOf(stage, false, j, ending.t).at)] : islandGeese.cast().goslings
   const at = island[Math.floor(Math.random() * island.length)]
   if (at) peepAt({ x: at.x, y: standAt(at.x, at.z) + GOSLING_HEAD, z: at.z }, ISLAND_GAIN[0] + (ISLAND_GAIN[1] - ISLAND_GAIN[0]) * close)
 }
 /** Every gosling in the ending's ring, his and the island's, peep peep peep as he hops for joy: those due since the last frame. */
 function outroPeepsFrame() {
-  const stage = outroStage
-  if (!stage || !outroRunning()) return
+  const stage = ending.stage
+  if (!stage || !ending.running()) return
   const from = outroHeard
-  outroHeard = outroT
-  const due = (brood: boolean, k: number) => peepsOf(stage, brood, k).some((t) => t > from && t <= outroT)
-  outroBrood.forEach((k, i) => due(true, i) && happyPeep(k, OUTRO_PEEP_GAIN))
+  outroHeard = ending.t
+  const due = (brood: boolean, k: number) => peepsOf(stage, brood, k).some((t) => t > from && t <= ending.t)
+  ending.brood.forEach((k, i) => due(true, i) && happyPeep(k, OUTRO_PEEP_GAIN))
   stage.island.forEach((_, j) => {
     if (!due(false, j)) return
-    const { at, act } = goslingOf(stage, false, j, outroT)
+    const { at, act } = goslingOf(stage, false, j, ending.t)
     peepAt({ x: at.x, y: standAt(at.x, at.z) + (act?.lift ?? 0) + GOSLING_HEAD, z: at.z }, OUTRO_PEEP_GAIN)
   })
 }
@@ -3100,7 +2834,7 @@ const GUIDE_CALL_PAUSE = [2.5, 5] as const
 const GUIDE_CALL_GAIN = 0.6
 let guideCallWait = 0
 function guideCallFrame(dt: number) {
-  if (outroRunning() || goosePlay.guideWaits < GUIDE_CALLS_AFTER) {
+  if (ending.running() || goosePlay.guideWaits < GUIDE_CALLS_AFTER) {
     guideCallWait = 0
     return
   }
@@ -3174,7 +2908,7 @@ function gooseSoundsFrame(dt: number) {
   gooseSounds.hushed = settings.paused || !loaded
   gooseMusic?.frame(!opening.running(), goosePlay.circle, goosePlay.goslings.filter(Boolean).length)
   if (backgroundMusic) {
-    if (outroRunning()) musicIn = Math.max(0, musicIn - dt / MUSIC_FADE_OUT)
+    if (ending.running()) musicIn = Math.max(0, musicIn - dt / MUSIC_FADE_OUT)
     else if (!opening.running() && !gooseSounds.hushed && gooseSounds.context.state === 'running') musicIn = Math.min(1, musicIn + dt / MUSIC_FADE)
     backgroundMusic.set(musicIn * musicIn)
   }
@@ -3385,7 +3119,7 @@ function holdHintFrame() {
   holdShown = false
   if (!holdHint) return
   holdHint.prompt(promptedOf(commands))
-  if (opening.running() || outroRunning() || goosePlay.down) return holdHint.update(null, 0)
+  if (opening.running() || ending.running() || goosePlay.down) return holdHint.update(null, 0)
   const well = goosePlay.scenes.find((s) => s.kind === 'well' && s.near)
   const winching = well?.kind === 'well'
   const tree = goosePlay.scenes.find((s) => s.kind === 'tree' && s.near)
@@ -3433,7 +3167,7 @@ const darkOn = new Vector3()
 /** His life, shown on the frame alone: its colour draining with it, grey as it runs out; his death's dark swirling in as he falls, black, coming back as he wakes; in full colour and clear through the opening and the ending. */
 function lifeFrame() {
   const { fallen, woken } = goosePlay
-  const scripted = opening.running() || outroRunning()
+  const scripted = opening.running() || ending.running()
   const { after, finish, progress } = darkLook
   // The fall as long as his death and the dark take, read live; his torch dying over both, so the rats close in slowly
   // and never bury him as he dies.
@@ -3566,7 +3300,7 @@ let sinceIntro = 0
  */
 function callHintFrame(dt: number) {
   if (!callHint || opening.running()) return
-  if (outroRunning()) {
+  if (ending.running()) {
     callBadge?.update(null, 0, dt)
     return callHint.update(null, dt)
   }
@@ -3650,7 +3384,7 @@ function aheadFrame() {
   const { branch } = goosePlay
   const branchLying = branch !== undefined && !branch.carried && branch.landed
   // In the opening, the branch's alone, Space skipping it till it ends.
-  if ((opening.running() && !branchLying) || outroRunning() || goosePlay.atRefill || (goosePlay.atBranch && !opening.running()) || goosePlay.scenes.some((s) => s.near)) return aheadHint.update(null, 0)
+  if ((opening.running() && !branchLying) || ending.running() || goosePlay.atRefill || (goosePlay.atBranch && !opening.running()) || goosePlay.scenes.some((s) => s.near)) return aheadHint.update(null, 0)
   const { holder } = goosePlay
   const box = renderer.domElement.getBoundingClientRect()
   if (branch && branchLying) {
@@ -3974,7 +3708,7 @@ function enterWhenAsked(go: () => void) {
 }
 
 /** Whether a shot is in over the orbit: the opening's or the ending's. */
-const shotIn = () => opening.running() || outroRunning()
+const shotIn = () => opening.running() || ending.running()
 /** The orbit's camera kept, to put back once the frame is drawn. */
 const orbitAt = new Vector3()
 const orbitTurn = new Quaternion()
@@ -3994,11 +3728,11 @@ function standAtShots(): boolean {
     const shake = calm ? STILL_CAMERA : shakeAt(opening.t)
     camera.position.add(looking.set(shake.x, shake.y, shake.z))
     camera.lookAt(controls.target.x + shake.x * 0.6, controls.target.y + shake.y * 0.6, controls.target.z + shake.z * 0.6)
-  } else if (moved && outroRunning()) {
+  } else if (moved && ending.running()) {
     orbitAt.copy(camera.position)
     orbitTurn.copy(camera.quaternion)
     // The game's own camera, drawn back along its look as the ending closes.
-    looking.subVectors(camera.position, controls.target).normalize().multiplyScalar(pullOf(outroT))
+    looking.subVectors(camera.position, controls.target).normalize().multiplyScalar(pullOf(ending.t))
     camera.position.add(looking)
     camera.lookAt(controls.target)
   } else if (knocked) {
@@ -4056,7 +3790,7 @@ function setPaused(on: boolean) {
   panel?.refresh()
 }
 /** Whether the game pauses on its own here: in the opening, the play or the ending's card, not in edit mode. */
-const pausesHere = () => loaded && !editMode?.on && !againShown()
+const pausesHere = () => loaded && !editMode?.on && !ending.againShown()
 /** Whether the veil showed last frame. */
 let veilShown = false
 /** The veil over the paused game, focus on Resume while it shows, and Resume's button as the device last used has it. */
@@ -4277,7 +4011,7 @@ let runToTakeUp = keeping ? keptRun() : undefined
 let keepIn = KEEP_EVERY
 /** The run kept now, unless he is yet to have a run worth keeping, or it is over. */
 function keepTheRun() {
-  if (!keeping || !goosePlay.armed || opening.running() || outroRunning() || goosePlay.down) return
+  if (!keeping || !goosePlay.armed || opening.running() || ending.running() || goosePlay.down) return
   keepRun(goosePlay.saved())
 }
 if (keeping) {
@@ -4327,7 +4061,7 @@ let benchMade = false
 // the developer's page, whose panels are read.
 if (!debugOn) {
   for (const child of document.body.children) {
-    if (child !== pauseVeil && child !== outroCard && child.tagName !== 'MAIN' && child.tagName !== 'BUTTON') child.setAttribute('aria-hidden', 'true')
+    if (child !== pauseVeil && child !== ending.card && child.tagName !== 'MAIN' && child.tagName !== 'BUTTON') child.setAttribute('aria-hidden', 'true')
   }
 }
 
@@ -4346,7 +4080,7 @@ renderer.setAnimationLoop(() => {
   const dt = settings.paused || loading ? 0 : Math.min(frame, FRAME_CAP)
   beats.clock += dt
   if (opening.running()) opening.t = Math.min(INTRO.end, opening.t + dt)
-  if (outroRunning()) outroT = Math.min(OUTRO.end, outroT + dt)
+  if (ending.running()) ending.t = Math.min(OUTRO.end, ending.t + dt)
   controlsFrame(loading)
   // The chase camera's hold on the mouse let go, for a click to reach the veil.
   if (commands.pause) {
@@ -4357,10 +4091,10 @@ renderer.setAnimationLoop(() => {
   pauseFrame()
   if (commands.confirm) {
     enterAsked?.()
-    playAgain?.()
+    ending.playAgain?.()
   }
   enterPad?.update(besideOf(commands))
-  againPad?.update(besideOf(commands))
+  ending.againPad?.update(besideOf(commands))
   if (!loading) opening.skipFrame(commands.skip, frame)
   const newBeat = beats.frame(lookChanged)
   const stop = look.stopMotion
@@ -4389,8 +4123,8 @@ renderer.setAnimationLoop(() => {
 
   // The play, a frame of it: he walks where the keys send him, the torch burns, a fire refills it. Paused, it holds.
   if (!settings.paused && !loading) {
-    if (outroRunning()) {
-      walkOutro()
+    if (ending.running()) {
+      ending.walk()
     } else if (!opening.running()) {
       // His walk eased to the one asked: a little weight to him, starting and stopping.
       const share = walkFrame(heading(commands.walk), dt)
@@ -4404,8 +4138,8 @@ renderer.setAnimationLoop(() => {
         look: gooseCamera === 'chase' ? drawnForward : null,
       })
       // The ending's music asked for when the last gosling is found, not held all the game.
-      if (outroOn && goosePlay.goslings[goosePlay.guide]?.state === 'guiding') void gooseSounds?.load('outro')
-      if (outroOn && outroDue(outroIsland, goosePlay.holder)) startOutro()
+      if (ending.on && goosePlay.goslings[goosePlay.guide]?.state === 'guiding') void gooseSounds?.load('outro')
+      if (ending.on && outroDue(ending.island, goosePlay.holder)) ending.start()
       // Woken at a fire, under the black: the camera, the lamp and his height there at once, not gliding after him.
       if (goosePlay.deaths !== fallsSeen) {
         fallsSeen = goosePlay.deaths
@@ -4428,7 +4162,7 @@ renderer.setAnimationLoop(() => {
   const placed = run.lights()
   // What the swarm holds the rats off: the lights, and in the goose game the pond's water after them, drawn by nothing.
   // The burning branch's light flaring as it lands, before the dawn's comes first of them.
-  const keptOff = withDawn([...branchFlared(goosePlay.lights())])
+  const keptOff = ending.withDawn([...branchFlared(goosePlay.lights())])
   swarmTime.value = swarm.time
   const drawn = wakeFlare(branchFlared(opening.running() && pitLight >= 0 ? placed.map((p, k) => (k === pitLight ? { ...p, reach: p.reach * litShare(opening.t) } : p)) : placed))
   lights.update(drawn)
