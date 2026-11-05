@@ -10,10 +10,6 @@
 // for its own (ADR-0054).
 import {
   Group,
-  Frustum,
-  Sphere,
-  type Material,
-  Matrix4,
   Mesh,
   MeshBasicNodeMaterial,
   type Node,
@@ -26,20 +22,16 @@ import {
   Vector2,
   Vector3,
 } from 'three/webgpu'
-import { int, pointShadow, positionWorld, renderGroup, uniform } from 'three/tsl'
+import { int, pointShadow, uniform } from 'three/tsl'
 import { loadVAT } from 'three-vat'
 import { getMaxTextureSize, type VATTimeUniform } from 'three-vat/tsl'
-import { benchOn, calm, debugOn, featureOn, filming, noPanel, phone, post0, url } from './game/address'
+import { benchOn, debugOn, featureOn, filming, noPanel, phone, post0, url } from './game/address'
 import { FLOOR_LOOKS, GOOSE_EYES, copyInto, measuringSwitches, startingLook } from './look/startinglook'
 import { createPost, defaultDark, leaveUnshaded } from './look/post'
 import { DEATH_DOWN } from './characters/goosedeath'
 import { defaultBedLook, defaultRoadLook, defaultWellGroundLook, floor } from './world/ground'
-import { defaultRoadShape, leadIn, roadField, roadLine } from './world/road'
-import { archesOf, archStones, createArches, defaultArchLook, defaultArchWet, type ArchShell, type ArchStone } from './world/arches'
-import { createDeadTrees, deadTrees, defaultBarkLook, defaultGrassLook, offWay, defaultDeadTreeShape, defaultLeafLook, treeVariantOf, trunkRadius, type DeadTree, type DeadTreeShape } from './world/deadtrees'
-import { bushes, createBushes, defaultBushLeafLook, defaultBushShape } from './world/bushes'
-import { createRoadWalls, defaultRoadWallLook, ROAD_WALL_STYLES, roadWallLines, roadWallsOf, roadWallStones, type RoadWallLook, type StoneBlock } from './world/roadwalls'
-import type { ShineLook } from './look/shell'
+import { defaultRoadShape } from './world/road'
+import { type DeadTreeShape } from './world/deadtrees'
 import type { GooseFeel, Settings } from './settings'
 import { lightAndPause } from './ui/lightandpause'
 import type { PlaySwarm } from './swarm/play'
@@ -47,51 +39,35 @@ import { PipelineSlices } from './look/pipelineslices'
 import { GoosePlay, MOST_BITERS, eased, inZone, type FireScene, type SceneState, type Zone } from './game/gooseplay'
 import { createGoslingBadge, mountBadgeControls } from './ui/goslingbadge'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './characters/goslings'
-import { layPieces, BURNING_LIGHT, BURNING_MODEL, CAGE_FIRE_LIGHT, PIT_BOWL, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_BOWL, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece, type SceneFireLook } from './game/goosescenes'
+import { layPieces, BURNING_LIGHT, CAGE_FIRE_LIGHT, PIT_LIGHT, RIGHT_WING, spawnTree, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes, type EditPiece } from './game/goosescenes'
 import { besideOf, createHoldHint, promptedOf, type PadButton, padBeside } from './ui/holdhint'
 import { BUTTON_RADIUS, STICK_REACH, touchLayout } from './ui/goosetouch'
 import { createGooseSounds, type Loop as SoundLoop } from './sound/goosesounds'
 import { createGooseMusic } from './sound/goosemusic'
 import { callAt, createCallHint, createPeepWords, type CallAt } from './ui/callhint'
-import { FURTHEST, createPond, defaultPondLook, groundOf, islandMiddle, islandShoreAt, shoreAt, standingIn, swimmingIn, widestShore, type PondLook } from './world/pond'
-import { createNest, defaultNeedleLook, defaultNestLeafLook, defaultNestLook } from './world/nest'
-import { createTent } from './world/tent'
-import { createPicnic } from './world/picnic'
-import { createIslandTree } from './world/islandtree'
-import { createIslandGeese } from './characters/islandgeese'
+import { FURTHEST, defaultPondLook, islandMiddle, islandShoreAt, shoreAt, standingIn, swimmingIn, widestShore, type PondLook } from './world/pond'
 import { OUTRO, goslingOf, outroDue, peepsOf } from './game/gooseoutro'
-import { ROUTE, WADE, keptShown, laid, shownOf, toSave, type Plain, type Point, type Route } from './world/plain'
+import { ROUTE, WADE, keptShown, laid, toSave, type Plain, type Route } from './world/plain'
 import { defaultRollingLook, rollAgain, rollingGround } from './world/rolling'
-import { createWater, defaultWaterLook, WATER_LOOKS } from './world/water'
-import { defaultTreeWindLook } from './world/treesway'
 import { createLights, litMask, type LightLook } from './light/lights'
-import { defaultNoiseSeeThrough, noiseSeeThrough, seeThroughZone } from './look/seethrough'
 import { LitAreas } from './swarm/litareas'
 import { seenTexture } from './swarm/seen'
-import { Walls, nearestWalls, type Wall } from './swarm/walls'
+import { Walls } from './swarm/walls'
 import { RAT, Rats } from './swarm/rats'
 import { createGoose } from './characters/goose'
-import { createFlame, createFlames, type Flame } from './light/flame'
+import { createFlame } from './light/flame'
 import { createEmbers } from './light/embers'
-import { branchColours, branchPose, carriedPose, createBranch, lyingPose } from './light/branch'
 import { createFeathers } from './characters/feathers'
 import { createSmoke } from './light/smoke'
 import { defaultTuning, shoreLight, sightEdge, type Dark, type FixedLight, type Ground, type Light } from './swarm/swarm'
 import { createTiltShift } from './look/tiltshift'
 import { createFallingLeaves, defaultFallLook, mountFallControls } from './world/fallingleaves'
-import { FakeLamp, createFakeLamps, shown as drawnInScene } from './light/fakelamps'
+import { createFakeLamps, shown as drawnInScene } from './light/fakelamps'
 import { createFireShadow, defaultFireShadowLook } from './light/fireshadow'
-import { createGhosts, createPlainGhosts, mountGhostControls } from './characters/ghosts'
-import { defaultGraveLook, ghostAt, inGraveyard, layGraveyard } from './world/graveyard'
-import { createGraves, mountGraveControls, scatterGravePumpkins, type GraveGround } from './world/graves'
-import { createGraveCandles, mountCandleControls } from './world/gravecandles'
-import { GpuSwarm, MOST_FRAME } from './swarm/gpuswarm'
 import type { BenchCost, BenchPlace, PhoneBench } from './dev/phonebench'
 import { keptRun, keepRun } from './game/keptrun'
 import { CROWD, LIGHT_SPEED, RAT_SPEEDS, SIZE_BY_SPEED } from './game/gameplay'
-import { createLightning } from './world/lightning'
-import { flashAt } from './world/weather'
-import { CHAT, INTRO, afterglow, branchAt, branchFlare, cowering, flameGrown, litShare, ratsOut, rumbleAt, startled, walkOf } from './game/gooseintro'
+import { CHAT, INTRO, cowering, litShare, ratsOut, rumbleAt, startled } from './game/gooseintro'
 import { RemoteSwarm } from './swarm/swarm-remote'
 import { createBeats } from './game/beats'
 import { createDrawing } from './look/drawing'
@@ -104,6 +80,10 @@ import { createEnding } from './game/ending'
 import { createGooseInput, DIAL, DIAL_RATE } from './ui/gooseinput'
 import { createPauseVeil } from './ui/pauseveil'
 import { CAMERA_FOV, fitToPage, createGooseView, GOOSE_CAMERA_KEPT, type GooseCamera } from './game/gooseview'
+import { createRoadside } from './world/roadside'
+import { createPlainFires } from './light/plainfires'
+import { createPondWorld } from './world/pondworld'
+import { MOST_FRAME, GpuSwarm } from './swarm/gpuswarm'
 
 /** How fast the light walks under `?film`, m/s: a take covers more ground in its few seconds. */
 const FILM_LIGHT_SPEED = 2
@@ -135,7 +115,7 @@ const skyFog = createSkyFog(scene, camera)
 fitToPage(camera, renderer)
 
 const nightLights = createNightLights(scene, moon)
-const { fill, sun, lamp } = nightLights
+const { sun, lamp } = nightLights
 
 // The goose game's pond bed: the floor gives way to sand down its bank (ground.ts), as the pond folder's bed edits it.
 const bedLook = defaultBedLook()
@@ -361,6 +341,8 @@ const gooseSounds = !filming && !url.has('mute') ? createGooseSounds(camera) : u
 /** Whether his torch has been full once: starting with it out, he lights it first, and no gosling peeps for him nor turns the camera till then. */
 let torchFilled = false
 const torchFilledOnce = () => (torchFilled ||= goosePlay.run.fuel >= 0.99)
+/** The burning tree's light, where the plain starts by one. */
+const pitLight = spawnTree(goosePlay.plain)
 
 // The level and its rules, the goose play's. Its torch: it burns down, its light shrinking with the
 // fuel in a straight line to nothing, and grows back as he fills it at a fire. A and E (Q and E on a QWERTY keyboard)
@@ -421,610 +403,24 @@ goosePlay.setWater(pondWater(pondLook))
 const goslingSpeeds = defaultGoslingSpeeds()
 const goslingSize = { height: GOSLING_HEIGHT }
 const goslings = await createGoslings(goosePlay, pondLook, goslingSpeeds, groundAt, goslingSize)
-// Ghost geese (`?ghosts`, `=float`, `=rag` or `=ball`, `&ghostcount=`), cloth sheets on the GPU (ghosts.ts); WebGPU only.
-// `?graveyard` (the goose game's default, ball ghosts): they walk the graveyard's chain behind the last fire as
-// graveyard.ts lays it, on the play's clock, so they meet where and when they meet there.
-const graveyard = (() => {
-  if (!featureOn('graveyard')) return undefined
-  const k = goosePlay.plain.braziers.length - 1
-  const fire = goosePlay.plain.braziers[k]
-  // The fire before it, not a ghost's gosling's brazier, which stands in the graveyard.
-  const before = goosePlay.plain.braziers.slice(0, k).reverse().find((b) => b.follows === undefined)
-  return fire && before ? layGraveyard(defaultGraveLook(), fire, goosePlay.level.lights[k]?.reach ?? fire.reach, before) : undefined
-})()
-const ghosts = graveyard && backend !== 'WebGPU'
-  ? createPlainGhosts(groundAt, { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook().speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) }, fakeLamps)
-  : (url.has('ghosts') || graveyard) && backend === 'WebGPU'
-  ? await createGhosts(
-      renderer,
-      goosePlay.holder,
-      groundAt,
-      url.get('ghosts') || 'ball',
-      Number(url.get('ghostcount') ?? 4),
-      graveyard && { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook().speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) },
-      fakeLamps,
-    )
-  : undefined
-if (ghosts) scene.add(ghosts.object)
-/** The old road's middle as last laid, for the graves to keep off: none till it is, and they are laid again then. */
-let gravesRoad: readonly { x: number; z: number }[] = []
-// Its graves over its ground among the ghosts' paths (graves.ts), clear of the crossings, out of the pond, and off the
-// road out to its faded edge, though not to the furthest its edge wavers out: close by it, as old graves stand by a way.
-const graveGround: GraveGround | undefined = graveyard && {
-  paths: graveyard.ghosts.map((g) => g.path.points),
-  ground: graveyard.outline,
-  keepClear: graveyard.meetings.map((m) => ({ ...m.at, radius: 1.1 })),
-  wet: (x, z) => Math.hypot(x - pondLook.x, z - pondLook.z) < shoreAt(pondLook, Math.atan2(z - pondLook.z, x - pondLook.x)) + 0.6,
-  onRoad: (x, z, radius) => gravesRoad.length > 0 && offWay(gravesRoad, { x, z }) < roadLook.width / 2 + roadLook.edge + radius,
-}
-const graves = graveGround ? await createGraves(graveGround, groundAt) : undefined
-if (graves) scene.add(graves.object)
-// Candles at the graves' feet (gravecandles.ts), laid again whenever the graves are.
-const graveCandles = graves ? await createGraveCandles(groundAt) : undefined
-if (graveCandles) scene.add(graveCandles.object)
-const layGraveCandles = () => graves && graveCandles?.lay(graves.footprints())
-// No last fire past it: the graveyard runs on to the pond, and the ghosts are its only light. Its light out for the
-// swarm and the play, its stand and flame not drawn; its place still lays the graveyard.
-if (graveyard) {
-  const k = goosePlay.plain.braziers.length - 1
-  const last = goosePlay.level.lights[k]
-  if (last) last.on = false
-  const drawn = lights.object.children[k]
-  if (drawn) drawn.visible = false
-}
-// A ghost's gosling (plain.ts) walks behind his ghost, counted from the first he meets, the last laid: its light the
-// panel's reach. His brazier lights nothing and is not drawn.
-goosePlay.plain.braziers.forEach((b, k) => {
-  const drawn = b.follows === undefined ? undefined : lights.object.children[k]
-  if (drawn) drawn.visible = false
-})
-if (graveyard && ghosts) {
-  const walking = graveyard.ghosts
-  goosePlay.ghostAt = (ghost, t) => {
-    const g = walking.length - 1 - ghost
-    const light = ghosts.lights[g]
-    return walking[g] && light ? { ...ghostAt(walking[g], t), reach: light.reach } : undefined
-  }
-}
-if (dev && ghosts && !noPanel)
-  mountGhostControls(
-    ghosts,
-    dev.GUI,
-    graves &&
-      ((gui) => {
-        mountGraveControls(graves, gui, () => {
-          setStones()
-          layGravePumpkins()
-          layGraveCandles()
-        })
-        if (graveCandles) mountCandleControls(graveCandles, gui, layGraveCandles)
-      }),
-  )
-/** How far round a graveyard pumpkin he keeps clear when they are scattered, m. */
-const GRAVE_PUMPKIN_RADIUS = 0.4
-/**
- * A few of the well's pumpkins in the graveyard by the road, clear of its graves, looking back down the road at him
- * coming (graves.ts): again whenever the road or the graves are laid again.
- */
-function layGravePumpkins() {
-  if (!graveyard || !graveGround) return
-  const stones = (graves?.footprints() ?? []).map(({ at, outline }) => ({ ...at, radius: Math.max(...outline.map((p) => Math.hypot(p.x, p.z))) }))
-  const back = { x: -graveyard.entrance.facing.x, z: -graveyard.entrance.facing.z }
-  gooseScenes.layLoosePumpkins(scatterGravePumpkins(graveGround, gravesRoad, back, stones, gooseScenes.pumpkinKinds, GRAVE_PUMPKIN_RADIUS))
-}
-// The ghosts' lights handed to the swarm after the play's own, so the rats keep out of them as out of a brazier's:
-// patched onto the play from here, to keep them out of gooseplay.ts.
-if (ghosts) {
-  const playLights = goosePlay.lights.bind(goosePlay)
-  goosePlay.lights = () => [...playLights(), ...ghosts.lights]
-}
-scene.add(goslings.object)
-/** How far round a gosling's feet the camera's view must reach to draw him, m: the bird and his shadow on the ground. */
-const GOSLING_SEEN = 1
 // The goose game's scenes: the well and the dead tree (#190).
 const gooseScenes = await createGooseScenes(goosePlay, (x, z) => groundAt(x, z) + standingIn(pondLook, x, z, pondLook.goose))
 scene.add(gooseScenes.object)
 feel.key.taken = gooseScenes.keyTaken
 // Its shell laid now, before the panel reads the cart's and the corpse's highlight and rim, which start as it.
 gooseScenes.setShell(look.goose)
-// The old road's arches over it out in the dark between its fires (arches.ts), as the road folder edits them.
-const archLook = defaultArchLook()
-// Their slabs and their toon shell, as the doors folder edits them: the road's and the floor's as the page opens, the
-// floor's glossy highlight making them wet as the road is; theirs from then. As the folder was set on 2026-10-25:
-// smaller slabs than the road's; a theme's own shell over that. Their stone 0.68 light, and no highlight, whatever the
-// theme, since 2026-10-26, and a thin soft periwinkle rim, as set from the panel on 2026-10-27; the walls' the same.
-const STONE_LIGHTNESS = 0.68
-const matted = { specular: 0, rim: true, rimStrength: 0.32, rimWidth: 0.23, rimSoftness: 0.075, rimColor: 0x9097fe }
-const { saturation: stoneSaturation, hue: stoneHue, rotation: stoneRotation, relief: stoneRelief } = roadLook
-const archStone: ArchStone = { lightness: STONE_LIGHTNESS, saturation: stoneSaturation, hue: stoneHue, scale: 1.1, rotation: stoneRotation, relief: stoneRelief, wet: defaultArchWet() }
-const archShell: ArchShell = structuredClone({ ...look.floor.shell, rim: true, rimStrength: 3, rimWidth: 0.31, rimSoftness: 0.075, paint: look.floor.paint, toon: look.floor.toon })
-if (gooseTheme?.doors) Object.assign(archShell, gooseTheme.doors)
-Object.assign(archShell, matted)
-const arches = await createArches(archLook, archStone, groundAt)
-scene.add(arches.object)
-// The old road's broken walls beside it (roadwalls.ts), as the walls folder edits them: of the arches' stone and in
-// their shell as the page opens, or a theme's, their own from then; `?walls=<kind>` starts with another kind (field, lane, ruins,
-// tumbled, none).
-const roadWallLook = defaultRoadWallLook()
-const wallsAsked = url.get('walls')
-if (wallsAsked !== null && (ROAD_WALL_STYLES as readonly string[]).includes(wallsAsked)) roadWallLook.style = wallsAsked as RoadWallLook['style']
-// Their tiles as the walls folder was set on 2026-10-25: a little bigger, square to the wall, slid along and up.
-const wallStone = { ...structuredClone(archStone), scale: 1.35, rotation: 0, offsetX: 1.32, offsetY: 0.5 }
-const wallShell = structuredClone(archShell)
-if (gooseTheme?.walls) Object.assign(wallShell, gooseTheme.walls)
-Object.assign(wallShell, matted)
-const roadWalls = await createRoadWalls(wallStone, groundAt)
-scene.add(roadWalls.object)
-roadWalls.setShell(wallShell)
-// The dead trees either side of the road (deadtrees.ts), behind its walls where by one, as the dead trees folder edits
-// them: scattered again on every change to it, the road, the arches or the walls; in the scenes' shell, their wood the
-// colour chosen on 2026-10-26, or a bark set the bark folder picks, laid as the floor is; swaying in the wind as
-// justASimpleTree's trees do.
-const deadTreeShape = defaultDeadTreeShape()
-const deadTreeLook = { show: true, wood: 0xe4aff3, saturation: 0.64, y: -0.31, trunk: 0.09, rings: 6 }
-/** The dead trees' highlight and rim, over the scenes' shell they share, as set from the panel on 2026-10-26: no highlight, a soft lilac rim. */
-const deadTreeShine: ShineLook = {
-  specular: 0,
-  shininess: 30,
-  softness: 0.17,
-  specularColor: 0xc0d8f0,
-  rim: true,
-  rimStrength: 0.51,
-  rimWidth: 0.37,
-  rimSoftness: 0.1,
-  rimColor: 0xc6c2ff,
-}
-const deadTreeBark = defaultBarkLook()
-// The floor's grass up their feet, in the floor's look as the floor folder has it (lookChanged).
-const deadTreeGrass = defaultGrassLook()
-const deadTreeLeaves = defaultLeafLook()
-const deadTreeWind = defaultTreeWindLook()
-// The goose scenes' dead tree among them, drawn as one of theirs, its gosling riding its branch in their wind.
-const deadTreesMesh = await createDeadTrees(deadTreeLook.wood, groundAt, gooseScenes.treeWood)
-deadTreesMesh.setLeaves(deadTreeLeaves)
-deadTreesMesh.setBark(deadTreeBark)
-deadTreesMesh.setWind(deadTreeWind)
-deadTreesMesh.setWood(deadTreeLook.wood, deadTreeLook.saturation)
-scene.add(deadTreesMesh.object)
-deadTreesMesh.object.position.setY(deadTreeLook.y)
-deadTreesMesh.setTrunk(deadTreeLook.trunk)
-deadTreesMesh.setRings(deadTreeLook.rings)
-scene.add(deadTreesMesh.own)
-gooseScenes.swayTree = deadTreesMesh.swayOwn
-// The falling leaves, where they fall, in the dead trees' leaf colours, as the leaves folder sets them: the mid, the
-// shadow, the light and the mid again, so the mid falls most, as it shows most on the trees; as much of their own
-// colour shown unlit as the trees'.
-function leavesFallAsTrees(): void {
-  if (!fallingLeaves || !deadTreesMesh.leaves) return
-  const { mid, shadow, light, glow } = deadTreeLeaves
-  fallingLeaves.look.colours.splice(0, 4, mid, shadow, light, mid)
-  fallingLeaves.look.glow = glow
-  fallingLeaves.set()
-}
-leavesFallAsTrees()
-// The bushes (bushes.ts), scattered as the trees are, nearer the road and off their trunks, as the bushes folder edits
-// them; their leaves chosen on 2026-10-25, all of them sunk `y` m from where they stand, as set on the panel.
-const bushShape = defaultBushShape()
-const bushLook = { show: true, y: -0.15 }
-const bushLeaves = defaultBushLeafLook()
-const bushesMesh = await createBushes(bushLeaves, groundAt)
-scene.add(bushesMesh.object)
-bushesMesh.object.position.setY(bushLook.y)
-// The goose game's see-through (seethrough.ts): the dead trees between the camera and him, and nothing else since the
-// change of 2026-10-26, dithered away round him by Perlin noise, as the see-through folder sets it: on 2026-10-26 a
-// wide hole, 4 m round, cut from him on, in finer blots. A tree's trunk is kept whole
-// (DeadTreesMesh.trunk), so it stands there whatever is dithered away above it: up to 0.09 of its height, under the
-// first fork of any of the four, 0.155 of the height up the lowest (2026-10-26), its cut filled by its cross-section,
-// never cut itself.
-const gooseSeeLook = { ...defaultNoiseSeeThrough(), radius: 4, bias: 0, noiseScale: 0.19 }
-const gooseSee = noiseSeeThrough(gooseSeeLook)
-// Its zone, for its debug: rings round him at the hole's radius and its clear core's.
-const gooseSeeZone = seeThroughZone()
-scene.add(gooseSeeZone.object)
-const seenThrough: Object3D[] = [deadTreesMesh.object]
-/** Where the burning tree stands, and how far round its trunk the see-through leaves it whole, m: its crown's reach. */
-const burningAt = uniform(new Vector2(1e6, 1e6)).setGroup(renderGroup)
-const BURNING_WHOLE = 3.5
-const burningWhole = positionWorld.xz.sub(burningAt).length().lessThan(BURNING_WHOLE)
-const cutThrough = new WeakSet<Material>()
-/**
- * Cut every material under the see-through's objects not cut yet, a frame at a time: the trees are new meshes each time
- * they are laid. A material with a mask of its own keeps it, and one seen through, a glow or a flame, is not cut.
- */
-function cutSeenThrough() {
-  for (const object of seenThrough) {
-    object.traverse((child) => {
-      if (!(child as Mesh).isMesh) return
-      for (const m of [(child as Mesh).material].flat() as (Material & Partial<NodeMaterial>)[]) {
-        if (cutThrough.has(m)) continue
-        cutThrough.add(m)
-        if (!m.isNodeMaterial || m.maskNode || m.transparent || m === deadTreesMesh.trunk.whole) continue
-        gooseSee.cut(m as NodeMaterial, m === deadTreesMesh.trunk.material ? deadTreesMesh.trunk.kept.or(burningWhole) : burningWhole)
-        m.needsUpdate = true
-      }
-    })
-  }
-}
-/** How far past the pond's shore a dead tree stands at the least, m: off its bank. */
-const TREE_OFF_POND = 2
-/** Where a dead tree may stand: on the floor, a trunk's width in from its edge, and off the pond and its bank. */
-const treeGround = (x: number, z: number) => {
-  if (x < gooseFloorBox.minX + 1 || x > gooseFloorBox.maxX - 1 || z < gooseFloorBox.minZ + 1 || z > gooseFloorBox.maxZ - 1) return false
-  return Math.hypot(x - pondLook.x, z - pondLook.z) > shoreAt(pondLook, Math.atan2(z - pondLook.z, x - pondLook.x)) + TREE_OFF_POND
-}
-/** The arches' shell as the doors folder last set it. */
-const archesShell = () => arches.setShell(archShell)
-archesShell()
-/**
- * A scene's fire as it starts: its flame's foot `foot` m up, `height` m tall and `width` m wide, burning in the torch's
- * look; its lamp as bright as the lights' brazier lamp (lights.ts).
- */
-const sceneFire = (foot: number, height: number, width: number): SceneFireLook => ({ height, width, foot, x: 0, z: 0, intensity: 12 })
-/**
- * What every fire on the plain shares, the flames folder's: how bright its flame glows, times the torch's colours, the
- * torch glowing as its own, from as bright; and its lamp's colour, the lights' brazier lamp's, or the theme's.
- */
-const fireLook = { glow: look.flame.glow, lamp: gooseTheme?.fireLamp ?? 0xff7a28 }
-/**
- * Each scene's fire burns the torch's flame (flame.ts), in the fog, standing upright: the brazier by each dead tree in its
- * bowl, the cage's campfire on its logs. Each kind of scene's as its folder sets it, read live: the
- * flame's size, foot, offset off its fire and colours, and its lamp's colour and brightness; each wavering on channels of its own.
- */
-const fireLooks: Record<FireScene, SceneFireLook> = {
-  tree: sceneFire(TREE_FIRE_BOWL - 0.05, 0.5, 0.28),
-  // The campfire's lamp dimmer than the braziers' since 2026-11-01, and dimmer again later that day.
-  cage: { ...sceneFire(0.24, 1.05, 0.55), intensity: 3.5 },
-}
-/**
- * The fires on the plain, drawn together (flame.ts), in the fog like everything else there, which flame.ts leaves the
- * torch's out of; and a flame for one of them.
- */
-const plainFlames = createFlames()
-plainFlames.object.traverse((o) => {
-  o.castShadow = false
-  if (!(o as Mesh).isMesh) return
-  const material = (o as Mesh).material as NodeMaterial
-  leaveUnshaded(material)
-  material.fog = true
-})
-scene.add(plainFlames.object)
-const plainFlame = () => plainFlames.add()
-/** Each scene's fire, a flame a scene. */
-const sceneFires = goosePlay.scenes.flatMap((owner) => (owner.kind === 'well' ? [] : [{ owner, light: goosePlay.fireLightOf(owner), fire: plainFlame() }]))
-/** The fire pit's flame (goosescenes.ts), on its logs, its light's: the one by each well. */
-const pitLight = spawnTree(goosePlay.plain)
-const pitFires = goosePlay.wellFires.map(({ brazier, light }) => ({ brazier, light, fire: plainFlame() }))
-const pitFireLook = sceneFire(PIT_BOWL - 0.04, 0.75, 0.42)
-/**
- * The burning tree's fires (goosescenes.ts): a flame on each cluster of its crown, each its own size, `crownFireLook`'s
- * times its own share; and one at its foot, a branch fallen burning, where he lights the torch, FOOT_FIRE m off its
- * trunk toward where he starts. Its lamp the crown's.
- */
-const crownFireLook = sceneFire(-0.5, 1.9, 1.05)
-const footFireLook = sceneFire(0.02, 0.5, 0.34)
-const FOOT_FIRE = 0.45
-const crownFires: { fire: Flame; size: number; drawnAt: number }[] = []
-const crownAt: Vector3[] = []
-/** The flames climbing its trunk, from the strike at its foot to its crown, each out on the trunk's side toward the camera. */
-const trunkFireLook = sceneFire(-0.1, 0.95, 0.5)
-const trunkFires: { fire: Flame; size: number; drawnAt: number }[] = []
-const trunkAt: Vector3[] = []
-const footFire = pitLight < 0 ? undefined : plainFlame()
-/**
- * The burning branch (branch.ts), where the route lays one: snapped off the burning tree's crown in the opening, BRANCH_FROM_UP
- * m up and BRANCH_FROM_OUT m out from its trunk toward where it lands, it falls, tumbling, to lie with its broken end
- * where the play's branch is, BRANCH_LIFT m up off the ground and its broken end raised BRANCH_RISE rad, lying back
- * along its fall from the tree, BRANCH_TURN rad off it; burning there, a flame of its own on its broken end and its
- * own embers, until he picks it up. Then it is drawn in his beak where his own torch lay, the play's torch burning on it.
- */
-const burningBranch = goosePlay.branch ? createBranch() : undefined
-const branchLook = branchColours()
-if (burningBranch) scene.add(burningBranch.object)
-const branchFire = burningBranch ? plainFlame() : undefined
-const branchFireLook = sceneFire(0.02, 0.42, 0.26)
-const branchEmbers = burningBranch ? createEmbers() : undefined
-if (branchEmbers) {
-  branchEmbers.object.castShadow = false
-  leaveUnshaded(branchEmbers.object.material as NodeMaterial)
-  scene.add(branchEmbers.object)
-}
-const BRANCH_FROM_UP = 3
-const BRANCH_FROM_OUT = 1.1
-const BRANCH_LIFT = 0.06
-const BRANCH_RISE = 0.05
-const BRANCH_TURN = 0.6
-/** How many sparks it throws as it lands, and how fast, m/s. */
-const BRANCH_SPARKS = 18
-const BRANCH_SPARK_SPEED = 2
-/**
- * How often each of the burning tree's flames is drawn again, a second: smooth, never the stop motion's held beats, each
- * on a beat of its own, so only some are drawn a frame. Drawn every frame at 240 Hz, the forty of them cost over 3 ms
- * a frame (2026-10-27), when each flame's shells were laid out on the page; the vertex shader lays them out now.
- */
-const TREE_FLAME_RATE = 60
-/** How far up the fire's climb the crown's lowest cluster is, 0 the tree's foot to 1 its crown's top. */
-const CROWN_FROM = 0.4
-/** How far the burning tree is turned, rad. */
-const BURNING_TURN = 0.6
-/** The burning tree as the dead trees lay it, with them. */
-let burningTree: DeadTree | undefined
-/** Whether flame `k` of the burning tree is due to be drawn again: at TREE_FLAME_RATE, each flame's beat its own way round the second. Its first drawing at once. */
-function treeFlameDue(own: { drawnAt: number }, k: number): boolean {
-  const beat = Math.floor(beats.clock * TREE_FLAME_RATE + ((k * 0.618034) % 1))
-  if (beat === own.drawnAt) return false
-  own.drawnAt = beat
-  return true
-}
-/** The camera's view, the crown's flames out of it left alone. */
-const crownView = new Frustum()
-const crownMatrix = new Matrix4()
-const crownSphere = new Sphere()
-/** How far past the burning tree's crown and its flames the camera's view must reach to draw its fire, m. */
-const TREE_FIRE_ROOM = 1
-/** Whether the strike's flash showed last frame, to lay the night back once it is over. */
-let introFlashing = false
-const footFireAt = new Vector3()
-/** The strike on the burning tree as the opening has it, its bolt and sparks the hollow log's of 2026-10-24, its sparks shorter-lived. */
-const introLightning = opening.on && pitLight >= 0 ? createLightning(1, { rising: false }) : undefined
-if (introLightning) {
-  Object.assign(introLightning.look.bolt, { foot: 0xffbb00, top: 0x34a4f9, fade: 8, brightness: 1.3, thickness: 0.15, height: 0.45, jagged: 1.15, seconds: 0.8, drift: 1.05, ease: 7.5 })
-  Object.assign(introLightning.look.sparks, { near: 0xff822e, far: 0xff7b00, fade: 4, brightness: 2.6, count: 128, size: 0.055, seconds: 0.55, reach: 4.5, ease: 7.5, fall: 0.6, round: true })
-  introLightning.look.flash = 0.73
-}
+scene.add(goslings.object)
+/** How far round a gosling's feet the camera's view must reach to draw him, m: the bird and his shadow on the ground. */
+const GOSLING_SEEN = 1
 const openingShow = createOpeningShow({ opening, goosePlay, goose, camera, renderer, gooseSounds, hisAt, fakeLamps, scene, standAt })
-const sceneFireFoot = new Vector3()
 // The ground laid under each well, where the play stands it.
 ground.setWells(goosePlay.scenes.filter((s) => s.kind === 'well'))
-/** The road as last laid, and the arches over it. */
-let roadLaid: ReturnType<typeof roadLine> = { points: [] }
-/**
- * How far the hand-laid road is drawn on back past its first point, m, so they come walking up it from out of view in
- * the opening; and that stretch, from its far end to the first point, which no tree or bush stands on.
- */
-const ROAD_LEAD_IN = 20
-let roadLead: { x: number; z: number }[] = []
-let archesLaid: ReturnType<typeof archesOf> = []
-/** The walls beside the road as last laid, and as the rats keep out of them. */
-let wallsLaid: StoneBlock[] = []
-let roadRatWalls: Wall[] = []
-/** Where he stood when the rats were last handed the walls nearest him: none yet, or walls laid again since. */
-const ratWallsAt = { x: NaN, z: NaN }
-/** How far he walks before the rats are handed the walls nearest him again, m: the GPU step reads MAX_WALLS at most. */
-const RAT_WALLS_AGAIN = 3
-/** The arches' stones on the ground, as big as the ground folder has them, the walls, and the graves, kept out of by him and his goslings. */
-const setStones = () =>
-  goosePlay.setStones([...archesLaid.flatMap((arch) => archStones(arch, archLook.scale)), ...roadWallStones(wallsLaid), ...(graves?.footprints() ?? [])])
-/** The arches as the road and ground folders last set them: sized, raised and coloured, and their stones with them. */
-const archesChanged = () => {
-  arches.set(archLook)
-  setStones()
-}
-/** The arches over the road as last laid, as many as the road folder has them, again on a change to their number. */
-const layArches = () => {
-  // None on the ghosts' paths: their doorways would stand in the graveyard.
-  archesLaid = archesOf(goosePlay.plain, roadLaid, archLook.count).filter((arch) => !graveyard || !inGraveyard(graveyard, arch, 5))
-  arches.lay(archesLaid)
-  layWalls()
-}
-/** The walls beside the road as last laid, as the walls folder has them, clear of the arches, again on every change to it, them or the road. */
-function layWalls() {
-  // None in the graveyard, with room round it: its ghosts walk and he follows them where the walls would be.
-  wallsLaid = roadWallsOf(goosePlay.plain, roadLaid, roadWallLook, archesLaid).filter((block) => !graveyard || !block.line.some((p) => inGraveyard(graveyard, p, 1)))
-  roadWalls.lay(wallsLaid)
-  roadRatWalls = roadWallLines(wallsLaid)
-  ratWallsAt.x = NaN
-  setStones()
-  layTrees()
-}
-/** The dead trees as last laid: the bushes keep off their trunks. */
-let treesLaid: DeadTree[] = []
-/** The island tree's trunk as last stood, none while it is hidden: a body as the dead trees' are. */
-let islandTrunk: { at: { x: number; z: number }; radius: number } | undefined
-/**
- * The pond's own woods: trees and bushes either side of a line round it, its shore pushed POND_WOODS_OUT m out, as far
- * as POND_WOODS_BAND m either side of it, so wherever he swims some stand within sight; never in the water or on its
- * bank (`treeGround`), nor in the graveyard.
- */
-const POND_WOODS_OUT = 6
-const POND_WOODS_BAND = 14
-/** How many points the line round the pond is drawn with. */
-const POND_WOODS_POINTS = 96
-/** The line round the pond its woods stand either side of, closed; none with no pond. */
-function pondWoodsLine(): Point[] {
-  const line = Array.from({ length: POND_WOODS_POINTS }, (_, j) => {
-    const angle = (j / POND_WOODS_POINTS) * Math.PI * 2
-    const r = shoreAt(pondLook, angle) + POND_WOODS_OUT
-    return { x: pondLook.x + Math.cos(angle) * r, z: pondLook.z + Math.sin(angle) * r }
-  })
-  return [...line, line[0]!]
-}
-/** `shape` as the pond's woods scatter it: right up to their line, out to the band, on a seed of their own. */
-const pondWoodsShape = (shape: DeadTreeShape): DeadTreeShape => ({ ...shape, clear: 0, band: POND_WOODS_BAND, seed: shape.seed + 50 })
-/** Where the pond's woods may stand: where the road's may, off the walls, out of the graveyard, `spacing` m off any of `laid`. */
-const pondWoodsGround = (laid: readonly Point[], spacing: number) => (x: number, z: number) =>
-  treeGround(x, z) &&
-  (!graveyard || !inGraveyard(graveyard, { x, z }, 1)) &&
-  wallsLaid.every((wall) => offWay(wall.line, { x, z }) > wall.thick / 2 + 1) &&
-  laid.every((p) => Math.hypot(p.x - x, p.z - z) >= spacing)
-/**
- * The opening's view kept clear: no tree by the road stands back down it from where his walk begins, between him and
- * the camera, within `back` m behind him and `side` m either side.
- */
-const OPENING_CLEAR = { back: 10, side: 3 }
-const inOpeningView = (from: { x: number; z: number }, tree: { x: number; z: number }) =>
-  tree.z > from.z && tree.z - from.z < OPENING_CLEAR.back && Math.abs(tree.x - from.x) < OPENING_CLEAR.side
-/** Whether `p` stands within `clear` m of the road drawn on back past its first point. */
-const onRoadLead = (p: { x: number; z: number }, clear: number) => roadLead.length >= 2 && offWay(roadLead, p) < clear
-/** The dead trees as the dead trees folder has them, along the road as last laid, behind its walls and clear of its arches; the bushes again round them. */
-function layTrees() {
-  deadTreesMesh.object.visible = deadTreeLook.show
-  const walkFrom = walkOf(goosePlay.plain.start, goosePlay.plain.road)[0]!
-  const byRoad = deadTreeLook.show
-    ? deadTrees(goosePlay.plain, roadLaid.points, deadTreesMesh.variants, deadTreeShape, wallsLaid, archesLaid, treeGround).filter((tree) => !inOpeningView(walkFrom, tree) && !onRoadLead(tree, deadTreeShape.clear))
-    : []
-  const byPond = deadTreeLook.show ? deadTrees(goosePlay.plain, pondWoodsLine(), deadTreesMesh.variants, pondWoodsShape(deadTreeShape), [], archesLaid, pondWoodsGround(byRoad, deadTreeShape.spacing)) : []
-  treesLaid = [...byRoad, ...byPond]
-  // The burning tree among them, on the spawn's light, as tall as the tallest.
-  const variant = treeVariantOf(BURNING_MODEL)
-  const spawn = goosePlay.plain.braziers[0]
-  burningTree = spawn && !spawn.scene && variant >= 0 ? { x: spawn.x, z: spawn.z, variant, turn: BURNING_TURN, height: deadTreeShape.tallest, width: deadTreeShape.width } : undefined
-  if (burningTree) treesLaid = [...treesLaid, burningTree]
-  if (burningTree) burningAt.value.set(burningTree.x, burningTree.z)
-  deadTreesMesh.lay(treesLaid)
-  trunksChanged()
-  layBushes()
-}
-/** The dead trees' trunks and the island tree's, bodies he and his goslings keep out of; hidden, none. */
-function trunksChanged() {
-  goosePlay.setTrunks([...treesLaid.map((tree) => ({ at: tree, radius: trunkRadius(tree) })), ...(islandTrunk ? [islandTrunk] : [])])
-}
-/**
- * The island's bushes, off its middle, m: one behind the tent and a small one past the bonfire, clear
- * of the tent, the fire and the goslings' play, as far up from the waterline as the crown leaves room; how tall, m, how
- * much wider than laid, how far turned, rad, and which kind.
- */
-const ISLAND_BUSHES = [
-  { x: 2.4, z: -2, height: 1.1, width: 1.9, turn: 2.2, variant: 2 },
-  { x: 3.4, z: 0.3, height: 0.75, width: 1.4, turn: 4.1, variant: 3 },
-]
-/** How far round an island bush the goslings keep, m, of its width. */
-const ISLAND_BUSH_KEEP = 0.35
-/** The island's bushes as last laid; none with no island. */
-let islandBushesLaid: DeadTree[] = []
-/** The island's bushes where it now is, each lifted from the floor's ground to the island's. */
-function islandBushes(variants: number): DeadTree[] {
-  if (!pondLook.island.show) return []
-  const middle = islandMiddle(pondLook)
-  return ISLAND_BUSHES.map((bush) => {
-    const x = middle.x + bush.x
-    const z = middle.z + bush.z
-    return { ...bush, x, z, variant: bush.variant % variants, lift: groundOf(pondLook, x, z) - groundAt(x, z) }
-  })
-}
-/** The bushes as the bushes folder has them, scattered as the trees are, off their trunks; and the island's own. */
-function layBushes() {
-  bushesMesh.object.visible = bushLook.show
-  islandBushesLaid = bushLook.show ? islandBushes(bushesMesh.variants) : []
-  if (!bushLook.show) return bushesMesh.lay([])
-  const byRoad = bushes(goosePlay.plain, roadLaid.points, bushesMesh.variants, treesLaid, bushShape, wallsLaid, archesLaid, treeGround).filter((bush) => !onRoadLead(bush, bushShape.clear))
-  const byPond = bushes(goosePlay.plain, pondWoodsLine(), bushesMesh.variants, treesLaid, pondWoodsShape(bushShape), [], archesLaid, pondWoodsGround(byRoad, bushShape.spacing))
-  bushesMesh.lay([...byRoad, ...byPond, ...islandBushesLaid])
-}
-/** The old road laid along the play's plain, and its arches over it, again on every change to its way. */
-const layRoad = () => {
-  roadLaid = roadLine(goosePlay.plain, roadShape)
-  const { road } = goosePlay.plain
-  const drawn = road && road.length >= 2 ? leadIn(road, ROAD_LEAD_IN) : undefined
-  roadLead = drawn ? drawn.slice(0, 2) : []
-  ground.setRoad(roadField(drawn ? roadLine({ ...goosePlay.plain, road: drawn }, roadShape) : roadLaid))
-  gravesRoad = roadLaid.points
-  graves?.set()
-  layGravePumpkins()
-  layGraveCandles()
-  layArches()
-}
-layRoad()
-// The goose game's plain runs far past the arena's floor, out to the black: the floor laid under the whole of it, its
-// painting read in the world's own coordinates, so a bigger plane changes nothing where the old one was. The pond's
-// shore is cut out of it, and its bank, in the floor's material, falls from there to the water (pond.ts).
-// Its water depth-tinted, refracting and foaming (water.ts), as the pond folder's water edits it.
-const waterLook = defaultWaterLook()
-// `?water=1` to `?water=5`: one of the lake looks to try (water.ts) over the default.
-const waterAsked = WATER_LOOKS[Number(url.get('water')) - 1]
-if (waterAsked) Object.assign(waterLook, waterAsked.look)
-const water = await createWater(waterLook, nightLights.sunShadowSeen)
-const pond = createPond(ground.mesh, gooseFloorBox, pondLook, water.material, (field) => ground.setShore(field), gooseGround)
-scene.add(pond.object)
-// The goose's nest on the island's crown, pine needle cards round a hollow (nest.ts), laid again with the pond.
-const nestLook = defaultNestLook()
-const nestLeaves = defaultNestLeafLook()
-const nestNeedles = defaultNeedleLook()
-const nest = createNest(nestLeaves, nestNeedles)
-/** The nest laid again where the island's crown now is, and only with an island. */
-function layNest() {
-  const at = nestAt(new Vector3())
-  nest.set({ ...nestLook, show: nestLook.show && pondLook.island.show }, at.x, at.y, at.z)
-}
-/** The nest's middle in `out`: off the island's middle as the nest folder has it, on the ground there. */
-function nestAt(out: Vector3): Vector3 {
-  const middle = islandMiddle(pondLook)
-  const x = middle.x + nestLook.x
-  const z = middle.z + nestLook.z
-  return out.set(x, groundOf(pondLook, x, z), z)
-}
-scene.add(nest.object)
-layNest()
-/**
- * The bonfire on the island: the cage's campfire (goosescenes.ts) burning the cage's flame, and a lamp of its own over
- * it, as the island's bonfire folder places, turns and sizes it; `size` 1 the cage's campfire's own, `flame` its
- * flame's, each apart, the flame's foot on the logs as big as they are.
- */
-const islandFireLook = { show: true, x: 2.17, z: 1.64, y: 0, turn: 0, size: 1.24, flame: 0.89, intensity: 12, reach: 7 }
-/** The cage's campfire as drawn, a share of the set's own size; its lamp's height over it, CAGE_FIRE_LIGHT's. */
-const CAMPFIRE_SIZE = 0.8
-const islandFireModel = gooseScenes.campfire()
-const islandFireFlame = plainFlame()
-const islandFireLamp = fakeLamps.track(new FakeLamp(fireLook.lamp, islandFireLook.intensity, islandFireLook.reach, 0))
-const islandFireScale = islandFireModel.scale.x
-scene.add(islandFireModel)
-scene.add(islandFireLamp)
-/** Where the bonfire's foot is now: off the island's middle, on the ground there. */
-const islandFireAt = new Vector3()
-/** The bonfire stood again where the island and its folder have it. */
-function layIslandFire() {
-  const middle = islandMiddle(pondLook)
-  const x = middle.x + islandFireLook.x
-  const z = middle.z + islandFireLook.z
-  islandFireAt.set(x, groundOf(pondLook, x, z) + islandFireLook.y, z)
-  islandFireModel.position.copy(islandFireAt)
-  islandFireModel.rotation.y = (islandFireLook.turn * Math.PI) / 180
-  islandFireModel.scale.setScalar(islandFireScale * CAMPFIRE_SIZE * islandFireLook.size)
-  islandFireModel.visible = islandFireLook.show && pondLook.island.show
-}
-layIslandFire()
-// The tent on the island's crown (tent.ts), stood again with the pond.
-const tent = await createTent()
-scene.add(tent.object)
-tent.set(pondLook)
-// The breakfast in front of the island's oak (picnic.ts), laid again with the pond.
-const picnic = await createPicnic()
-scene.add(picnic.object)
-picnic.set(pondLook)
-// The oak on the island's top left, in leaf, in a wind of its own (islandtree.ts): its crown cut round him as the dead
-// trees' are, its wood left whole. Stood again with the pond.
-const islandTree = await createIslandTree()
-scene.add(islandTree.object)
-seenThrough.push(islandTree.crown)
-layIslandTree()
-function layIslandTree() {
-  islandTree.set(pondLook)
-  islandTrunk = islandTree.trunk()
-  trunksChanged()
-}
-/** How far above the water a gosling at play keeps to, m, and how far he keeps off the tent and the bonfire, m. */
-const PLAY_DRY = 0.01
-const PLAY_CLEAR = 0.25
-/** The mother goose in the nest and goslings at play in front of the tent (islandgeese.ts), drawn only. */
-const nestPlace = new Vector3()
-const islandGeese = await createIslandGeese(
-  {
-    shown: () => pondLook.island.show,
-    island: () => islandMiddle(pondLook),
-    nest: () => nestAt(nestPlace),
-    ground: (x, z) => groundOf(pondLook, x, z),
-    gooseScale: () => goose.modelScale(),
-    free: (x, z) =>
-      groundOf(pondLook, x, z) > pondLook.water + PLAY_DRY &&
-      (!tent.object.visible || Math.hypot(x - tent.object.position.x, z - tent.object.position.z) > tent.reach() + PLAY_CLEAR) &&
-      (!picnic.object.visible || Math.hypot(x - picnic.object.position.x, z - picnic.object.position.z) > picnic.reach() + PLAY_CLEAR) &&
-      (!islandTrunk || Math.hypot(x - islandTrunk.at.x, z - islandTrunk.at.z) > islandTrunk.radius + PLAY_CLEAR) &&
-      (!islandFireModel.visible || Math.hypot(x - islandFireAt.x, z - islandFireAt.z) > 0.5 * islandFireLook.size + PLAY_CLEAR) &&
-      islandBushesLaid.every((bush) => Math.hypot(x - bush.x, z - bush.z) > ISLAND_BUSH_KEEP * bush.width + PLAY_CLEAR),
-  },
-  goslingSize,
-)
-scene.add(islandGeese.object)
-
+const roadside = await createRoadside({ scene, goosePlay, lights, fakeLamps, backend, renderer, groundAt, pondLook, gooseFloorBox, roadShape, roadLook, ground, look, gooseTheme, gooseScenes, fallingLeaves, dev })
+const { graveyard, ghosts, graves, graveCandles, arches, archLook, archStone, archShell, archesChanged, archesShell, layArches, roadWalls, roadWallLook, wallStone, wallShell, layWalls, deadTreesMesh, deadTreeLook, deadTreeShape, deadTreeShine, deadTreeBark, deadTreeGrass, deadTreeLeaves, deadTreeWind, leavesFallAsTrees, layTrees, bushesMesh, bushLook, bushShape, bushLeaves, layBushes, gooseSee, gooseSeeLook, gooseSeeZone, cutSeenThrough, layRoad } = roadside
+const fires = createPlainFires({ scene, goosePlay, pitLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats })
+const { fireLook, fireLooks, pitFireLook, crownFireLook, trunkFireLook, footFireLook, branchLook, burningBranch, branchEmbers, branchFire, plainFlames, sceneFires, pitFires, crownFires, trunkFires, footFire, branchFlared } = fires
+const pondWorld = await createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look })
+const { waterLook, water, pond, nest, nestLook, nestLeaves, nestNeedles, layNest, islandFireLook, layIslandFire, tent, picnic, islandTree, layIslandTree, islandGeese } = pondWorld
 const ending = createEnding({ goosePlay, pondLook, islandGeese, tent, look, waterLook, water, ground, deadTreesMesh, deadTreeGrass, islandTree, nightLights, light, gooseSounds, goose, camera, renderer })
 // The bed under the pond's water takes less light, as deep as the water lies.
 ground.setWaterLevel(pondLook.water)
@@ -1091,7 +487,6 @@ function refillZonesFrame(placed: readonly FixedLight[]) {
   })
 }
 
-if (introLightning) scene.add(introLightning.object)
 /** Where the see-through's hole is cut round: the holder, at its chest. */
 const seeThroughAt = new Vector3()
 // The torch's lamp lights only what the torch sees: its lamp's shadow is its lit area, the walls alone cutting it,
@@ -1376,7 +771,7 @@ const panel = noPanel || filming ? undefined : dev?.createPanel(settings, tuning
         pond.set(pondLook)
         // The arches and the walls stood on the ground as it rolls now.
         arches.set(archLook)
-        roadWalls.lay(wallsLaid)
+        roadWalls.lay(roadside.wallsLaid)
         layTrees()
       }, arches: { look: archLook, changed: archesChanged } },
     // The doors, the road's arches: their stone and their own toon shell.
@@ -1563,45 +958,9 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   flame.place(goose.tip(torchEnd, flame.offset(flameOffset)))
   goose.restTip(torchRest, flameOffset)
   flame.centre(flameAt)
-  // The scenes' fires burn while their lights are lit, drawn again as the torch's is, each in its own look, its lamp with it.
-  sceneFires.forEach(({ owner, light, fire }, i) => {
-    const own = fireLooks[owner.kind]
-    lights.setLamp(light, fireLook.lamp, own.intensity)
-    const at = goosePlay.level.lights[light]!
-    fire.object.visible = look.flame.enabled && at.on
-    if (!fire.object.visible) return
-    // Raised and sized with its brazier as the edit mode draws it.
-    const { y, size } = shownOf(goosePlay.plain.braziers[owner.brazier], 'fire')
-    fire.set({ ...look.flame, height: own.height * size, width: own.width * size, glow: fireLook.glow, lean: 0 })
-    if (!stop.enabled || newBeat) fire.shape((channel) => beats.flameDraw(channel + 7 * (i + 1)), 0, 0)
-    fire.place(sceneFireFoot.set(at.x + own.x, standAt(at.x + own.x, at.z + own.z) + own.foot * size + y, at.z + own.z))
-  })
-  pitFires.forEach(({ brazier, light, fire }, p) => {
-    lights.setLamp(light, fireLook.lamp, pitFireLook.intensity)
-    const at = goosePlay.level.lights[light]!
-    fire.object.visible = look.flame.enabled && at.on
-    if (!fire.object.visible) return
-    const { height, width, foot } = pitFireLook
-    const { y, size } = shownOf(goosePlay.plain.braziers[brazier], 'fire')
-    fire.set({ ...look.flame, height: height * size, width: width * size, glow: fireLook.glow, lean: 0 })
-    if (!stop.enabled || newBeat) fire.shape((channel) => beats.flameDraw(channel + 7 * (sceneFires.length + 1 + p)), 0, 0)
-    fire.place(sceneFireFoot.set(at.x, standAt(at.x, at.z) + foot * size + y, at.z))
-  })
-  // The island's bonfire, always lit while it shows, its lamp with it.
-  const lit = islandFireModel.visible
-  islandFireFlame.object.visible = look.flame.enabled && lit
-  islandFireLamp.color.setHex(fireLook.lamp)
-  islandFireLamp.intensity = lit ? islandFireLook.intensity * ending.firesLeft : 0
-  islandFireLamp.distance = islandFireLook.reach
-  islandFireLamp.position.set(islandFireAt.x, islandFireAt.y + (CAGE_FIRE_LIGHT.height ?? 0) * islandFireLook.size, islandFireAt.z)
-  if (islandFireFlame.object.visible) {
-    const own = fireLooks.cage
-    const { size, flame: flameSize } = islandFireLook
-    islandFireFlame.set({ ...look.flame, height: own.height * flameSize, width: own.width * flameSize, glow: fireLook.glow, lean: 0 })
-    if (!stop.enabled || newBeat) islandFireFlame.shape((channel) => beats.flameDraw(channel + 7 * (sceneFires.length + pitFires.length + 2)), 0, 0)
-    islandFireFlame.place(sceneFireFoot.set(islandFireAt.x, islandFireAt.y + own.foot * size, islandFireAt.z))
-  }
-  burningTreeFrame(newBeat)
+  fires.frame(newBeat)
+  pondWorld.bonfireFrame(newBeat, ending.firesLeft)
+  fires.burningTreeFrame(newBeat)
   openingShow.introLightFrame()
   // In the torch, the lamp burns where the torch rests, the head's sway left out (2026-10-11): it moves with him
   // and never swings with his head. Else it hangs over the goose, easing after it.
@@ -1783,17 +1142,6 @@ function darkMargin(): number {
   const unseen = 2 * swarm.pace + FRAME_CAP + lightHeld + swarmHeld
   const running = swarmHeld > 0 ? swarmHeld + FRAME_CAP : 0
   return DARK_MARGIN + settings.lightSpeed * unseen + tuning.maxSpeed * running
-}
-
-/** How many times brighter the rats' eyes glow at the height of a strike's flash. */
-const EYES_FLASH = 4
-
-/** A strike's flash, 0 to 1, laid on the night: the fog and sky gone pale, the fill and the sun up, the rats' eyes flaring. */
-function flashFrame(flash: number) {
-  skyFog.flash(look.fog.color, flash)
-  fill.intensity = look.fill.intensity * (1 + 6 * flash)
-  sun.intensity = look.sun.intensity * (1 + 3 * flash)
-  rats.setGlow('eyes', look.rats.glow * (1 + EYES_FLASH * flash))
 }
 
 /** A scene's fire as its folder edits it: its reach, which holds the rats off; its flame the flames folder's, its zone the interaction zones folder's. */
@@ -1978,13 +1326,7 @@ function dyingAt(): number | undefined {
 
 /** The goose game's frame past the play, `dt` of play on, at the held time `held`: the goslings where it has them. */
 function gooseFrame(dt: number, held: number) {
-  // The road's walls nearest him handed to the rats, as he walks on or they are laid again.
-  const { holder } = goosePlay
-  if (!(Math.hypot(holder.x - ratWallsAt.x, holder.z - ratWallsAt.z) < RAT_WALLS_AGAIN)) {
-    ratWallsAt.x = holder.x
-    ratWallsAt.z = holder.z
-    swarm.setWalls(nearestWalls([...run.walls(), ...roadRatWalls], holder.x, holder.z))
-  }
+  roadside.ratWallsFrame(goosePlay.holder, () => run.walls(), swarm)
   gooseScenes.update(goosePlay, dt, gooseBone)
   // The dead trees' pumpkins where the tree folder and the edit mode have them now, for him and his goslings to keep out of.
   goosePlay.setPumpkins(gooseScenes.pumpkinBodies(goosePlay))
@@ -2078,131 +1420,6 @@ function ratsComeFrame(dt: number): boolean {
   ratsCameFor++
   ratsDueIn = -1
   return true
-}
-
-/**
- * The burning tree: its lamp as lit as the opening has it; a flame on each cluster of its crown, grown in as the fire
- * reaches it from the top down, swaying with its branch; one at its foot once the fire is down to its lowest; and the
- * strike that lights it, its bolt on the crown's top and its flash on the night.
- */
-function burningTreeFrame(newBeat: boolean) {
-  if (pitLight < 0) return
-  const stop = look.stopMotion
-  lights.setLamp(pitLight, fireLook.lamp, crownFireLook.intensity * litShare(opening.t))
-  const { height, width, foot } = crownFireLook
-  if (!burningTree) return
-  camera.updateMatrixWorld()
-  crownView.setFromProjectionMatrix(crownMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse), camera.coordinateSystem)
-  // The whole tree out of the camera's view, its flames' height round it: none of its fire drawn, placed or shaped.
-  const { x: treeX, z: treeZ, height: treeHeight, width: treeWidth } = burningTree
-  const treeMiddle = sceneFireFoot.set(treeX, groundAt(treeX, treeZ) + treeHeight / 2, treeZ)
-  const treeSeen = crownView.intersectsSphere(crownSphere.set(treeMiddle, Math.hypot(treeHeight, treeWidth) / 2 + crownFireLook.height + TREE_FIRE_ROOM))
-  if (!treeSeen) for (const own of [...crownFires, ...trunkFires]) if (own) own.fire.object.visible = false
-  ;(treeSeen ? gooseScenes.burningFlames(burningTree, crownAt) : []).forEach(({ up }, k) => {
-    const own = (crownFires[k] ??= { fire: plainFlame(), size: 0.7 + 0.6 * ((k * 0.618034) % 1), drawnAt: -Infinity })
-    const size = own.size * flameGrown(opening.t, CROWN_FROM + (1 - CROWN_FROM) * up)
-    // Out of the camera's view, neither drawn nor shaped: the crown is mostly over the game's frame.
-    const seen = crownView.intersectsSphere(crownSphere.set(crownAt[k]!, crownFireLook.height * own.size))
-    own.fire.object.visible = look.flame.enabled && size > 0 && seen
-    if (!own.fire.object.visible) return
-    own.fire.set({ ...look.flame, height: height * size, width: width * size, glow: fireLook.glow, lean: 0 })
-    if (treeFlameDue(own, k)) own.fire.shape((channel) => beats.flameDraw(channel + 7 * (40 + k)), 0, 0)
-    own.fire.place(sceneFireFoot.copy(crownAt[k]!).setY(crownAt[k]!.y + foot * size))
-  })
-  ;(treeSeen ? gooseScenes.burningTrunk(burningTree, trunkAt) : []).forEach(({ radius }, k, all) => {
-    const own = (trunkFires[k] ??= { fire: plainFlame(), size: 0.8 + 0.4 * ((k * 0.618034 + 0.3) % 1), drawnAt: -Infinity })
-    const size = own.size * flameGrown(opening.t, (CROWN_FROM * (k + 1)) / (all.length + 1))
-    own.fire.object.visible = look.flame.enabled && size > 0
-    if (!own.fire.object.visible) return
-    // Out on the trunk's side toward the camera, wrapping it.
-    const at = trunkAt[k]!
-    const away = Math.hypot(camera.position.x - at.x, camera.position.z - at.z) || 1
-    const side = ((k % 2) * 2 - 1) * 0.5
-    const ox = (camera.position.x - at.x) / away
-    const oz = (camera.position.z - at.z) / away
-    sceneFireFoot.set(at.x + (ox + oz * side) * radius * 0.85, at.y + trunkFireLook.foot * size, at.z + (oz - ox * side) * radius * 0.85)
-    own.fire.set({ ...look.flame, height: trunkFireLook.height * size, width: trunkFireLook.width * size, glow: fireLook.glow, lean: 0 })
-    if (treeFlameDue(own, 40 + k)) own.fire.shape((channel) => beats.flameDraw(channel + 7 * (80 + k)), 0, 0)
-    own.fire.place(sceneFireFoot)
-  })
-  if (footFire) {
-    const at = goosePlay.level.lights[pitLight]!
-    const { start } = goosePlay.plain
-    const d = Math.hypot(start.x - at.x, start.z - at.z) || 1
-    const x = at.x + ((start.x - at.x) / d) * FOOT_FIRE
-    const z = at.z + ((start.z - at.z) / d) * FOOT_FIRE
-    const grown = flameGrown(opening.t, 0)
-    footFire.object.visible = look.flame.enabled && grown > 0 && treeSeen
-    if (footFire.object.visible) {
-      footFire.set({ ...look.flame, height: footFireLook.height * grown, width: footFireLook.width * grown, glow: fireLook.glow, lean: 0 })
-      if (!stop.enabled || newBeat) footFire.shape((channel) => beats.flameDraw(channel + 7 * 39), 0, 0)
-      footFire.place(footFireAt.set(x, standAt(x, z) + footFireLook.foot, z))
-    }
-  }
-  if (introLightning) {
-    const struck = opening.t >= INTRO.strike ? INTRO.strike : Number.NaN
-    introLightning.update(opening.t, [{ at: burningTree, due: INTRO.strike, time: struck }], goosePlay.holder, standAt)
-    const flash = Math.max(flashAt(opening.t - INTRO.strike), afterglow(opening.t)) * introLightning.look.flash * (calm ? 0.2 : 1)
-    if (flash > 0 || introFlashing) flashFrame(flash)
-    introFlashing = flash > 0
-  }
-}
-
-const branchFrom = new Vector3()
-const branchTo = new Vector3()
-const branchAtNow = new Vector3()
-const branchFlameAt = new Vector3()
-const branchButt = new Vector3()
-const branchLaid = branchPose()
-/** Whether the burning branch had landed as of the last frame: landing, it throws its sparks. */
-let branchDown = true
-/**
- * The burning branch as the play and the opening have it: hidden in the crown until it snaps; falling, tumbling, its
- * flame and embers on its broken end; lying there burning, its lamp lit; and once he has it, in his beak, where his own
- * torch lay, his torch's flame burning on it, its own out.
- */
-function branchFrame(newBeat: boolean, held: number) {
-  const branch = goosePlay.branch
-  if (!burningBranch || !branchFire || !branchEmbers || !branch) return
-  const stop = look.stopMotion
-  lights.setLamp(branch.light, fireLook.lamp, branchFireLook.intensity)
-  // As long lying as carried, as he is drawn now.
-  const { carrier, butt, end } = goose.held
-  const length = carrier.localToWorld(branchButt.copy(butt)).distanceTo(carrier.localToWorld(branchAtNow.copy(end)))
-  if (branch.carried) {
-    burningBranch.object.visible = goose.object.visible
-    burningBranch.place(carriedPose(goose.held, branchLaid))
-    branchFire.object.visible = branchEmbers.object.visible = false
-    return
-  }
-  // Where it lies, and where it falls from: over the tree's trunk, on the side toward where it lands.
-  const tree = pitLight >= 0 ? goosePlay.level.lights[pitLight]! : branch
-  const away = Math.atan2(branch.z - tree.z, branch.x - tree.x)
-  branchTo.set(branch.x, standAt(branch.x, branch.z) + BRANCH_LIFT, branch.z)
-  branchFrom.set(tree.x + Math.cos(away) * BRANCH_FROM_OUT, groundAt(tree.x, tree.z) + BRANCH_FROM_UP, tree.z + Math.sin(away) * BRANCH_FROM_OUT)
-  const fall = opening.on ? branchAt(opening.t, branchFrom, branchTo) : { at: branchTo, tumble: 0, shown: true, landed: true }
-  burningBranch.object.visible = fall.shown
-  burningBranch.place(lyingPose(branchAtNow.set(fall.at.x, fall.at.y, fall.at.z), away + BRANCH_TURN, length, BRANCH_RISE, fall.tumble, branchLaid))
-  burningBranch.end(branchFlameAt)
-  // Landing, a spray of sparks off it.
-  if (fall.landed && !branchDown) branchEmbers.burst(BRANCH_SPARKS, BRANCH_SPARK_SPEED)
-  branchDown = fall.landed
-  branchFire.object.visible = look.flame.enabled && fall.shown
-  branchEmbers.object.visible = look.flame.embers.enabled && fall.shown
-  if (branchFire.object.visible) {
-    branchFire.set({ ...look.flame, height: branchFireLook.height, width: branchFireLook.width, glow: fireLook.glow, lean: 0 })
-    if (!stop.enabled || newBeat) branchFire.shape((channel) => beats.flameDraw(channel + 7 * 37), 0, 0)
-    branchFire.place(sceneFireFoot.copy(branchFlameAt).setY(branchFlameAt.y + branchFireLook.foot))
-  }
-  if (branchEmbers.object.visible) branchEmbers.update(held, branchFlameAt)
-}
-
-/** The lights as the rats feel them, the burning branch's flaring as it lands in the opening. */
-function branchFlared<T extends FixedLight>(placed: readonly T[]): readonly T[] {
-  const k = goosePlay.branch?.light
-  if (k === undefined || !opening.running()) return placed
-  const flare = branchFlare(opening.t)
-  return flare === 1 ? placed : placed.map((one, j) => (j === k ? { ...one, reach: one.reach * flare } : one))
 }
 
 /**
@@ -3598,7 +2815,7 @@ renderer.setAnimationLoop(() => {
   refillZonesFrame(drawn)
   // The lamp, the fog, the sun and the camera after the light, before the swarm is told what the fog hides: this frame's fog, not the last one's.
   follow(dt, newBeat, frame)
-  branchFrame(newBeat, held)
+  fires.branchFrame(newBeat, held)
   holdHintFrame()
   lifeFrame()
   aheadFrame()
