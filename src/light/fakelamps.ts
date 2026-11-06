@@ -15,7 +15,7 @@
 // (`FakeLamps.shadow`): a projector's mask of them, drawn by fireshadow.ts, read by the materials it falls on, each
 // fragment found in the projector's view and that fire's light taken away where they cover it, a few taps round it
 // softening the edge the further it falls from them.
-import { AnalyticLightNode, Color, Light, Matrix4, Object3D, Vector3, type Material, type Node, type NodeBuilder, type Texture } from 'three/webgpu'
+import { AnalyticLightNode, Color, Frustum, Light, Matrix4, Object3D, Sphere, Vector3, type Camera, type Material, type Node, type NodeBuilder, type Texture } from 'three/webgpu'
 import { Break, cameraViewMatrix, cameraWorldMatrix, float, getDistanceAttenuation, If, Loop, max, mix, positionView, select, texture, uniform, uniformArray, vec2, vec3, vec4 } from 'three/tsl'
 
 /** How many lamps light at once, the loop's length: past it the furthest down the list are left dark. */
@@ -47,6 +47,12 @@ export class FakeLamp extends Object3D {
 export class FakeLamps extends Light {
   readonly isFakeLamps = true
   readonly lamps: FakeLamp[] = []
+  /**
+   * The camera the game is seen by: a lamp whose reach falls wholly outside its view lights no pixel drawn, and is left
+   * out of the loop. Every lit pixel walked every lamp lit in the level, 6 to 10 at the places read, and the 4 nearest
+   * alone saved 3.7 ms of 40 (Mi 9, WebGL 2, dpr 2, 2026-11-06). Null, none left out.
+   */
+  view: Camera | null = null
   /**
    * The one lamp shadowed, none if null, laid every frame by fireshadow.ts: its projector's view (world to clip) and
    * place, how far off what it draws stands, how dark, 0 none to 1 the lamp's light all `colour`, what its light is in
@@ -113,10 +119,13 @@ class FakeLampsNode extends AnalyticLightNode<FakeLamps> {
     const { shadow } = this.light!
     let n = 0
     this.shadowed.value = -1
+    const view = this.light!.view
+    const seen = view ? reachSeen(view) : undefined
     for (const lamp of this.light!.lamps) {
       if (n === MAX_FAKE_LAMPS) break
       if (!(lamp.intensity > 0) || !shown(lamp)) continue
       lamp.getWorldPosition(place)
+      if (seen && !seen(place, lamp.distance)) continue
       ;(this.places.array[n] as Vector3).copy(place)
       ;(this.colours.array[n] as Color).copy(lamp.color).multiplyScalar(lamp.intensity)
       ;(this.reaches.array as number[])[n] = lamp.distance
@@ -179,6 +188,20 @@ class FakeLampsNode extends AnalyticLightNode<FakeLamps> {
     })
     return null
   }
+}
+
+const frustum = new Frustum()
+const viewed = new Matrix4()
+const reach = new Sphere()
+/**
+ * Whether a lamp at `at`, reaching `distance` m, 0 no end, may light what `camera` sees as it stands: its reach crosses
+ * the view. Read once a frame, whichever pass first draws a lit material, so the camera's matrices are brought up to
+ * date here, not left to its own render.
+ */
+export function reachSeen(camera: Camera): (at: Vector3, distance: number) => boolean {
+  camera.updateMatrixWorld()
+  frustum.setFromProjectionMatrix(viewed.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse), camera.coordinateSystem, camera.reversedDepth)
+  return (at, distance) => distance <= 0 || frustum.intersectsSphere(reach.set(at, distance))
 }
 
 /** Whether `object` is drawn: it and every parent up to the scene shown. */

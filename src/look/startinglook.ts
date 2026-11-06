@@ -227,6 +227,12 @@ export function measuringSwitches(look: Look, backend: string, lean: boolean): v
   // Switches for measuring on a phone, where the panel covers the readouts:
   // ?nopanel, ?dpr=1, ?ao=0, ?dof=0, ?bloom=0, and ?post=0 for every effect after the scene.
   if (post0 || url.get('ao') === '0') look.ao.enabled = false
+  // `?ao=samples,resolution` for a cheaper AO, `?ao=8,0.25`: 16 at half the frame's resolution as it stands.
+  const askedAO = (url.get('ao') ?? '').split(',').map(Number)
+  if (askedAO.length === 2) {
+    look.ao.samples = askedAO[0] || look.ao.samples
+    look.ao.resolution = askedAO[1] || look.ao.resolution
+  }
   if (post0 || url.get('dof') === '0') look.dof.enabled = false
   if (post0 || lean || url.get('bloom') === '0') look.bloom.enabled = false
   // On a phone the rats stand small, with no bloom round them: a wider, stronger rim to find them by in the dark.

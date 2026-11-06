@@ -108,12 +108,13 @@ export async function createDrawing() {
    */
   const lean = url.get('lean') !== '0' && (phone || url.has('lean'))
   /**
-   * The moon's shadows, `?moon=vsm`, `pcf` or `none`, `none` taking the fires' shadows of him and his goslings with them:
-   * on a phone none. They were what stood between it and 60 fps: 29 to 30 ms a frame with three's variance maps, which
-   * blur twice at each drawing and draw into the map all that receives shadows, the ground too, 23 to 24 ms with PCF, 17
-   * to 18 ms with none (iPhone 15 Pro Max, dpr 2, 1,000 rats, 2026-11-02).
+   * The moon's shadows, `?moon=vsm`, `pcf`, `baked` or `none`, `none` taking the fires' shadows of him and his goslings
+   * with them: on a phone baked, drawn once of what stands still (moonbake.ts), since 2026-11-06; none before. Live, they
+   * were what stood between it and 60 fps: 29 to 30 ms a frame with three's variance maps, which blur twice at each
+   * drawing and draw into the map all that receives shadows, the ground too, 23 to 24 ms with PCF, 17 to 18 ms with none
+   * (iPhone 15 Pro Max, dpr 2, 1,000 rats, 2026-11-02). Baked, on the PC's phone frame, 0.1 ms and 44 MB over none.
    */
-  const moon = url.get('moon') ?? (lean ? 'none' : 'vsm')
+  const moon = url.get('moon') ?? (lean ? 'baked' : 'vsm')
   // Ready for the sun and the lamp to cast, each while its shadows toggle is on.
   // Variance shadow maps, blurred before they are read, so the sun's softness
   // smooths the rats' shadows instead of graining them: three's WebGPU build has

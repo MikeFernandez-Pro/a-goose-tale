@@ -342,6 +342,8 @@ export class Rats {
   private speed: number
   /** The boil: every vertex moved by a noise of its rest position, re-seeded on the stop motion's beat, in the model's units. */
   private readonly boil = { amount: uniform(0), scale: uniform(1), seed: uniform(0) }
+  /** Whether the boil is in the shader at all. */
+  private readonly boils: boolean
   /** Each variant's tint, and where its rats end on the zero-to-one a rat's index is spread over. */
   private readonly variants = Array.from({ length: VARIANTS }, () => ({ tint: uniform(new Color(0xffffff)), end: uniform(1) }))
   /** The eyes a rat has: none on a model with no eyes part. */
@@ -405,7 +407,10 @@ export class Rats {
     private readonly gpu?: WebGPURenderer,
     /** The plain's ground, each rat stood on it; none, and the ground is flat. */
     private readonly ground?: HeightGrid,
+    /** `boil` false: no boil in the shader, its noise worked out at every vertex of every rat. */
+    options: { boil?: boolean } = {},
   ) {
+    this.boils = options.boil ?? true
     const clip = (name: string) => {
       const found = vat.clips.find((c) => c.name === name)
       if (found === undefined) throw new Error(`a-goose-tale: ${creature.url} has no clip named ${name}`)
@@ -524,6 +529,7 @@ export class Rats {
   /** The decode, and over it the boil: a clay surface re-touched every beat. */
   private boiled(index: { carrier: BatchedMesh } | { logicalIndex: GpuCull['logicalIndex'] }): Node<'vec3'> {
     const decode = vatNodes(this.vat, { time: this.time, playback: this.playback, ...index }).positionNode
+    if (!this.boils) return decode
     const rest = attribute('position', 'vec3')
     return decode.add(mx_noise_vec3(rest.mul(this.boil.scale).add(this.boil.seed)).mul(this.boil.amount))
   }

@@ -60,9 +60,10 @@ import type { PhoneBench } from './dev/phonebench'
 import { OPENING, cowering, litShare, ratsOut, startled } from './game/openingscript'
 import { RemoteSwarm } from './swarm/swarm-remote'
 import { createDrawing } from './look/drawing'
-import { ladder, startingStep, Quality, PHONE_SLOW_FRAME } from './look/quality'
+import { ladder, startingStep, Quality } from './look/quality'
 import { createSkyFog } from './look/skyfog'
 import { createNightLights } from './light/nightlights'
+import { createMoonBake } from './light/moonbake'
 import { createOpening } from './game/opening'
 import { createOpeningShow } from './ui/openingshow'
 import { createEnding } from './game/ending'
@@ -129,9 +130,12 @@ const ground = await floor(look.floor.texture, {
   wellGround: groundCut.has('wells') ? undefined : wellGroundLook,
   road: roadLook,
   cut: groundCut,
-  // `?groundzones=0` and `?noisemap=0` for the bench to price them.
-  zones: lean && moon === 'none' && url.get('groundzones') !== '0',
+  // `?groundzones=0`, `?roadzones=0` and `?noisemap=0` for the bench to price them.
+  zones: lean && (moon === 'none' || moon === 'baked') && url.get('groundzones') !== '0',
+  roadZones: url.get('roadzones') !== '0',
   noiseMap: lean && url.get('noisemap') !== '0',
+  // No strokes on a lean frame: 4 to 6 ms of 30 to 50 (Mi 9, dpr 2, 2026-11-06), as asked; `?groundstrokes` for them.
+  strokes: !lean || url.has('groundstrokes'),
 })
 // Starting by the burning tree's branch, he carries no torch of his own: the branch, picked up, is his torch.
 /** The burning branch, where the route lays one, held by its butt in his bill: out to his right, forward and up, under half as long as he is tall, a fifth of it back past his bill. */
@@ -212,7 +216,11 @@ const gooseGround = rollingGround(goosePlain, pondPlace, gooseFloorBox, rollingL
 const fallingLeaves = url.get('leaves') === '0' ? undefined : createFallingLeaves(gooseGround, defaultFallLook())
 if (fallingLeaves) scene.add(fallingLeaves.object)
 // On WebGPU the rats are culled and drawn on the GPU (ADR-0052); WebGL 2, or `?batch`, draws them as the batch.
-const rats = new Rats(vat, RAT, capacity, maxTextureSize, time, settings.runAnimation, backend === 'WebGPU' && !url.has('batch') ? renderer : undefined, gooseGround)
+/** How much bigger a lean frame draws its rats, their spacing as it was: fewer of them, and smaller on a phone's screen. */
+const LEAN_RAT_SCALE = 1.15
+// On a lean frame no boil, no trails and the rats drawn a little bigger (LEAN_RAT_SCALE): at the start, 200 rats round
+// him were 14 ms of 46, the boil and the trails 3.5 each (Mi 9, WebGL 2, dpr 2, 2026-11-06), as asked.
+const rats = new Rats(vat, RAT, capacity, maxTextureSize, time, settings.runAnimation, backend === 'WebGPU' && !url.has('batch') ? renderer : undefined, gooseGround, { boil: !lean })
 // The rats' depth laid first, so each pixel is shaded for the nearest rat alone; `?prepass=0` shades them all, to measure against.
 // A phone's GPU hides what lies behind by itself: there the pre-pass only cost, 0.8 ms at a pixel ratio of 3 (iPhone 15 Pro Max, 2026-11-02).
 const prepassOn = url.has('prepass') ? url.get('prepass') !== '0' : !lean
@@ -296,6 +304,8 @@ const looks = goosePlay.layout.lights.map((_, k) => {
 // in each; the torch's lamp stays a point light.
 const fakeLamps = createFakeLamps()
 scene.add(fakeLamps)
+// Those whose reach the camera does not see left out; `?lampcull=0` for the bench to price it.
+if (url.get('lampcull') !== '0') fakeLamps.view = camera
 // The braziers' lamps are not cut to their lit areas: the plain has no walls (see the torch's lamp below).
 const lights = createLights(layout.lights, seen.texture, swarmTime, layout.start, { looks, groundAt, masked: false, lamps: fakeLamps })
 scene.add(lights.object)
@@ -328,6 +338,20 @@ const debugKeys = createDebugKeys({ settings, run, goosePlay, pondLook, graveyar
 const gooseSounds = !filming && !url.has('mute') ? createGooseSounds(camera) : undefined
 const openingShow = createOpeningShow({ opening, goosePlay, goose, camera, renderer, gooseSounds, hisAt, fakeLamps, scene, standAt })
 const ending = createEnding({ goosePlay, pondLook, islandGeese, tent, look, waterLook, water, ground, deadTreesMesh, deadTreeGrass, islandTree, nightLights, light, gooseSounds, goose, camera, renderer })
+/**
+ * The moon's map over the whole level, drawn once, of what stands still (moonbake.ts): with `?moon=baked` from the start,
+ * aimed before the loading screen, whose drawings of it build its pipelines; a live moon's at the quality's last step.
+ * `&bakecm=N` for another texel, cm, `&bakeblur=N` for another least blur, texels.
+ */
+const moonBake = moon !== 'none'
+  ? createMoonBake(sun, scene, [goose.object, goslings.object, rats.object, ghosts?.object, islandGeese.object, feathers.object, flame.object, embers.object, smoke.object, fallingLeaves?.object, fires.burningBranch?.object, fires.branchEmbers?.object], nightLights.sunShadowTargets, Number(url.get('bakecm')) / 100 || undefined, Number(url.get('bakeblur')) || undefined)
+  : undefined
+const liveTexel = nightLights.texel
+if (moon === 'baked') {
+  moonBake?.aim(look.sun)
+  nightLights.texel = moonBake?.texel ?? liveTexel
+  nightLights.blurAtLeast = moonBake?.blur ?? 0
+}
 // The bed under the pond's water takes less light, as deep as the water lies.
 ground.setWaterLevel(pondLook.water)
 
@@ -367,23 +391,26 @@ addEventListener('pagehide', (event) => {
   rats.dispose()
   if (swarm instanceof GpuSwarm) swarm.dispose()
 })
-rats.setSize(settings.size)
+rats.setSize(settings.size * (lean ? LEAN_RAT_SCALE : 1))
 rats.setSizeBySpeed(settings.sizeBySpeed)
 scene.add(rats.object)
 // The goose and his goslings shadow the fire he stands in, away from its flame, on the ground (fireshadow.ts): a
-// projector's mask of them, drawn every frame, the floor's shader reading it.
+// projector's mask of them, drawn every frame, the floor's shader reading it. None on a lean frame, the floor's shader
+// built without it, nor at the quality's last step, which bakes the moon, its mask no longer drawn (as asked, 2026-11-06).
 const fireShadowLook = defaultFireShadowLook()
-const fireShadow = moon === 'none' ? undefined : createFireShadow(renderer, fakeLamps, fireShadowLook, [ground.mesh])
+const fireShadow = moon === 'none' || lean ? undefined : createFireShadow(renderer, fakeLamps, fireShadowLook, [ground.mesh])
 const fireCasters = [goose.object, goslings.object]
 const gooseMiddle = new Vector3()
 /** The fire's shadow not drawn, and the share of the rats asked for: for `?bench` to price them. */
 const benchHolds = { fireShadows: false, ratShare: 1 }
 function layFireShadows(): void {
-  if (!fireShadow || benchHolds.fireShadows) return
+  if (!fireShadow) return
   goose.object.getWorldPosition(gooseMiddle)
   const ground = groundAt(gooseMiddle.x, gooseMiddle.z)
   gooseMiddle.y = ground + look.goose.height * 0.5
-  fireShadow.update(drawnInScene(goose.object) ? fireCasters : [], gooseMiddle, look.goose.height, ground)
+  // With no casters it shadows no lamp, and the floor's shader skips its taps.
+  const casts = !benchHolds.fireShadows && quality.step.moon && drawnInScene(goose.object)
+  fireShadow.update(casts ? fireCasters : [], gooseMiddle, look.goose.height, ground)
 }
 // The panel starts each part at the colour the model was made in.
 look.rats.parts = rats.parts.map((part) => ({ ...part }))
@@ -426,7 +453,7 @@ function lookChanged() {
   tuning.staggerFrom = look.rats.stagger.from
   rats.setStagger(look.rats.stagger)
   // The trails: on the beat a held frame's streak; smooth, a streak laid again every frame, and wiggling.
-  rats.setTrails({ ...look.trails, wiggle: stop.enabled ? 0 : look.trails.wiggle })
+  rats.setTrails({ ...look.trails, enabled: look.trails.enabled && !lean, wiggle: stop.enabled ? 0 : look.trails.wiggle })
   ground.set(look.floor)
   deadTreesMesh.setGrass(deadTreeGrass, look.floor)
   islandTree.setGrass(look.floor)
@@ -500,21 +527,28 @@ measuringSwitches(look, backend, lean)
 // holds it, so what is measured is what was asked for.
 /**
  * A phone on WebGL 2, the swarm stepped on its CPU: a number of rats of its own, none coming with the goslings, so the
- * crowd never thins or swells with how the frames come. `?rats=N` to try others.
+ * crowd never thins or swells with how the frames come; 100 since 2026-11-06, each about 0.07 ms on a Mi 9 at dpr 2,
+ * as asked. `?rats=N` to try others.
  */
 const fewRats = phone && backend !== 'WebGPU'
-const FEW_RATS = Number(url.get('rats')) || 200
+const FEW_RATS = Number(url.get('rats')) || 100
 const wholeLadder = ladder(maxDpr)
-// A lean frame has no AO to step up to, so no steps with one.
-const steps = (lean ? wholeLadder.slice(startingStep(wholeLadder, true)) : wholeLadder).filter((step) => !fewRats || step.rats === 1)
+// A lean frame has no AO to step up to, so no steps with one; a moon not drawn live, no step baking it.
+const steps = (lean ? wholeLadder.slice(startingStep(wholeLadder, true)) : wholeLadder).filter((step) => step.moon || moon === 'vsm' || moon === 'pcf')
 const askedStep = Number(url.get('step'))
 // A phone on WebGL 2 starts at its lowest, the opening held at it, and climbs from there once it is over.
-const quality = new Quality(steps, Number.isInteger(askedStep) && url.has('step') ? Math.min(Math.max(askedStep, 0), steps.length - 1) : fewRats ? steps.length - 1 : startingStep(steps, phone), phone ? PHONE_SLOW_FRAME : undefined)
+const quality = new Quality(steps, Number.isInteger(askedStep) && url.has('step') ? Math.min(Math.max(askedStep, 0), steps.length - 1) : fewRats ? steps.length - 1 : startingStep(steps, phone))
 // `?bench=soak` and `load` let it move: what a phone settles on is what they read.
 const adapt = url.get('adapt') !== '0' && !['ao', 'dof', 'bloom', 'dpr', 'post'].some((key) => url.has(key)) && (!url.has('bench') || ['soak', 'load'].includes(url.get('bench') ?? ''))
-/** Draw at the quality's step: its pixel ratio, its look; its share of the rats is read where the count is sent. */
+/** Draw at the quality's step: its pixel ratio, its look, the moon live or baked. */
 function qualityChanged() {
   if (renderer.getPixelRatio() !== quality.step.dpr) renderer.setPixelRatio(quality.step.dpr)
+  if (moonBake && moon !== 'baked' && moonBake.on === quality.step.moon) {
+    if (quality.step.moon) moonBake.release()
+    else moonBake.aim(look.sun)
+    nightLights.texel = moonBake.on ? moonBake.texel : liveTexel
+    nightLights.blurAtLeast = moonBake.on ? moonBake.blur : 0
+  }
   lookChanged()
 }
 
@@ -535,7 +569,7 @@ const readouts = filming || !dev ? () => {} : dev.createReadouts(() =>
     look.dof.enabled && quality.step.dof ? '' : 'no DOF',
     look.bloom.enabled ? '' : 'no bloom',
     post0 ? 'no post' : '',
-    quality.step.rats < 1 ? `rats x${quality.step.rats}` : '',
+    moonBake?.on ? 'baked moon' : '',
     // Rats in view at each level of detail, and each level's triangles.
     rats.levels.length > 0 && look.rats.levels.on ? `levels ${rats.levels.map(({ drawn, triangles }) => `${drawn} x ${triangles}`).join(' / ')} tris` : '',
     `torch ${Math.round(run.fuel * 100)}%`,
@@ -610,14 +644,16 @@ function follow(dt: number, newBeat: boolean, frame: number) {
   else lamp.position.set(lampAt.x, LIGHT_HEIGHT + stood, lampAt.z)
   skyFog.centre.value.set(shown.x, shown.z)
   // The sun stays over the light, so its shadows always cover the view.
-  sun.target.position.set(shown.x, 0, shown.z)
-  sun.position.copy(sun.target.position).add(look.sun)
+  if (!moonBake?.on) {
+    sun.target.position.set(shown.x, 0, shown.z)
+    sun.position.copy(sun.target.position).add(look.sun)
+  }
   view.glide(dt, newBeat, frame, stood)
   // The dead trees' and bushes' stretches past the fog's solid edge, its wisps and all, left undrawn: they would draw as
   // the fog. Those out of the camera's view too, now it has moved, unless their shadow is in it.
   const plantsReach = look.fog.enabled ? skyFog.edge + 1.5 * look.fog.wisp + 0.5 : Infinity
   view.lookedFrom()
-  const plantsSun = sun.castShadow ? plantsSunward.subVectors(sun.position, sun.target.position).normalize() : undefined
+  const plantsSun = sun.castShadow && !moonBake?.on ? plantsSunward.subVectors(sun.position, sun.target.position).normalize() : undefined
   deadTreesMesh.cullPast(shown.x, shown.z, plantsReach, plantsView, plantsSun)
   bushesMesh.cullPast(shown.x, shown.z, plantsReach, plantsView, plantsSun)
 }
@@ -902,7 +938,7 @@ renderer.setAnimationLoop(() => {
   const dark: Dark | undefined =
     settings.bringRound ? { x: shown.x, z: shown.z, radius: darkRadius() + margin, view: view.groundView(margin) } : undefined
   const ratsCome = arrive.comeFrame(dt)
-  const wanted = fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, Math.round((settings.rats + arrive.forGoslings()) * quality.step.rats * benchHolds.ratShare))
+  const wanted = fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, Math.round((settings.rats + arrive.forGoslings()) * benchHolds.ratShare))
   // Held till the strike, but stepped once on the loading screen with the rest, so its first step builds nothing.
   const ratsHeld = opening.on && !ratsOut(opening.t) && !loading
   if (opening.on && !arrive.rushed && ratsOut(opening.t) && dark) {
@@ -955,7 +991,9 @@ renderer.setAnimationLoop(() => {
     (sun.castShadow && !sun.position.equals(shadowed.sun)) ||
     (settings.shadows && !lamp.position.equals(shadowed.lamp))
   if (shadowed.dirty || (casting && (swarm.steps !== shadowed.steps || (ratsHeld && now - shadowed.at >= HELD_SHADOW_MS)))) {
-    sun.shadow.needsUpdate = lamp.shadow.needsUpdate = true
+    // Baked, the moon's map is drawn the once, below.
+    sun.shadow.needsUpdate = !moonBake?.on
+    lamp.shadow.needsUpdate = true
     shadowed.version = swarm.version
     shadowed.steps = swarm.steps
     shadowed.held = held
@@ -963,6 +1001,11 @@ renderer.setAnimationLoop(() => {
     shadowed.lamp.copy(lamp.position)
     shadowed.at = now
     shadowed.dirty = false
+  }
+  // Baked, the moon's map drawn the once, on the first frame in play since, every stretch of the trees and bushes in it.
+  if (moonBake && !loading && moonBake.frame()) {
+    deadTreesMesh.cullPast(0, 0, Infinity)
+    bushesMesh.cullPast(0, 0, Infinity)
   }
   // In the opening, none till the strike brings them.
   if (opening.on) rats.object.visible = ratsOut(opening.t)

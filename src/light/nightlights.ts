@@ -2,6 +2,7 @@
 import type { Look } from '../settings'
 import { type Scene, HemisphereLight, DirectionalLight, Color, PointLight, type Node } from 'three/webgpu'
 import { uniform, renderGroup, mix, vec3, shadow } from 'three/tsl'
+import type { ShadowTargets } from './moonbake'
 
 /**
  * How far the sun's shadows reach around the light it follows, in metres:
@@ -40,7 +41,8 @@ export function createNightLights(scene: Scene, moon: string) {
   // The sun's shadow in a colour: three's own shadow, 0 in it and 1 out of it as far as the darkness has it, taken from
   // the colour to white, so black is three's shadow as it was and any other colour lets that much of the sun's light in.
   const sunShadowColor = uniform(new Color(0x000000)).setGroup(renderGroup)
-  const sunShadow = mix(sunShadowColor, vec3(1), shadow(sun) as unknown as Node<'float'>)
+  const sunShadowNode = shadow(sun)
+  const sunShadow = mix(sunShadowColor, vec3(1), sunShadowNode as unknown as Node<'float'>)
   sun.shadow.shadowNode = sunShadow
   /** Whether the sun casts shadows, for what reads its shadow itself: its map holds still once it stops. */
   const sunCasts = uniform(1).setGroup(renderGroup)
@@ -58,17 +60,25 @@ export function createNightLights(scene: Scene, moon: string) {
   lamp.shadow.camera.near = 0.05
   lamp.shadow.camera.far = 30
   scene.add(lamp)
+  /** The panel's softness, in texels of the 2,048 the look was set at, in texels of the map drawn, so it blurs as far on the ground. */
+  const softnessTexels = (softness: number) => Math.max(lights.blurAtLeast, (softness * (2 * SUN_SHADOW_REACH)) / SOFTNESS_TEXELS / lights.texel)
   const lights = {
     fill,
     sun,
     lamp,
     /** The sun's shadow for the unlit water (water.ts). */
     sunShadowSeen,
+    /** The targets of three's node for the moon's shadow (moonbake.ts). */
+    sunShadowTargets: sunShadowNode as unknown as ShadowTargets,
     /** The lamp's intensity as the look and the ending set it, before the torch's guttering and its catch's flare (torchFrame). */
     lampLit: 0,
     /** The torch's light this frame, times its own: its reach, as the swarm, the lamp and the fog read it; and the lamp's glow. */
     torchFlare: 1,
     torchGlow: 1,
+    /** The moon's map's texel, m: the live map's over its reach, or the bake's over the level (moonbake.ts). */
+    texel: (2 * SUN_SHADOW_REACH) / SUN_SHADOW_SIZE,
+    /** The least the moon's map is blurred, texels: none live; baked, its texels coarse, enough that its edges fade and do not step. */
+    blurAtLeast: 0,
     /** All the look's folders set of them, `lit` the torch, on the stop motion's variations by channel. */
     set(look: Look, lit: boolean, vary: (channel: number) => number) {
       const stop = look.stopMotion
@@ -85,7 +95,7 @@ export function createNightLights(scene: Scene, moon: string) {
       sun.intensity = look.sun.intensity * flicker(2)
       sun.castShadow = look.sun.shadows && moon !== 'none'
       sunCasts.value = sun.castShadow ? 1 : 0
-      sun.shadow.radius = (look.sun.softness * SUN_SHADOW_SIZE) / SOFTNESS_TEXELS
+      sun.shadow.radius = softnessTexels(look.sun.softness)
       // A uniform the shadow reads: the slider recompiles nothing.
       sun.shadow.intensity = look.sun.darkness
       sunShadowColor.value.set(look.sun.shadowColor)
@@ -99,7 +109,7 @@ export function createNightLights(scene: Scene, moon: string) {
       sun.color.set(look.sun.color)
       sun.intensity = look.sun.intensity
       sun.castShadow = moon !== 'none'
-      sun.shadow.radius = (look.sun.softness * SUN_SHADOW_SIZE) / SOFTNESS_TEXELS
+      sun.shadow.radius = softnessTexels(look.sun.softness)
       sun.shadow.intensity = look.sun.darkness
       sunShadowColor.value.set(look.sun.shadowColor)
       fill.color.set(look.fill.sky)

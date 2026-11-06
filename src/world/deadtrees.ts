@@ -905,7 +905,7 @@ export function createBark(foot: FootGrass): Bark {
  * foot on its origin, its uvs a metre of the file a unit, laid as the files' are; about `woodShare` of each wood's
  * triangles kept, meshoptimizer choosing, all of them at 1.
  */
-export async function createDeadTrees(wood: number, groundAt: (x: number, z: number) => number = () => 0, own: readonly BufferGeometry[] = [], woodShare = 1): Promise<DeadTreesMesh> {
+export async function createDeadTrees(wood: number, groundAt: (x: number, z: number) => number = () => 0, own: readonly BufferGeometry[] = [], woodShare = 1, windMap = false): Promise<DeadTreesMesh> {
   const files = await Promise.all(TREES.files.map((file) => modelLoader().loadAsync(file)))
   const simplifier = woodShare < 1 ? (await import('meshoptimizer/simplifier')).MeshoptSimplifier : undefined
   await simplifier?.ready
@@ -959,7 +959,8 @@ export async function createDeadTrees(wood: number, groundAt: (x: number, z: num
   }
   const variants = kinds.length
   for (const wood of own) kinds.push(layWood(wood.clone()))
-  const wind = createTreeWind(TREES.laid, TREES.trunk, TREES.crown)
+  // `windMap`: the wind's noise read from a texture (treesway.ts), on a lean frame.
+  const wind = createTreeWind(TREES.laid, TREES.trunk, TREES.crown, windMap)
 
   const foot = createFootGrass()
   const barkLaid = createBark(foot)

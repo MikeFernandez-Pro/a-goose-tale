@@ -561,9 +561,10 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
       })
       return vec4(out, 1)
     })() as unknown as Node<'vec4'>
-  const finish = (c: Node<'vec4'>, inFog: Node<'float'>, halo: 'none' | 'bloom' | 'cheap') => {
+  const finish = (c: Node<'vec4'>, inFog: Node<'float'>, halo: 'none' | 'bloom' | 'cheap', onPaper = true) => {
     const printed = posterize(hatch(c, inFog))
-    return darkened(saturated(vignette(texture(halo === 'bloom' ? bloomed(printed) : halo === 'cheap' ? haloed(printed) : printed))))
+    const lit = halo === 'bloom' ? bloomed(printed) : halo === 'cheap' ? haloed(printed) : printed
+    return darkened(saturated(vignette(onPaper ? texture(lit) : lit)))
   }
 
   // The depth of field: the lined frame blurred by its distance from the focus, read off the scene's depth; the
@@ -608,22 +609,25 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
   const lightest = fxaa(colour) as unknown as Node<'vec4'>
   // The blur over the lightest frame: with no AO and no outlines nothing here reads their passes, which run if anything does.
   const softenedLight = softenedOf(convertToTexture(lightest))
+  // The light and the soft outputs, with no AO, are a phone's and a PC's that the quality has stepped down past it: on no
+  // paper and with no grain either, each worked out over every pixel (as asked, 2026-11-06). The paper's Perlin
+  // was 0.2 to 0.36 ms of a phone frame's 4 ms on the PC at dpr 3 (RTX 5080).
   const outputs = {
     // Neither the AO nor the outlines: nothing reads the normals, and nothing knows the fog.
-    light: finish(lightest, float(0), 'none'),
+    light: finish(lightest, float(0), 'none', false),
     full: finish(smooth, fogged, 'none'),
     deep: finish(softened, fogged, 'none'),
-    soft: finish(softenedLight, float(0), 'none'),
+    soft: finish(softenedLight, float(0), 'none', false),
     // The same with the bloom's halo: its passes run only in these.
-    'light bloom': finish(lightest, float(0), 'bloom'),
+    'light bloom': finish(lightest, float(0), 'bloom', false),
     'full bloom': finish(smooth, fogged, 'bloom'),
     'deep bloom': finish(softened, fogged, 'bloom'),
-    'soft bloom': finish(softenedLight, float(0), 'bloom'),
+    'soft bloom': finish(softenedLight, float(0), 'bloom', false),
     // And with the cheap halo, in the last pass.
-    'light cheap': finish(lightest, float(0), 'cheap'),
+    'light cheap': finish(lightest, float(0), 'cheap', false),
     'full cheap': finish(smooth, fogged, 'cheap'),
     'deep cheap': finish(softened, fogged, 'cheap'),
-    'soft cheap': finish(softenedLight, float(0), 'cheap'),
+    'soft cheap': finish(softenedLight, float(0), 'cheap', false),
     ao: vec4(mix(vec3(1), occlusion, fogged.oneMinus()), 1),
   }
   const pipelines = new Map<keyof typeof outputs, RenderPipeline>()

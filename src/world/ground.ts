@@ -7,7 +7,7 @@ import { BufferAttribute, Color, DataTexture, DataUtils, FloatType, HalfFloatTyp
 import { abs, cameraViewMatrix, clamp, dot, float, hue, ivec2, max, min, mix, mx_noise_float, normalWorld, positionWorld, pow, renderGroup, saturation, smoothstep, sqrt, step, texture, uniform, vec2, vec3, vec4 } from 'three/tsl'
 import { SHORE_FIELD, SHORE_REACH, type ShoreField } from './pond'
 import { ROAD_REACH, type RoadField } from './road'
-import { splitTriangles, tiledNoise } from './groundzones'
+import { roadCanShow, splitTriangles, tiledNoise } from './groundzones'
 import { ShellToonMaterial } from '../look/shell'
 import { loadMap, NO_COLOUR } from '../look/texturesets'
 
@@ -286,23 +286,29 @@ export async function floor(
     cut = new Set(),
     zones = false,
     noiseMap = false,
+    strokes = true,
+    roadZones = true,
   }: {
     slopes?: boolean
     bed?: BedLook
     wellGround?: WellGroundLook
     road?: RoadLook
-    /** What `?groundcut=` leaves out of the shader, for the bench to price: none as played. */
+    /** What `?groundcut=` leaves out of the shader, for the bench to price: none as played. `road` takes the road's stones. */
     cut?: ReadonlySet<string>
     /** Part the floor's triangles, those that can show the bed or the wells' ground under the whole shader, the rest under one without. */
     zones?: boolean
     /** Read the noise from a texture, for working it out per pixel. */
     noiseMap?: boolean
+    /** Paint the shell's strokes over it: none on a lean frame, three's bump of them reading their texture three times a pixel. */
+    strokes?: boolean
+    /** Of the zones, the floor the road cannot reach under a shader without it. */
+    roadZones?: boolean
   } = {},
 ): Promise<Floor> {
   const [map, normals] = await load(start)
   const bedNormals = bed && (await loadNormals(bed.texture))
   const wellSet = wellGround && (await load(wellGround.texture))
-  const roadSet = road && (await loadRoad())
+  const roadSet = road && !cut.has('road') && (await loadRoad())
   /** The floor laid, and the one last asked for: a newer ask while one loads wins. */
   let asked = start
 
@@ -479,11 +485,14 @@ export async function floor(
   const bedLean = bedNormalTexel && leanOf(bedNormalTexel, bedTurn, bedRelief)
   const lean = bedLean ? mix(pavedLean.lean, bedLean.lean, inBed) : pavedLean.lean
   const up = bedLean ? mix(pavedLean.up, bedLean.up, inBed) : pavedLean.up
-  const world = cut.has('normals') ? normalWorld : (slopes ? normalWorld.mul(up).add(lean) : vec3(lean.x, up, lean.z)).normalize()
-  const seen = cameraViewMatrix.mul(vec4(world, 0)).xyz.normalize()
+  /** The normal of a lean and its height out of the floor, as the camera sees it. */
+  const seenOf = ({ lean, up }: { lean: Node<'vec3'>; up: Node<'float'> }) =>
+    cameraViewMatrix.mul(vec4(cut.has('normals') ? normalWorld : (slopes ? normalWorld.mul(up).add(lean) : vec3(lean.x, up, lean.z)).normalize(), 0)).xyz.normalize()
+  const seen = seenOf({ lean, up })
   // The shell paints its strokes over the map's normal, as the camera sees it; a stroke's density counts per metre.
-  const material = new ShellToonMaterial(cut.has('strokes') ? {} : { painted: { extent: 1, base: seen } })
-  if (cut.has('strokes')) material.normalNode = seen
+  const painted = strokes && !cut.has('strokes')
+  const material = new ShellToonMaterial(painted ? { painted: { extent: 1, base: seen } } : {})
+  if (!painted) material.normalNode = seen
   const plainColour = saturation(turnHue(colourTexel.rgb, turned), saturated).mul(lightness)
   const wellColour = wellColourTexel && saturation(turnHue(wellColourTexel.rgb, wellTurned), wellSaturated).mul(wellLightness)
   const groundColour = wellColour ? mix(plainColour, wellColour, inWell) : plainColour
@@ -495,17 +504,20 @@ export async function floor(
   const underWater = max(waterLevel.sub(positionWorld.y), 0)
   const held = pow(underwater, vec3(underWater.mul(2).mul(murk)))
   material.colorNode = bedNormalTexel ? mix(pavedColour, bedColour, inBed).mul(held) : pavedColour
+  /** A zone's own shader, of the whole one's look, its normal as the camera sees it painted as the whole one's is. */
+  const zoneMaterial = (normal: Node<'vec3'>, colour: Node<'vec3'>) => {
+    const zone = new ShellToonMaterial(painted ? { sharing: material, painted: { extent: 1, base: normal } } : { sharing: material })
+    if (!painted) zone.normalNode = normal
+    zone.colorNode = colour
+    return zone
+  }
   // The same floor with no bed and no wells' ground, the road's and the floor's alone: for where they cannot show.
   const plainLeanRoad = roadLean ? { lean: mix(plainLean.lean, roadLean.lean, inRoad), up: mix(plainLean.up, roadLean.up, inRoad) } : plainLean
-  const plainWorld = (slopes ? normalWorld.mul(plainLeanRoad.up).add(plainLeanRoad.lean) : vec3(plainLeanRoad.lean.x, plainLeanRoad.up, plainLeanRoad.lean.z)).normalize()
-  const plainMaterial = zones
-    ? new ShellToonMaterial({
-        sharing: material,
-        painted: { extent: 1, base: cameraViewMatrix.mul(vec4(plainWorld, 0)).xyz.normalize() },
-      })
-    : undefined
-  if (plainMaterial) plainMaterial.colorNode = roadColour ? mix(plainColour, roadColour, inRoad) : plainColour
+  const plainMaterial = zones ? zoneMaterial(seenOf(plainLeanRoad), roadColour ? mix(plainColour, roadColour, inRoad) : plainColour) : undefined
+  // And with no road either, for where it cannot reach: most of the floor.
+  const bareMaterial = zones && roadZones && roadColour ? zoneMaterial(seenOf(plainLean), plainColour) : undefined
   let shoreLaid: ShoreField | undefined
+  let roadLaid: RoadField | undefined
   let wellsLaid: readonly { x: number; z: number }[] = []
   /** Whether a triangle, its middle, its lowest corner's height and how far its corners lie from its middle, could show the bed or the wells' ground. */
   const showsMore = (x: number, lowest: number, z: number, radius: number) => {
@@ -535,12 +547,19 @@ export async function floor(
       corner.fromBufferAttribute(local, k).applyMatrix4(mesh.matrixWorld)
       world.set([corner.x, corner.y, corner.z], k * 3)
     }
-    const { index, plain } = splitTriangles(world, geometry.getIndex()?.array, showsMore)
+    const reach = roadHalf.value + roadEdge.value + Math.abs(roadWobble.value)
+    const paved = bareMaterial ? roadCanShow(roadLaid, reach) : () => true
+    const materials = bareMaterial ? [bareMaterial, plainMaterial, material] : [plainMaterial, material]
+    const zoneOf = (x: number, lowest: number, z: number, radius: number) => (showsMore(x, lowest, z, radius) ? materials.length - 1 : paved(x, z, radius) ? materials.length - 2 : 0)
+    const { index, counts } = splitTriangles(world, geometry.getIndex()?.array, zoneOf, materials.length)
     geometry.setIndex(new BufferAttribute(index, 1))
     geometry.clearGroups()
-    geometry.addGroup(0, plain, 0)
-    geometry.addGroup(plain, index.length - plain, 1)
-    mesh.material = [plainMaterial, material]
+    let start = 0
+    counts.forEach((count, zone) => {
+      if (count > 0) geometry.addGroup(start, count, zone)
+      start += count
+    })
+    mesh.material = materials
   }
   /** The bed laid, and the one last asked for; the same for the ground under the wells. */
   let bedAsked = bed?.texture
@@ -587,6 +606,7 @@ export async function floor(
       roadRelief.value = look.relief
       const roadAngle = (look.rotation * Math.PI) / 180
       roadTurn.value.set(Math.cos(roadAngle), Math.sin(roadAngle))
+      layZones()
     },
     setRoad(field) {
       if (!roadSet) return
@@ -596,6 +616,8 @@ export async function floor(
       was.dispose()
       roadBox.value.set(field.minX, field.minZ, 1 / field.cell, 0)
       roadLast.value.set(field.columns - 1, field.rows - 1)
+      roadLaid = field
+      layZones()
     },
     setWells(wells) {
       if (!wellSet) return

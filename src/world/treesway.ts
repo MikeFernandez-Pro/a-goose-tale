@@ -10,9 +10,10 @@
 // swing alike. Both change smoothly along a branch, so the wood stays joined.
 // The gusts drift over the plain, not over a tree, so they pass from tree to
 // tree downwind.
-import { BufferAttribute, Vector3, type BufferGeometry, type NodeBuilder, type NodeMaterial } from 'three/webgpu'
-import { atan, attribute, cos, float, mx_noise_float, mx_noise_vec3, positionGeometry, positionLocal, renderGroup, rotate, sin, time, uniform, vec3 } from 'three/tsl'
+import { BufferAttribute, DataTexture, LinearFilter, RedFormat, RepeatWrapping, Vector3, type BufferGeometry, type NodeBuilder, type NodeMaterial } from 'three/webgpu'
+import { atan, attribute, cos, float, mx_noise_float, mx_noise_vec3, positionGeometry, positionLocal, renderGroup, rotate, sin, texture, time, uniform, vec2, vec3 } from 'three/tsl'
 import type { Node } from 'three/webgpu'
+import { sampleTiled, tiledNoise } from './groundzones'
 
 /** What the dead trees' wind folder edits, after justASimpleTree's wind section. */
 export interface TreeWindLook {
@@ -46,6 +47,21 @@ const ALONG_BIAS = 0.4 // of the swing, how far it leans downwind on average
 const STANDS = 6
 /** The noise's frequency the beat turns by, 1 / m: about a tree's width, so it barely turns within one. */
 const STANDS_FREQUENCY = 0.1
+
+/**
+ * The noise read from a texture instead, with `noiseMap`: the sway worked out 5 Perlin noises at every vertex of the
+ * wood and the leaves and the flutter 2 more, 3.2 ms of 27 at the game's start on a Mi 9 at dpr 1 (2026-11-06). A
+ * tiled square of gradient noise (groundzones.ts), NOISE_CELLS of it across, read over the plain with the height
+ * sliding it along both ways, as the floor reads its own; a vec3's three channels at three places apart on it.
+ */
+const NOISE_SIZE = 256
+const NOISE_CELLS = 32
+const NOISE_APART = 1.37
+const CHANNELS = [
+  [0, 0],
+  [19.1, 7.7],
+  [5.3, 23.9],
+] as const
 
 /** The trees' wind: their wood and leaves moved by it, its values a uniform each. */
 export interface TreeWind {
@@ -146,7 +162,24 @@ export function cardCentres(geometry: BufferGeometry): void {
  * The wind for trees laid `laid` m tall, their trunks `trunk` m round their middle and their crowns reaching `crown` m
  * out from it, as laid: a point swings on its own as far out past the trunk as it stands, to all of it at the crown's edge.
  */
-export function createTreeWind(laid: number, trunk: number, crown: number): TreeWind {
+export function createTreeWind(laid: number, trunk: number, crown: number, noiseMap = false): TreeWind {
+  const bytes = noiseMap ? tiledNoise(NOISE_SIZE, NOISE_CELLS) : undefined
+  const noiseTexels = bytes && new DataTexture(bytes, NOISE_SIZE, NOISE_SIZE, RedFormat)
+  if (noiseTexels) {
+    noiseTexels.wrapS = noiseTexels.wrapT = RepeatWrapping
+    noiseTexels.magFilter = noiseTexels.minFilter = LinearFilter
+    noiseTexels.needsUpdate = true
+  }
+  /** Three's noise of a vec3, or the texture's at its one level, read in the vertex stage. */
+  const read = (at: Node<'vec3'>): Node<'float'> =>
+    texture(noiseTexels!, vec2(at.x.add(at.y.mul(NOISE_APART)), at.z.add(at.y.mul(NOISE_APART))).div(NOISE_CELLS), 0).r.mul(2).sub(1)
+  const noise = (at: Node<'vec3'>): Node<'float'> => (noiseTexels ? read(at) : mx_noise_float(at))
+  const noise3 = (at: Node<'vec3'>): Node<'vec3'> => (noiseTexels ? vec3(read(at), read(at.add(vec3(CHANNELS[1][0], 0, CHANNELS[1][1]))), read(at.add(vec3(CHANNELS[2][0], 0, CHANNELS[2][1])))) : mx_noise_vec3(at))
+  /** The same on the CPU. */
+  const readAt = (x: number, y: number, z: number) => sampleTiled(bytes!, NOISE_SIZE, (x + y * NOISE_APART) / NOISE_CELLS, (z + y * NOISE_APART) / NOISE_CELLS) * 2 - 1
+  const noiseAt = (x: number, y: number, z: number) => (bytes ? readAt(x, y, z) : noiseFloat(x, y, z))
+  const noise3At = (x: number, y: number, z: number, out: Vector3) =>
+    bytes ? out.set(...(CHANNELS.map(([dx, dz]) => readAt(x + dx, y, z + dz)) as [number, number, number])) : noiseVec3(x, y, z, out)
   const u = {
     strength: uniform(0.1).setGroup(renderGroup),
     speed: uniform(0.83).setGroup(renderGroup),
@@ -167,12 +200,12 @@ export function createTreeWind(laid: number, trunk: number, crown: number): Tree
   // the strength: a breeze moves only the crown, a gale bends the whole tree from the ground. The root never moves.
   const sway = (at: Node<'vec3'>, inTree: Node<'vec3'>) => {
     const drift = at.mul(u.frequency).sub(downwind.mul(time.mul(u.speed)))
-    const gust = mx_noise_float(drift).add(0.6)
-    const turbulence = mx_noise_vec3(drift.add(17.3)).mul(0.35)
+    const gust = noise(drift).add(0.6)
+    const turbulence = noise3(drift.add(17.3)).mul(0.35)
     const reach = float(2).sub(u.strength.clamp(0, 1))
     const bend = inTree.y.div(u.laid).max(0).pow(reach)
     const flex = inTree.xz.length().sub(u.trunk).div(u.span).clamp(0, 1)
-    const phase = atan(inTree.z, inTree.x).add(mx_noise_float(at.mul(STANDS_FREQUENCY)).mul(STANDS))
+    const phase = atan(inTree.z, inTree.x).add(noise(at.mul(STANDS_FREQUENCY)).mul(STANDS))
     const beat = (i: number) => sin(time.mul(SWING[i]! * Math.PI * 2).add(phase).add(i * 2.1)).mul(SWING_SIZE[i]!)
     const own = downwind
       .mul(beat(0).add(ALONG_BIAS))
@@ -186,8 +219,8 @@ export function createTreeWind(laid: number, trunk: number, crown: number): Tree
   const card = attribute('card', 'vec3')
   // A card's flutter: two small angles rocking out of phase with its neighbours, stronger when a gust passes.
   const rocked = () => {
-    const t = time.mul(u.speed).mul(6).add(mx_noise_float(card.mul(7.3)).mul(Math.PI * 4))
-    const gust = mx_noise_float(card.mul(u.frequency).sub(time.mul(u.speed))).add(1)
+    const t = time.mul(u.speed).mul(6).add(noise(card.mul(7.3)).mul(Math.PI * 4))
+    const gust = noise(card.mul(u.frequency).sub(time.mul(u.speed))).add(1)
     const angles = vec3(sin(t), sin(t.mul(1.3).add(1.7)), 0).mul(u.flutter.mul(gust))
     return card.add(rotate(positionGeometry.sub(card), angles))
   }
@@ -211,12 +244,12 @@ export function createTreeWind(laid: number, trunk: number, crown: number): Tree
       const frequency = u.frequency.value
       const strength = u.strength.value
       const drift = [at.x * frequency - dx * t * u.speed.value, at.y * frequency, at.z * frequency - dz * t * u.speed.value] as const
-      const gust = noiseFloat(...drift) + 0.6
-      const turbulence = noiseVec3(drift[0] + 17.3, drift[1] + 17.3, drift[2] + 17.3, scratch).multiplyScalar(0.35)
+      const gust = noiseAt(...drift) + 0.6
+      const turbulence = noise3At(drift[0] + 17.3, drift[1] + 17.3, drift[2] + 17.3, scratch).multiplyScalar(0.35)
       const reach = 2 - Math.min(1, Math.max(0, strength))
       const bend = Math.max(0, inTree.y / laid) ** reach
       const flex = Math.min(1, Math.max(0, (Math.hypot(inTree.x, inTree.z) - trunk) / (crown - trunk)))
-      const phase = Math.atan2(inTree.z, inTree.x) + noiseFloat(at.x * STANDS_FREQUENCY, at.y * STANDS_FREQUENCY, at.z * STANDS_FREQUENCY) * STANDS
+      const phase = Math.atan2(inTree.z, inTree.x) + noiseAt(at.x * STANDS_FREQUENCY, at.y * STANDS_FREQUENCY, at.z * STANDS_FREQUENCY) * STANDS
       const beat = (i: number) => Math.sin(t * SWING[i]! * Math.PI * 2 + phase + i * 2.1) * SWING_SIZE[i]!
       const swing = flex * gust * strength * u.branches.value
       const along = (beat(0) + ALONG_BIAS) * swing

@@ -211,8 +211,8 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   // The goose scenes' dead tree among them, drawn as one of theirs, its gosling riding its branch in their wind.
   // A lean frame's wood about a quarter of its triangles, meshoptimizer choosing, within 2 cm of the whole: on the Mi 9
   // at dpr 2 (2026-11-06, 4 loads each, interleaved) the start 65 -> 54 ms, the dead tree 46 -> 35, the pond 46 -> 42,
-  // its load no slower. `?treelod=N` for another share, `=1` for all of it.
-  const deadTreesMesh = await createDeadTrees(deadTreeLook.wood, groundAt, gooseScenes.treeWood, Math.min(Number(url.get('treelod')) || (lean ? LEAN_WOOD : 1), 1))
+  // its load no slower. `?treelod=N` for another share, `=1` for all of it; `?windmap=0` for the wind's Perlin noise.
+  const deadTreesMesh = await createDeadTrees(deadTreeLook.wood, groundAt, gooseScenes.treeWood, Math.min(Number(url.get('treelod')) || (lean ? LEAN_WOOD : 1), 1), lean && url.get('windmap') !== '0')
   deadTreesMesh.setLeaves(deadTreeLeaves)
   deadTreesMesh.setBark(deadTreeBark)
   deadTreesMesh.setWind(deadTreeWind)

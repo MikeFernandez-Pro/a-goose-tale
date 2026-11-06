@@ -1,5 +1,5 @@
 // How much of the look a device draws: a ladder of steps, from the whole look
-// down to fewer rats, and a governor that moves along it by how the frames
+// down to a baked moon, and a governor that moves along it by how the frames
 // come. Too many slow frames, and it steps down; a while of smooth ones, and
 // it tries a step up. No renderer and no DOM, so it is tested in Node.
 //
@@ -28,29 +28,32 @@ export function maxPixelRatio(deviceDpr: number, width: number, height: number):
   return Math.min(deviceDpr, 2, Math.sqrt(MAX_PIXELS / (width * height)))
 }
 
-/** One step of the ladder: what is drawn, and the share of the rats asked for. */
+/** One step of the ladder: what is drawn; `moon`, whether the moon's map is drawn live round him or baked once (moonbake.ts). */
 export interface Step {
   dof: boolean
   ao: boolean
   dpr: number
-  rats: number
+  moon: boolean
 }
 
 /**
  * The ladder for a screen whose pixel ratio is drawn at `maxDpr` at most:
  * depth of field off, then AO, then the pixel ratio down to 1.5 and 1, then
- * half the rats and a quarter. A pixel ratio the screen does not go above is
- * no step.
+ * the moon baked. A pixel ratio the screen does not go above is no step.
+ * The rats are never a step: a tenth of them saved nothing on the PC, the
+ * iPhone or the Mi 9 (2026-11-02 to 11-06), and fewer would make the game
+ * easier where it runs slower. The live moon's map is redrawn on most frames
+ * with every caster in it, 6 of a frame's 8.9 million triangles at the dead
+ * tree (RTX 5080, 2026-11-06), what a weak GPU feels most.
  */
 export function ladder(maxDpr: number): Step[] {
   const steps: Step[] = [
-    { dof: true, ao: true, dpr: maxDpr, rats: 1 },
-    { dof: false, ao: true, dpr: maxDpr, rats: 1 },
-    { dof: false, ao: false, dpr: maxDpr, rats: 1 },
+    { dof: true, ao: true, dpr: maxDpr, moon: true },
+    { dof: false, ao: true, dpr: maxDpr, moon: true },
+    { dof: false, ao: false, dpr: maxDpr, moon: true },
   ]
-  for (const dpr of [1.5, 1]) if (dpr < maxDpr) steps.push({ dof: false, ao: false, dpr, rats: 1 })
-  const lowest = steps[steps.length - 1].dpr
-  for (const rats of [0.5, 0.25]) steps.push({ dof: false, ao: false, dpr: lowest, rats })
+  for (const dpr of [1.5, 1]) if (dpr < maxDpr) steps.push({ dof: false, ao: false, dpr, moon: true })
+  steps.push({ dof: false, ao: false, dpr: steps[steps.length - 1].dpr, moon: false })
   return steps
 }
 
@@ -63,13 +66,11 @@ export function startingStep(steps: Step[], phone: boolean): number {
 const WINDOW = 1500
 /** After a change of step, frames are not judged for this long, ms: the new pipeline compiles, and the first frames hitch. */
 const SETTLE = 1000
-/** A frame longer than this is slow, ms: past one vsync at 60 Hz. */
-const SLOW_FRAME = 20
 /**
- * On a phone, past two: a steady 30 fps is what it is asked for, 60 where it can, and chasing 60 on one that holds 30
- * would only take its sharpness and its rats, down to the last step.
+ * A frame longer than this is slow, ms: past one vsync at 60 Hz. A phone too, since 2026-11-06: 60 fps at a pixel
+ * ratio of 1 before 30 at 1.5 (as asked); it held 36, past two, content with 30.
  */
-export const PHONE_SLOW_FRAME = 36
+const SLOW_FRAME = 20
 /** More than this share of slow frames in a window, and the device is not keeping up. */
 const SLOW_SHARE = 0.25
 /** A gap longer than this is no frame, ms: the tab put away, or the page paused. */
@@ -78,6 +79,12 @@ const GAP = 250
 const UP_WAIT = 5000
 /** Tries at a step before it is given up. */
 const TRIES = 2
+/**
+ * A step up that falls back this soon after it is tried failed, ms, though its first frames kept up: on a Mi 9 at the
+ * start, 1.5 held a few seconds each time as the rats gathered, then fell, and was tried again every 15 to 30 s for
+ * minutes, a second's settle each time (2026-11-06).
+ */
+const FAIL_WITHIN = 10000
 
 export class Quality {
   /** The step drawn now: an index into the ladder, 0 the whole look. */
@@ -95,6 +102,8 @@ export class Quality {
   private upWait = UP_WAIT
   /** Stepped up and not yet judged at the new step: slow there, and the try failed. */
   private trying = false
+  /** When the last step up was tried, ms; none since the last step down. */
+  private triedAt = -Infinity
 
   constructor(
     readonly steps: Step[],
@@ -129,9 +138,10 @@ export class Quality {
     this.windowStart = -1
     if (!keepingUp) {
       this.smooth = 0
-      if (this.trying) {
-        // The step up was too slow: back down, wait longer, and after enough tries give it up.
+      if (this.trying || now - this.triedAt < FAIL_WITHIN) {
+        // The step up was too slow, at once or soon after: back down, wait longer, and after enough tries give it up.
         this.trying = false
+        this.triedAt = -Infinity
         if (++this.failures[this.level] >= TRIES) this.ceiling = this.level + 1
         this.upWait *= 2
       }
@@ -145,6 +155,7 @@ export class Quality {
     this.smooth += length
     if (this.smooth < this.upWait || this.level <= this.ceiling) return false
     this.trying = true
+    this.triedAt = now
     return this.change(this.level - 1, now)
   }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_PIXELS, PHONE_SLOW_FRAME, Quality, ladder, maxPixelRatio, startingStep } from './quality'
+import { MAX_PIXELS, Quality, ladder, maxPixelRatio, startingStep } from './quality'
 
 /** Feed `q` frames `ms` apart for `duration` ms from `at`; returns the time after the last frame and the levels it moved to. */
 function run(q: Quality, ms: number, duration: number, at = 0): { at: number; levels: number[] } {
@@ -23,26 +23,25 @@ function runUneven(q: Quality, duration: number, at = 0): { at: number; levels: 
 }
 
 describe('ladder', () => {
-  it('steps down depth of field, then AO, then the pixel ratio, then the rats', () => {
+  it('steps down depth of field, then AO, then the pixel ratio, then the moon to a baked one', () => {
     expect(ladder(2)).toEqual([
-      { dof: true, ao: true, dpr: 2, rats: 1 },
-      { dof: false, ao: true, dpr: 2, rats: 1 },
-      { dof: false, ao: false, dpr: 2, rats: 1 },
-      { dof: false, ao: false, dpr: 1.5, rats: 1 },
-      { dof: false, ao: false, dpr: 1, rats: 1 },
-      { dof: false, ao: false, dpr: 1, rats: 0.5 },
-      { dof: false, ao: false, dpr: 1, rats: 0.25 },
+      { dof: true, ao: true, dpr: 2, moon: true },
+      { dof: false, ao: true, dpr: 2, moon: true },
+      { dof: false, ao: false, dpr: 2, moon: true },
+      { dof: false, ao: false, dpr: 1.5, moon: true },
+      { dof: false, ao: false, dpr: 1, moon: true },
+      { dof: false, ao: false, dpr: 1, moon: false },
     ])
   })
 
   it('leaves out the pixel ratios a screen does not go above', () => {
-    expect(ladder(1).map((s) => s.dpr)).toEqual([1, 1, 1, 1, 1])
-    expect(ladder(1.5).map((s) => s.dpr)).toEqual([1.5, 1.5, 1.5, 1, 1, 1])
+    expect(ladder(1).map((s) => s.dpr)).toEqual([1, 1, 1, 1])
+    expect(ladder(1.5).map((s) => s.dpr)).toEqual([1.5, 1.5, 1.5, 1, 1])
   })
 
   it('starts a phone without depth of field or AO, and anything else with the whole look', () => {
     const steps = ladder(2)
-    expect(steps[startingStep(steps, true)]).toEqual({ dof: false, ao: false, dpr: 2, rats: 1 })
+    expect(steps[startingStep(steps, true)]).toEqual({ dof: false, ao: false, dpr: 2, moon: true })
     expect(startingStep(steps, false)).toBe(0)
   })
 })
@@ -120,6 +119,24 @@ describe('Quality', () => {
     expect(q.level).toBe(2)
   })
 
+  it('counts a step up that slows a few seconds in as a failed try, and gives it up after two', () => {
+    const q = new Quality(ladder(2), 2)
+    let at = 0
+    let upAt = 0
+    const levels: number[] = []
+    // At step 1 the frames keep up for 3 s, then come too slowly: as a crowd gathering round him.
+    for (let i = 0; i < 20000; i++) {
+      const ms = q.level <= 1 && at - upAt > 3000 ? 25 : 16.7
+      at += ms
+      if (q.frame(ms, at)) {
+        levels.push(q.level)
+        if (q.level === 1) upAt = at
+      }
+    }
+    expect(levels).toEqual([1, 2, 1, 2])
+    expect(q.level).toBe(2)
+  })
+
   it('waits longer before trying a step up again after one has failed', () => {
     const q = new Quality(ladder(2), 2)
     let at = 0
@@ -132,36 +149,5 @@ describe('Quality', () => {
     expect(ups).toHaveLength(2)
     // The first try comes after the first wait; the second after a longer one, counted from the step back down.
     expect(ups[1] - ups[0]).toBeGreaterThan(ups[0] * 1.5)
-  })
-})
-
-describe('a phone, content with 30 fps', () => {
-  const steps = ladder(2).slice(2)
-
-  it('holds its step at a steady 30 fps, where a computer would step down', () => {
-    const phone = new Quality(steps, 0, PHONE_SLOW_FRAME)
-    expect(run(phone, 33.4, 20000).levels).toEqual([])
-    expect(phone.level).toBe(0)
-    const computer = new Quality(steps, 0)
-    expect(run(computer, 33.4, 20000).levels).not.toEqual([])
-  })
-
-  it('holds it through frames that come unevenly between one vsync and two', () => {
-    const phone = new Quality(steps, 0, PHONE_SLOW_FRAME)
-    expect(runUneven(phone, 20000).levels).toEqual([])
-  })
-
-  it('steps down once it misses 30 fps', () => {
-    const phone = new Quality(steps, 0, PHONE_SLOW_FRAME)
-    expect(run(phone, 50, 5000).levels[0]).toBe(1)
-  })
-
-  it('comes back up a step it dropped, once that step holds 30 fps', () => {
-    const phone = new Quality(steps, 0, PHONE_SLOW_FRAME)
-    const { at } = run(phone, 50, 3000)
-    expect(phone.level).toBeGreaterThan(0)
-    const from = phone.level
-    const { levels } = run(phone, 33.4, 12000, at)
-    expect(levels[0]).toBe(from - 1)
   })
 })
