@@ -96,6 +96,11 @@ export function createBench({ benchTools, goosePlay, look, tilt, scene, water, q
   if (!benchTools || url.get('bench') === 'load') return undefined
   const play = goosePlay
   const everyGosling = () => play.giveGoslings(play.goslings.length)
+  // Back at the start first: the costs are read at the slowest place after the tour, and giving the goslings moves no one.
+  const atTheStart = () => {
+    play.standAtStart()
+    everyGosling()
+  }
   debugKeys.torchEverlasting = true
   const benchMode = url.get('bench')
   const soaking = benchMode === 'soak'
@@ -115,12 +120,12 @@ export function createBench({ benchTools, goosePlay, look, tilt, scene, water, q
     walks.push({ name: `${round} up`, go: () => hold('KeyW'), settle }, { name: `${round} back`, go: () => hold('KeyS'), settle }, { name: `${round} stand`, go: () => hold(''), settle })
   }
   const places: BenchPlace[] = soaking ? walks : !everything ? [
-    { name: 'start', go: everyGosling, settle: ratsCome },
+    { name: 'start', go: atTheStart, settle: ratsCome },
     { name: 'dead tree', go: () => play.standBy('tree') },
     { name: 'pond', go: () => play.standByPond() },
   ] : [
     { name: 'start, no gosling', go: () => play.standAtStart() },
-    { name: 'start', go: everyGosling, settle: ratsCome },
+    { name: 'start', go: atTheStart, settle: ratsCome },
     { name: 'well', go: () => play.standBy('well') },
     { name: 'dead tree', go: () => play.standBy('tree') },
     { name: 'cage', go: () => play.standBy('cage') },
