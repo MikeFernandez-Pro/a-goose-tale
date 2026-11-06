@@ -35,8 +35,11 @@ export const ISLAND_BUSH_KEEP = 0.35
 /** How far the burning tree is turned, rad. */
 const BURNING_TURN = 0.6
 
+/** The share of the trees' wood triangles a lean frame draws. */
+const LEAN_WOOD = 0.25
+
 /** The roadside, made and laid on what the page has made. */
-export async function createRoadside({ scene, goosePlay, lights, fakeLamps, backend, renderer, groundAt, pondLook, gooseFloorBox, roadShape, roadLook, ground, look, gooseTheme, gooseScenes, fallingLeaves, dev }: {
+export async function createRoadside({ scene, goosePlay, lights, fakeLamps, backend, renderer, groundAt, pondLook, gooseFloorBox, roadShape, roadLook, ground, look, gooseTheme, gooseScenes, fallingLeaves, dev, lean }: {
   scene: Scene
   goosePlay: GoosePlay<PlaySwarm>
   lights: Lights
@@ -54,6 +57,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   gooseScenes: GooseScenes
   fallingLeaves: ReturnType<typeof createFallingLeaves> | undefined
   dev: Pick<typeof import('../dev/devtools'), 'GUI'> | undefined
+  lean: boolean
 }) {
   // Ghost geese (`?ghosts`, `=float`, `=rag` or `=ball`, `&ghostcount=`), cloth sheets on the GPU (ghosts.ts); WebGPU only.
   // `?graveyard` (the game's default, ball ghosts): they walk the graveyard's chain behind the last fire as
@@ -205,7 +209,10 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   const deadTreeLeaves = defaultLeafLook()
   const deadTreeWind = defaultTreeWindLook()
   // The goose scenes' dead tree among them, drawn as one of theirs, its gosling riding its branch in their wind.
-  const deadTreesMesh = await createDeadTrees(deadTreeLook.wood, groundAt, gooseScenes.treeWood)
+  // A lean frame's wood about a quarter of its triangles, meshoptimizer choosing, within 2 cm of the whole: on the Mi 9
+  // at dpr 2 (2026-11-06, 4 loads each, interleaved) the start 65 -> 54 ms, the dead tree 46 -> 35, the pond 46 -> 42,
+  // its load no slower. `?treelod=N` for another share, `=1` for all of it.
+  const deadTreesMesh = await createDeadTrees(deadTreeLook.wood, groundAt, gooseScenes.treeWood, Math.min(Number(url.get('treelod')) || (lean ? LEAN_WOOD : 1), 1))
   deadTreesMesh.setLeaves(deadTreeLeaves)
   deadTreesMesh.setBark(deadTreeBark)
   deadTreesMesh.setWind(deadTreeWind)

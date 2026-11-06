@@ -902,10 +902,23 @@ export function createBark(foot: FootGrass): Bark {
 /**
  * The dead trees, none laid yet, each of the file's trees an instanced mesh a stretch, in one shell of `wood`, standing
  * on the ground `groundAt` has under it; and the scenes' `own` trees, each the wood of a file of justASimpleTree's, its
- * foot on its origin, its uvs a metre of the file a unit, laid as the files' are.
+ * foot on its origin, its uvs a metre of the file a unit, laid as the files' are; about `woodShare` of each wood's
+ * triangles kept, meshoptimizer choosing, all of them at 1.
  */
-export async function createDeadTrees(wood: number, groundAt: (x: number, z: number) => number = () => 0, own: readonly BufferGeometry[] = []): Promise<DeadTreesMesh> {
+export async function createDeadTrees(wood: number, groundAt: (x: number, z: number) => number = () => 0, own: readonly BufferGeometry[] = [], woodShare = 1): Promise<DeadTreesMesh> {
   const files = await Promise.all(TREES.files.map((file) => modelLoader().loadAsync(file)))
+  const simplifier = woodShare < 1 ? (await import('meshoptimizer/simplifier')).MeshoptSimplifier : undefined
+  await simplifier?.ready
+  /** `geometry`'s triangles cut to about `woodShare` of them, its vertices as they were: its seams and uvs kept. */
+  const simplify = (geometry: BufferGeometry) => {
+    const index = geometry.index
+    if (!simplifier || !index) return
+    const position = geometry.getAttribute('position')
+    const points = new Float32Array(position.count * 3)
+    for (let k = 0; k < position.count; k++) points.set([position.getX(k), position.getY(k), position.getZ(k)], k * 3)
+    const [kept] = simplifier.simplify(Uint32Array.from(index.array), points, 3, Math.floor((index.count * woodShare) / 3) * 3, 1)
+    geometry.setIndex(new BufferAttribute(kept, 1))
+  }
   // Each tree on its own foot, laid as tall as the file has them; its leaves, where it has them, sized with it, a
   // kind of leaves for each kind of tree.
   const kinds: BufferGeometry[] = []
@@ -918,6 +931,7 @@ export async function createDeadTrees(wood: number, groundAt: (x: number, z: num
     for (let k = 0; k < uvs.count; k++) uvs.setXY(k, uvs.getX(k) * size, uvs.getY(k) * size)
     geometry.setAttribute('uv', uvs)
     thinTips(geometry)
+    simplify(geometry)
     return geometry
   }
   const crowns: BufferGeometry[] = []

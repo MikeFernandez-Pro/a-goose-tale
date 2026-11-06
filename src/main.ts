@@ -317,7 +317,7 @@ scene.add(goslings.object)
 const GOSLING_SEEN = 1
 // The ground laid under each well, where the play stands it.
 ground.setWells(goosePlay.scenes.filter((s) => s.kind === 'well'))
-const roadside = await createRoadside({ scene, goosePlay, lights, fakeLamps, backend, renderer, groundAt, pondLook, gooseFloorBox, roadShape, roadLook, ground, look, gooseTheme, gooseScenes, fallingLeaves, dev })
+const roadside = await createRoadside({ scene, goosePlay, lights, fakeLamps, backend, renderer, groundAt, pondLook, gooseFloorBox, roadShape, roadLook, ground, look, gooseTheme, gooseScenes, fallingLeaves, dev, lean })
 const { graveyard, ghosts, graves, graveCandles, deadTreesMesh, deadTreeShine, deadTreeGrass, bushesMesh, gooseSee, gooseSeeLook, gooseSeeZone, cutSeenThrough } = roadside
 const fires = createPlainFires({ scene, goosePlay, burningTreeLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats })
 const { burningBranch, branchEmbers, plainFlames, branchFlared } = fires
