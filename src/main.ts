@@ -32,7 +32,7 @@ import { DEATH_DOWN } from './characters/goosedeath'
 import { defaultBedLook, defaultRoadLook, defaultWellGroundLook, floor } from './world/ground'
 import { defaultRoadShape } from './world/road'
 import { lightAndPause } from './ui/lightandpause'
-import { GoosePlay } from './game/gooseplay'
+import { GoosePlay, inZone } from './game/gooseplay'
 import { createGoslings, defaultGoslingSpeeds, GOSLING_HEIGHT } from './characters/goslings'
 import { layPieces, BURNING_LIGHT, CAGE_FIRE_LIGHT, PIT_LIGHT, spawnTree, TREE_FIRE_LIGHT, TREE_LIGHT, WELL_LIGHT, createGooseScenes } from './game/goosescenes'
 import { besideOf } from './ui/holdhint'
@@ -56,7 +56,7 @@ import { createTiltShift } from './look/tiltshift'
 import { createFallingLeaves, defaultFallLook, mountFallControls } from './world/fallingleaves'
 import { createFakeLamps, shown as drawnInScene } from './light/fakelamps'
 import { createFireShadow, defaultFireShadowLook } from './light/fireshadow'
-import type { PhoneBench } from './dev/phonebench'
+import type { Bench } from './dev/pagebench'
 import { OPENING, cowering, litShare, ratsOut, startled } from './game/openingscript'
 import { RemoteSwarm } from './swarm/swarm-remote'
 import { createDrawing } from './look/drawing'
@@ -141,18 +141,22 @@ const ground = await floor(look.floor.texture, {
 /** The burning branch, where the route lays one, held by its butt in his bill: out to his right, forward and up, under half as long as he is tall, a fifth of it back past his bill. */
 const BRANCH_HELD = { way: [-0.75, 0.42, 0.5], length: 0.4, behind: 0.2 } as const
 const goose = await createGoose(ROUTE.start.branch !== undefined ? { torchless: BRANCH_HELD } : {})
+goose.object.name = 'goose'
 scene.add(goose.object)
 // The panel starts the goose's parts at the colours its character or its file has.
 look.goose.parts = goose.parts.map((part) => ({ ...part }))
 const flame = createFlame()
+flame.object.name = 'torch flame'
 scene.add(flame.object)
 const embers = createEmbers()
+embers.object.name = 'torch embers'
 scene.add(embers.object)
 // Feathers a bite knocks off him (biteFrame).
 const feathers = createFeathers()
 scene.add(feathers.object)
 // The smoke: a trail of the flame's tip, in the world as the embers are.
 const smoke = createSmoke()
+smoke.object.name = 'torch smoke'
 scene.add(smoke.object)
 // None of the torch casts a shadow, and all of it is unshaded: the flame is light,
 // and darkens nothing round it by its occlusion; and the occlusion and the outlines of what stands behind it are not drawn over it.
@@ -169,6 +173,7 @@ const torchRest = new Vector3()
 const flameAt = new Vector3()
 const flameTip = new Vector3()
 const flameOffset = new Vector3()
+ground.mesh.name = 'ground'
 scene.add(ground.mesh)
 // The frame goes through one scene pass and the effects after it: the ambient occlusion under its fog, the outlines, the palette.
 // With `?tilt` (the game's default), the tilt-shift: the depth of field's blur by a band across the screen (tiltshift.ts).
@@ -214,7 +219,7 @@ const pondPlace = { x: pondLook.x, z: pondLook.z, widest: widestShore(pondLook) 
 const gooseGround = rollingGround(goosePlain, pondPlace, gooseFloorBox, rollingLook)
 // Leaves falling round him, to the rolling ground (fallingleaves.ts), with a panel of their own.
 const fallingLeaves = url.get('leaves') === '0' ? undefined : createFallingLeaves(gooseGround, defaultFallLook())
-if (fallingLeaves) scene.add(fallingLeaves.object)
+if (fallingLeaves) scene.add(Object.assign(fallingLeaves.object, { name: 'falling leaves' }))
 // On WebGPU the rats are culled and drawn on the GPU (ADR-0052); WebGL 2, or `?batch`, draws them as the batch.
 /** How much bigger a lean frame draws its rats, their spacing as it was: fewer of them, and smaller on a phone's screen. */
 const LEAN_RAT_SCALE = 1.15
@@ -303,11 +308,13 @@ const looks = goosePlay.layout.lights.map((_, k) => {
 // The braziers and ghosts lit as fake lamps (fakelamps.ts): one loop in each lit shader, not a point light written out
 // in each; the torch's lamp stays a point light.
 const fakeLamps = createFakeLamps()
+fakeLamps.name = 'fire lamps'
 scene.add(fakeLamps)
 // Those whose reach the camera does not see left out; `?lampcull=0` for the bench to price it.
 if (url.get('lampcull') !== '0') fakeLamps.view = camera
 // The braziers' lamps are not cut to their lit areas: the plain has no walls (see the torch's lamp below).
 const lights = createLights(layout.lights, seen.texture, swarmTime, layout.start, { looks, groundAt, masked: false, lamps: fakeLamps })
+lights.object.name = 'braziers'
 scene.add(lights.object)
 /** The pond's water as drawn, the swarm's to hold the rats off: its shore, as the pond folder last laid it. */
 const pondWater = (look: PondLook) => shoreLight(look.x, look.z, (angle) => shoreAt(look, angle))
@@ -318,10 +325,12 @@ const goslingSize = { height: GOSLING_HEIGHT }
 const goslings = await createGoslings(goosePlay, pondLook, goslingSpeeds, groundAt, goslingSize)
 // The game's scenes: the well and the dead tree (#190).
 const gooseScenes = await createGooseScenes(goosePlay, standAt)
+gooseScenes.object.name = 'scenes'
 scene.add(gooseScenes.object)
 feel.key.taken = gooseScenes.keyTaken
 // Its shell laid now, before the panel reads the cart's and the corpse's highlight and rim, which start as it.
 gooseScenes.setShell(look.goose)
+goslings.object.name = 'goslings'
 scene.add(goslings.object)
 /** How far round a gosling's feet the camera's view must reach to draw him, m: the bird and his shadow on the ground. */
 const GOSLING_SEEN = 1
@@ -393,6 +402,7 @@ addEventListener('pagehide', (event) => {
 })
 rats.setSize(settings.size * (lean ? LEAN_RAT_SCALE : 1))
 rats.setSizeBySpeed(settings.sizeBySpeed)
+rats.object.name = 'rats'
 scene.add(rats.object)
 // The goose and his goslings shadow the fire he stands in, away from its flame, on the ground (fireshadow.ts): a
 // projector's mask of them, drawn every frame, the floor's shader reading it. None on a lean frame, the floor's shader
@@ -401,8 +411,8 @@ const fireShadowLook = defaultFireShadowLook()
 const fireShadow = moon === 'none' || lean ? undefined : createFireShadow(renderer, fakeLamps, fireShadowLook, [ground.mesh])
 const fireCasters = [goose.object, goslings.object]
 const gooseMiddle = new Vector3()
-/** The fire's shadow not drawn, and the share of the rats asked for: for `?bench` to price them. */
-const benchHolds = { fireShadows: false, ratShare: 1 }
+/** The fire's shadow not drawn and the share of the rats asked for, for `?bench` to price them; the walk and the interact key of `?bench=route`'s player. */
+const benchHolds = { fireShadows: false, ratShare: 1, toward: null as { x: number; z: number } | null, interact: false }
 function layFireShadows(): void {
   if (!fireShadow) return
   goose.object.getWorldPosition(gooseMiddle)
@@ -792,7 +802,7 @@ function watchFrames(ms: number) {
 /** Whether the quality has moved to a step not yet drawn at. */
 let qualityDue = false
 /** Built on the first frame the game is in, with the load's time known. */
-let bench: PhoneBench | undefined
+let bench: Bench | undefined
 let benchMade = false
 
 // What is drawn over the game for the eye, its hints and marks: a screen reader has the canvas's words instead. Not on
@@ -865,14 +875,14 @@ renderer.setAnimationLoop(() => {
       ending.walk()
     } else if (!opening.running()) {
       // His walk eased to the one asked: a little weight to him, starting and stopping.
-      const share = view.walkFrame(view.heading(input.commands.walk), dt)
+      const share = view.walkFrame(benchHolds.toward ?? view.heading(input.commands.walk), dt)
       // Slower in the water: his walking pace given way to his swimming one as he takes to it.
       const swimming = swimmingIn(pondLook, run.holder.x, run.holder.z, pondLook.goose)
       goosePlay.settings.pace = settings.goosePace * (1 + (pondLook.goose.pace - 1) * swimming) * share
       if (debugKeys.torchEverlasting) run.fuel = 1
       goosePlay.frame(dt, {
         heading: share > 0 ? { x: view.walking.x, z: view.walking.z } : null,
-        interact: input.commands.interact,
+        interact: input.commands.interact || benchHolds.interact,
         look: view.kind === 'chase' ? view.drawnForward : null,
       })
       // The ending's music asked for when the last gosling is found, not held all the game.
@@ -940,7 +950,7 @@ renderer.setAnimationLoop(() => {
   const dark: Dark | undefined =
     settings.bringRound ? { x: shown.x, z: shown.z, radius: darkRadius() + margin, view: view.groundView(margin) } : undefined
   const ratsCome = arrive.comeFrame(dt)
-  const wanted = fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, Math.round((settings.rats + arrive.forGoslings()) * benchHolds.ratShare))
+  const wanted = Math.round((fewRats ? Math.min(capacity, FEW_RATS) : Math.min(capacity, settings.rats + arrive.forGoslings())) * benchHolds.ratShare)
   // Held till the strike, but stepped once on the loading screen with the rest, so its first step builds nothing.
   const ratsHeld = opening.on && !ratsOut(opening.t) && !loading
   if (opening.on && !arrive.rushed && ratsOut(opening.t) && dark) {
@@ -1045,7 +1055,7 @@ renderer.setAnimationLoop(() => {
   if (!loading) {
     if (!benchMade) {
       benchMade = true
-      bench = pageBench?.createBench({ benchTools, goosePlay, look, tilt, scene, water, quality, renderer, lookChanged, rats, deadTreesMesh, bushesMesh, ground, prepassOn, fallingLeaves, goose, goslings, graveyard, ghosts, backend, lean, moon, run, swarm, gpuQueue, debugKeys, holds: benchHolds, url, ratsAfter: RATS_AFTER })
+      bench = pageBench?.createBench({ benchTools, goosePlay, look, tilt, scene, water, quality, renderer, lookChanged, rats, deadTreesMesh, bushesMesh, ground, prepassOn, fallingLeaves, goose, goslings, graveyard, ghosts, backend, lean, moon, run, swarm, gpuQueue, debugKeys, holds: benchHolds, url, ratsAfter: RATS_AFTER, opening, ending, inZone, fakeLamps, camera })
     }
     if (bench) goosePlay.life = 1
     bench?.frame(frame * 1000, performance.now() - start, performance.now())

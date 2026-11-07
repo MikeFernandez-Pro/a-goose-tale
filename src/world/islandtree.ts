@@ -348,6 +348,9 @@ export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeL
     const x = centres.getX(k) * scale
     const z = centres.getZ(k) * scale
     return { x: at.x + x * cos + z * sin, y: foot + centres.getY(k) * scale, z: at.z - x * sin + z * cos }
+  woodStretch.object.name = 'island tree wood'
+  crownStretch.object.name = 'island tree leaves'
+  fall.object.name = 'island tree falling leaves'
   }
   const downwind = () => {
     const angle = (look.wind.direction * Math.PI) / 180

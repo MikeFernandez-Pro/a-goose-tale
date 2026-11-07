@@ -64,6 +64,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   if (waterAsked) Object.assign(waterLook, waterAsked.look)
   const water = await createWater(waterLook, nightLights.sunShadowSeen)
   const pond = createPond(ground.mesh, gooseFloorBox, pondLook, water.material, (field) => ground.setShore(field), gooseGround)
+  pond.object.name = 'pond'
   scene.add(pond.object)
   // The goose's nest on the island's crown, pine needle cards round a hollow (nest.ts), laid again with the pond.
   const nestLook = defaultNestLook()
@@ -82,6 +83,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
     const z = middle.z + nestLook.z
     return out.set(x, groundOf(pondLook, x, z), z)
   }
+  nest.object.name = 'nest'
   scene.add(nest.object)
   layNest()
   /**
@@ -96,6 +98,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   const islandFireFlame = plainFlame()
   const islandFireLamp = fakeLamps.track(new FakeLamp(fireLook.lamp, islandFireLook.intensity, islandFireLook.reach, 0))
   const islandFireScale = islandFireModel.scale.x
+  islandFireModel.name = 'island fire'
   scene.add(islandFireModel)
   scene.add(islandFireLamp)
   /** Where the bonfire's foot is now: off the island's middle, on the ground there. */
@@ -114,15 +117,18 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   layIslandFire()
   // The tent on the island's crown (tent.ts), stood again with the pond.
   const tent = await createTent()
+  tent.object.name = 'tent'
   scene.add(tent.object)
   tent.set(pondLook)
   // The breakfast in front of the island's oak (picnic.ts), laid again with the pond.
   const picnic = await createPicnic()
+  picnic.object.name = 'picnic'
   scene.add(picnic.object)
   picnic.set(pondLook)
   // The oak on the island's top left, in leaf, in a wind of its own (islandtree.ts): its crown cut round him as the dead
   // trees' are, its wood left whole. Stood again with the pond.
   const islandTree = await createIslandTree()
+  islandTree.object.name = 'island tree'
   scene.add(islandTree.object)
   roadside.seenThrough.push(islandTree.crown)
   layIslandTree()
@@ -153,6 +159,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
     },
     goslingSize,
   )
+  islandGeese.object.name = 'island geese'
   scene.add(islandGeese.object)
   return {
     waterLook, water, pond,

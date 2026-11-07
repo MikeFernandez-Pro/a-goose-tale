@@ -916,6 +916,7 @@ export async function createGooseScenes(
   let loosePumpkins: { x: number; z: number; turn: number; kind: number }[] = []
   const loose = new Mesh(new BufferGeometry(), pumpkinShell)
   loose.castShadow = loose.receiveShadow = true
+  loose.name = 'pumpkins'
   object.add(loose)
   palette.merge(well, standing)
   palette.merge(winchModel, winding)
@@ -963,6 +964,7 @@ export async function createGooseScenes(
   pitFile?.updateMatrixWorld(true)
   const newPit = () => {
     const group = new Group()
+    group.name = 'fire pit'
     pitFile!.traverse((o) => {
       const mesh = o as Mesh
       if (!mesh.isMesh) return
@@ -1048,6 +1050,7 @@ export async function createGooseScenes(
   }
   const parts = play.scenes.map((scene: SceneState): Part => {
     const group = new Group()
+    group.name = scene.kind
     group.position.set(scene.x, groundAt(scene.x, scene.z), scene.z)
     object.add(group)
     if (scene.kind === 'well') {
@@ -1073,24 +1076,26 @@ export async function createGooseScenes(
     }
     if (scene.kind === 'cage') {
       // Its set on the scene's middle, its campfire on the brazier and its corpse's skull on the play's skull, all turned alike.
-      const placed = (piece: Group, x: number, z: number) => {
+      const placed = (piece: Group, x: number, z: number, name: string) => {
         const copy = piece.clone()
+        copy.name = name
         copy.scale.setScalar(SET_SCALE)
         copy.rotation.y = scene.turn
         copy.position.set(x, groundAt(x, z), z)
         object.add(copy)
         return copy
       }
-      const set = placed(cageSet.set, scene.x, scene.z)
+      const set = placed(cageSet.set, scene.x, scene.z, 'cage set')
       // Its cart where the route stands it: the set's own place for it, moved by the play's `cart`.
-      const cart = placed(cageSet.cart, scene.x + scene.cart.x, scene.z + scene.cart.z)
+      const cart = placed(cageSet.cart, scene.x + scene.cart.x, scene.z + scene.cart.z, 'cart')
       const fire = play.plain.braziers[scene.brazier]!
-      const campfire = placed(cageSet.campfire, fire.x, fire.z)
+      const campfire = placed(cageSet.campfire, fire.x, fire.z, 'campfire')
       const { skull } = scene
-      const corpse = placed(cageSet.corpse, skull.x, skull.z)
-      const key = placed(cageSet.key, scene.key.x, scene.key.z)
+      const corpse = placed(cageSet.corpse, skull.x, skull.z, 'corpse')
+      const key = placed(cageSet.key, scene.key.x, scene.key.z, 'key')
       // Always drawn, at no size till the key glints, so its pipeline is built at the loading with the rest.
       const glint = new Sprite(glintMaterial)
+      glint.name = 'key glint'
       glint.renderOrder = 10
       glint.scale.setScalar(0)
       object.add(glint)

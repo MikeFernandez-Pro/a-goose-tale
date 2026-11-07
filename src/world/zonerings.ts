@@ -15,6 +15,7 @@ export function createZoneRings(scene: Scene, goosePlay: GoosePlay<PlaySwarm>, s
    */
   const refillZones = { show: url.has('zones') || url.has('refill') }
   const refillRings = new Group()
+  refillRings.name = 'refill rings'
   scene.add(refillRings)
   const dipRing = new MeshBasicNodeMaterial({ color: 0xff8a2a, fog: false, depthWrite: false })
   /** A flat ring `radius` m round, its band a few centimetres wide, in `material`. */

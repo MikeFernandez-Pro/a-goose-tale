@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PhoneBench, costsOf, type BenchCost, type BenchPlace, type Reading } from './phonebench'
+import { PhoneBench, Seconds, costsOf, type BenchCost, type BenchPlace, type Reading, type Second } from './phonebench'
 
 const place = (name: string, log: string[]): BenchPlace => ({ name, go: () => log.push(`go ${name}`) })
 const cost = (name: string, log: string[], at?: string): BenchCost => ({ name, off: () => log.push(`off ${name}`), on: () => log.push(`on ${name}`), place: at })
@@ -161,5 +161,28 @@ describe('costsOf', () => {
 
   it('says when a price may be hidden under the vsync, and has none from a queue it never read', () => {
     expect(costsOf([reading('x', 'base', 17, null, false), reading('x', 'off', 17, null)])).toEqual([{ cost: 'x', frameMs: 0, queueMs: null, saturated: false }])
+  })
+})
+
+describe('PhoneBench out of view', () => {
+  it('reads no cost not seen where the costs are read', () => {
+    const log: string[] = []
+    const readings: Reading[] = []
+    const bench = new PhoneBench([place('a', log)], [cost('x', log), { ...cost('y', log), seen: () => false }], { report: (r) => readings.push(r) })
+    play(bench, readings)
+    expect([...new Set(readings.flatMap((r) => (r.cost ? [r.cost] : [])))]).toEqual(['x'])
+  })
+})
+
+describe('Seconds', () => {
+  it('reports each second of frames as it ends: their spread, the longest, and the shares that missed 60 and 30 fps', () => {
+    const seconds: Second[] = []
+    const watch = new Seconds((second) => seconds.push(second))
+    // A second of 16 ms frames with a 25 and a 50 among them, then the start of the next.
+    const frames = [...Array<number>(58).fill(16), 25, 50, 16]
+    let now = 0
+    for (const ms of frames) watch.frame(ms, 2, (now += ms))
+    expect(seconds).toHaveLength(1)
+    expect(seconds[0]).toMatchObject({ frames: 60, frameMs: { max: 50, p50: 16 }, pageMs: { mean: 2 }, missed60: 0.03, missed30: 0.02 })
   })
 })

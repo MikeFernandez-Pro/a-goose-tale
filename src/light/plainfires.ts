@@ -80,6 +80,7 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
     leaveUnshaded(material)
     material.fog = true
   })
+  plainFlames.object.name = 'fires'
   scene.add(plainFlames.object)
   const plainFlame = () => plainFlames.add()
   /** Each scene's fire, a flame a scene. */
@@ -111,13 +112,14 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
    */
   const burningBranch = goosePlay.branch ? createBranch() : undefined
   const branchLook = branchColours()
-  if (burningBranch) scene.add(burningBranch.object)
+  if (burningBranch) scene.add(Object.assign(burningBranch.object, { name: 'burning branch' }))
   const branchFire = burningBranch ? plainFlame() : undefined
   const branchFireLook = sceneFire(0.02, 0.42, 0.26)
   const branchEmbers = burningBranch ? createEmbers() : undefined
   if (branchEmbers) {
     branchEmbers.object.castShadow = false
     leaveUnshaded(branchEmbers.object.material as NodeMaterial)
+    branchEmbers.object.name = 'branch embers'
     scene.add(branchEmbers.object)
   }
   const BRANCH_FROM_UP = 3
@@ -159,7 +161,7 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
     Object.assign(strike.look.sparks, { near: 0xff822e, far: 0xff7b00, fade: 4, brightness: 2.6, count: 128, size: 0.055, seconds: 0.55, reach: 4.5, ease: 7.5, fall: 0.6, round: true })
     strike.look.flash = 0.73
   }
-  if (strike) scene.add(strike.object)
+  if (strike) scene.add(Object.assign(strike.object, { name: 'lightning' }))
   const sceneFireFoot = new Vector3()
   /** A strike's flash, 0 to 1, laid on the night: the fog and sky gone pale, the fill and the sun up, the rats' eyes flaring. */
   function flashFrame(flash: number) {

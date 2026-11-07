@@ -26,6 +26,8 @@ export interface BenchCost {
   on(): void
   /** The place it is read at, where it shows only there; else the slowest. */
   place?: string
+  /** Whether it is in view where it is read, asked there: out of view, it is not read. */
+  seen?(): boolean
 }
 
 export interface Spread {
@@ -218,6 +220,8 @@ export class PhoneBench {
   private planCosts(slowest: string): void {
     for (const cost of this.costs) {
       const place = cost.place ?? slowest
+      // Asked where he stands now, the slowest place: one with a place of its own is read wherever it is.
+      if (cost.place === undefined && cost.seen?.() === false) continue
       for (let round = 0; round < ROUNDS; round++) {
         const sides: Run['side'][] = round % 2 === 0 ? ['base', 'off'] : ['off', 'base']
         for (const side of sides) this.runs.push({ place, cost, side })
@@ -230,6 +234,47 @@ export class PhoneBench {
     this.off = null
     this.done = true
     this.out.show?.('done')
+  }
+}
+
+/** A frame longer than this missed 60 fps, ms: the quality's own bar for a phone's slow frame (quality.ts). */
+const MISSED_60 = 20
+
+/** A second of frames, as `?bench=route` logs its playthrough. */
+export interface Second {
+  frames: number
+  frameMs: Spread & { max: number }
+  pageMs: Spread
+  /** The shares of the frames that missed 60 fps and 30. */
+  missed60: number
+  missed30: number
+}
+
+/** Frames gathered a second at a time, each second reported as it ends. */
+export class Seconds {
+  private frames: number[] = []
+  private page: number[] = []
+  private from = Number.NaN
+
+  constructor(private readonly report: (second: Second) => void) {}
+
+  /** A frame `frameMs` long with `pageMs` of the page's own, ending at `now` ms. */
+  frame(frameMs: number, pageMs: number, now: number): void {
+    if (Number.isNaN(this.from)) this.from = now - frameMs
+    this.frames.push(frameMs)
+    this.page.push(pageMs)
+    if (now - this.from < 1000) return
+    const share = (over: number) => hundredths(this.frames.filter((ms) => ms > over).length / this.frames.length)
+    this.report({
+      frames: this.frames.length,
+      frameMs: { ...spread(this.frames), max: Math.max(...this.frames) },
+      pageMs: spread(this.page),
+      missed60: share(MISSED_60),
+      missed30: share(SLOW_FRAME),
+    })
+    this.frames = []
+    this.page = []
+    this.from = now
   }
 }
 

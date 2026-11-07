@@ -84,7 +84,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
         fakeLamps,
       )
     : undefined
-  if (ghosts) scene.add(ghosts.object)
+  if (ghosts) scene.add(Object.assign(ghosts.object, { name: 'ghosts' }))
   /** The old road's middle as last laid, for the graves to keep off: none till it is, and they are laid again then. */
   let gravesRoad: readonly { x: number; z: number }[] = []
   // Its graves over its ground among the ghosts' paths (graves.ts), clear of the crossings, out of the pond, and off the
@@ -97,10 +97,10 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     onRoad: (x, z, radius) => gravesRoad.length > 0 && offWay(gravesRoad, { x, z }) < roadLook.width / 2 + roadLook.edge + radius,
   }
   const graves = graveGround ? await createGraves(graveGround, groundAt) : undefined
-  if (graves) scene.add(graves.object)
+  if (graves) scene.add(Object.assign(graves.object, { name: 'graves' }))
   // Candles at the graves' feet (gravecandles.ts), laid again whenever the graves are.
   const graveCandles = graves ? await createGraveCandles(groundAt) : undefined
-  if (graveCandles) scene.add(graveCandles.object)
+  if (graveCandles) scene.add(Object.assign(graveCandles.object, { name: 'grave candles' }))
   const layGraveCandles = () => graves && graveCandles?.lay(graves.footprints())
   // No last fire past it: the graveyard runs on to the pond, and the ghosts are its only light. Its light out for the
   // swarm and the play, its stand and flame not drawn; its place still lays the graveyard.
@@ -174,6 +174,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   scene.add(arches.object)
   // The old road's broken walls beside it (roadwalls.ts), as the walls folder edits them: of the arches' stone and in
   // their shell as the page opens, or a theme's, their own from then; `?walls=<kind>` starts with another kind (field, lane, ruins,
+  arches.object.name = 'arches'
   // tumbled, none).
   const roadWallLook = defaultRoadWallLook()
   const wallsAsked = url.get('walls')
@@ -187,6 +188,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   scene.add(roadWalls.object)
   roadWalls.setShell(wallShell)
   // The dead trees either side of the road (deadtrees.ts), behind its walls where by one, as the dead trees folder edits
+  roadWalls.object.name = 'road walls'
   // them: scattered again on every change to it, the road, the arches or the walls; in the scenes' shell, their wood the
   // colour chosen on 2026-10-26, or a bark set the bark folder picks, laid as the floor is; swaying in the wind as
   // justASimpleTree's trees do.
@@ -221,10 +223,12 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   scene.add(deadTreesMesh.object)
   deadTreesMesh.object.position.setY(deadTreeLook.y)
   deadTreesMesh.setTrunk(deadTreeLook.trunk)
+  deadTreesMesh.object.name = 'dead trees'
   deadTreesMesh.setRings(deadTreeLook.rings)
   scene.add(deadTreesMesh.own)
   gooseScenes.swayTree = deadTreesMesh.swayOwn
   // The falling leaves, where they fall, in the dead trees' leaf colours, as the leaves folder sets them: the mid, the
+  deadTreesMesh.own.name = 'scenes\' trees'
   // shadow, the light and the mid again, so the mid falls most, as it shows most on the trees; as much of their own
   // colour shown unlit as the trees'.
   function leavesFallAsTrees(): void {
@@ -244,6 +248,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   scene.add(bushesMesh.object)
   bushesMesh.object.position.setY(bushLook.y)
   // The game's see-through (seethrough.ts): the dead trees between the camera and him, and nothing else since the
+  bushesMesh.object.name = 'bushes'
   // change of 2026-10-26, dithered away round him by Perlin noise, as the see-through folder sets it: on 2026-10-26 a
   // wide hole, 4 m round, cut from him on, in finer blots. A tree's trunk is kept whole
   // (DeadTreesMesh.trunk), so it stands there whatever is dithered away above it: up to 0.09 of its height, under the
@@ -256,6 +261,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   scene.add(gooseSeeZone.object)
   const seenThrough: Object3D[] = [deadTreesMesh.object]
   /** Where the burning tree stands, and how far round its trunk the see-through leaves it whole, m: its crown's reach. */
+  gooseSeeZone.object.name = 'see-through'
   const burningAt = uniform(new Vector2(1e6, 1e6)).setGroup(renderGroup)
   const BURNING_WHOLE = 3.5
   const burningWhole = positionWorld.xz.sub(burningAt).length().lessThan(BURNING_WHOLE)

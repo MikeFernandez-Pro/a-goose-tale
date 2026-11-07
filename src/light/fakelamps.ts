@@ -121,7 +121,8 @@ class FakeLampsNode extends AnalyticLightNode<FakeLamps> {
     this.shadowed.value = -1
     const view = this.light!.view
     const seen = view ? reachSeen(view) : undefined
-    for (const lamp of this.light!.lamps) {
+    // Their one light at 0, every lamp out: the bench prices them so.
+    for (const lamp of this.light!.intensity > 0 ? this.light!.lamps : []) {
       if (n === MAX_FAKE_LAMPS) break
       if (!(lamp.intensity > 0) || !shown(lamp)) continue
       lamp.getWorldPosition(place)
