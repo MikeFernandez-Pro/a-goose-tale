@@ -899,6 +899,21 @@ export function createBark(foot: FootGrass): Bark {
   }
 }
 
+/** What cuts a wood's triangles to about `share` of them, its vertices as they were, its seams and uvs kept: meshoptimizer choosing, nothing at 1. */
+export async function woodSimplifier(share: number): Promise<(geometry: BufferGeometry) => void> {
+  const simplifier = share < 1 ? (await import('meshoptimizer/simplifier')).MeshoptSimplifier : undefined
+  await simplifier?.ready
+  return (geometry) => {
+    const index = geometry.index
+    if (!simplifier || !index) return
+    const position = geometry.getAttribute('position')
+    const points = new Float32Array(position.count * 3)
+    for (let k = 0; k < position.count; k++) points.set([position.getX(k), position.getY(k), position.getZ(k)], k * 3)
+    const [kept] = simplifier.simplify(Uint32Array.from(index.array), points, 3, Math.floor((index.count * share) / 3) * 3, 1)
+    geometry.setIndex(new BufferAttribute(kept, 1))
+  }
+}
+
 /**
  * The dead trees, none laid yet, each of the file's trees an instanced mesh a stretch, in one shell of `wood`, standing
  * on the ground `groundAt` has under it; and the scenes' `own` trees, each the wood of a file of justASimpleTree's, its
@@ -907,18 +922,7 @@ export function createBark(foot: FootGrass): Bark {
  */
 export async function createDeadTrees(wood: number, groundAt: (x: number, z: number) => number = () => 0, own: readonly BufferGeometry[] = [], woodShare = 1, windMap = false): Promise<DeadTreesMesh> {
   const files = await Promise.all(TREES.files.map((file) => modelLoader().loadAsync(file)))
-  const simplifier = woodShare < 1 ? (await import('meshoptimizer/simplifier')).MeshoptSimplifier : undefined
-  await simplifier?.ready
-  /** `geometry`'s triangles cut to about `woodShare` of them, its vertices as they were: its seams and uvs kept. */
-  const simplify = (geometry: BufferGeometry) => {
-    const index = geometry.index
-    if (!simplifier || !index) return
-    const position = geometry.getAttribute('position')
-    const points = new Float32Array(position.count * 3)
-    for (let k = 0; k < position.count; k++) points.set([position.getX(k), position.getY(k), position.getZ(k)], k * 3)
-    const [kept] = simplifier.simplify(Uint32Array.from(index.array), points, 3, Math.floor((index.count * woodShare) / 3) * 3, 1)
-    geometry.setIndex(new BufferAttribute(kept, 1))
-  }
+  const simplify = await woodSimplifier(woodShare)
   // Each tree on its own foot, laid as tall as the file has them; its leaves, where it has them, sized with it, a
   // kind of leaves for each kind of tree.
   const kinds: BufferGeometry[] = []

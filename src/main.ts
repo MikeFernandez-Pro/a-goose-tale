@@ -130,9 +130,10 @@ const ground = await floor(look.floor.texture, {
   wellGround: groundCut.has('wells') ? undefined : wellGroundLook,
   road: roadLook,
   cut: groundCut,
-  // `?groundzones=0`, `?roadzones=0` and `?noisemap=0` for the bench to price them.
+  // `?groundzones=0`, `?roadzones=0`, `?shorezones=0` and `?noisemap=0` for the bench to price them.
   zones: lean && (moon === 'none' || moon === 'baked') && url.get('groundzones') !== '0',
   roadZones: url.get('roadzones') !== '0',
+  shoreZones: url.get('shorezones') !== '0',
   noiseMap: lean && url.get('noisemap') !== '0',
   // No strokes on a lean frame: 4 to 6 ms of 30 to 50 (Mi 9, dpr 2, 2026-11-06), as asked; `?groundstrokes` for them.
   strokes: !lean || url.has('groundstrokes'),
@@ -340,7 +341,7 @@ const roadside = await createRoadside({ scene, goosePlay, lights, fakeLamps, bac
 const { graveyard, ghosts, graves, graveCandles, deadTreesMesh, deadTreeShine, deadTreeGrass, bushesMesh, gooseSee, gooseSeeLook, gooseSeeZone, cutSeenThrough } = roadside
 const fires = createPlainFires({ scene, goosePlay, burningTreeLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats })
 const { burningBranch, branchEmbers, plainFlames, branchFlared } = fires
-const pondWorld = await createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look })
+const pondWorld = await createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look, lean })
 const { waterLook, water, tent, picnic, islandTree, islandGeese } = pondWorld
 const debugKeys = createDebugKeys({ settings, run, goosePlay, pondLook, graveyard, showDeath: () => (felt.deathShownAt = goosePlay.t) })
 /** The game's sounds (goosesounds.ts): none in a take, or with `?mute`; M mutes them. */
@@ -544,7 +545,7 @@ const fewRats = phone
 const FEW_RATS = Number(url.get('rats')) || 100
 const wholeLadder = ladder(maxDpr)
 // A lean frame has no AO to step up to, so no steps with one; a moon not drawn live, no step baking it.
-const steps = (lean ? wholeLadder.slice(startingStep(wholeLadder, true)) : wholeLadder).filter((step) => step.moon || moon === 'vsm' || moon === 'pcf')
+const steps = (lean ? wholeLadder.slice(startingStep(wholeLadder, true)) : wholeLadder).filter((step) => step.moon || step.islandBush || moon === 'vsm' || moon === 'pcf')
 const askedStep = Number(url.get('step'))
 // A phone on WebGL 2, the swarm stepped on its CPU, starts at its lowest, the opening held at it, and climbs from there
 // once it is over.
@@ -737,6 +738,10 @@ function gooseFrame(dt: number, held: number) {
   if (opening.on && !opening.settled) opening.goslingsFrame()
   // Bolting in the opening, none is in its scene yet: up its tree or down its well.
   islandGeese.object.visible = ending.running() || islandNear()
+  // The island's oak a bush at the quality ladder's foot, or an oak again: changed while the island is out of view.
+  // `?islandbush=1` or `=0` holds it so, for the bench to price it at any step.
+  const bushed = url.has('islandbush') ? url.get('islandbush') === '1' : quality.step.islandBush
+  if (roadside.oakAsBush !== bushed && !ending.running() && !islandNear()) pondWorld.oakAsBush(bushed)
   if (islandGeese.object.visible) islandGeese.update(dt, held)
   goslings.update(goosePlay, dt, held, !opening.on || opening.settled ? (k) => gooseScenes.lift(goosePlay, k) : undefined, ending.running() ? ending.act : undefined)
   openingShow.skipHintFrame(input.commands)
@@ -1047,10 +1052,11 @@ renderer.setAnimationLoop(() => {
   }
   const steeringMs = swarm instanceof GpuSwarm ? swarm.gpuMs : swarm.ms
   readouts({ drawn: rats.drawn, count: swarm.count, triangles, drawCalls, steeringMs, states: swarm.steps, pageMs: performance.now() - start, frameMs: frame * 1000 })
-  // The loading's frames are slow by design, and say nothing of the device; and the opening is the page's first
-  // impression, not to be seen stepping up and down. A step is taken at the head of the next frame: resized here, past
-  // this frame's drawing, the canvas would show empty, a black frame.
-  if (adapt && !loading && !opening.running() && quality.frame(frame * 1000, start)) qualityDue = true
+  // The loading's frames are slow by design, and say nothing of the device; the opening is the page's first
+  // impression, not to be seen stepping up and down; nor the ending, its oak not to turn to a bush before the player. A
+  // step is taken at the head of the next frame: resized here, past this frame's drawing, the canvas would show empty,
+  // a black frame.
+  if (adapt && !loading && !opening.running() && !ending.running() && quality.frame(frame * 1000, start)) qualityDue = true
   if (!loading && url.get('bench') === 'load') watchFrames(frame * 1000)
   if (!loading) {
     if (!benchMade) {

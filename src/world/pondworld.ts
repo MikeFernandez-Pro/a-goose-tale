@@ -9,7 +9,7 @@ import { type GooseScenes, CAGE_FIRE_LIGHT } from '../game/goosescenes'
 import type { PlainFires } from '../light/plainfires'
 import { type FakeLamps, FakeLamp } from '../light/fakelamps'
 import type { Goose } from '../characters/goose'
-import { type Roadside, ISLAND_BUSH_KEEP } from './roadside'
+import { type Roadside, ISLAND_BUSH_KEEP, woodShareOf } from './roadside'
 import type { Look } from '../settings'
 import { defaultWaterLook, WATER_LOOKS, createWater } from './water'
 import { url } from '../game/address'
@@ -37,7 +37,7 @@ export function pondPastHome(p: Plain): PondLook {
 }
 
 /** The pond's world on what the page has made. */
-export async function createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look }: {
+export async function createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look, lean }: {
   scene: Scene
   nightLights: NightLights
   beats: Beats
@@ -52,6 +52,8 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   goslingSize: { height: number }
   roadside: Roadside
   look: Look
+  /** A phone's frame: the island tree stands still. */
+  lean: boolean
 }) {
   const { fireLook, fireLooks, plainFlame, sceneFires, pitFires, sceneFireFoot } = fires
   // The game's plain runs far out to the black: the floor laid under the whole of it, its
@@ -64,6 +66,9 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   if (waterAsked) Object.assign(waterLook, waterAsked.look)
   const water = await createWater(waterLook, nightLights.sunShadowSeen)
   const pond = createPond(ground.mesh, gooseFloorBox, pondLook, water.material, (field) => ground.setShore(field), gooseGround)
+  // Parted as the floor is, where it is: the island's grass top under the plain's shader.
+  ground.part(pond.bank)
+  ground.part(pond.island)
   pond.object.name = 'pond'
   scene.add(pond.object)
   // The goose's nest on the island's crown, pine needle cards round a hollow (nest.ts), laid again with the pond.
@@ -127,7 +132,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   picnic.set(pondLook)
   // The oak on the island's top left, in leaf, in a wind of its own (islandtree.ts): its crown cut round him as the dead
   // trees' are, its wood left whole. Stood again with the pond.
-  const islandTree = await createIslandTree()
+  const islandTree = await createIslandTree(undefined, { still: lean, woodShare: woodShareOf(lean) })
   islandTree.object.name = 'island tree'
   scene.add(islandTree.object)
   roadside.seenThrough.push(islandTree.crown)
@@ -136,6 +141,13 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
     islandTree.set(pondLook)
     roadside.islandTrunk = islandTree.trunk()
     roadside.trunksChanged()
+  }
+  /** The oak stood down to a bush at its trunk, on a device at the quality ladder's foot, or stood up again; its trunk still a body. */
+  function oakAsBush(bush: boolean) {
+    if (roadside.oakAsBush === bush) return
+    roadside.oakAsBush = bush
+    islandTree.object.visible = !bush
+    roadside.layIslandBushes()
   }
   /** How far above the water a gosling at play keeps to, m, and how far he keeps off the tent and the bonfire, m. */
   const PLAY_DRY = 0.01
@@ -165,7 +177,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
     waterLook, water, pond,
     nest, nestLook, nestLeaves, nestNeedles, layNest,
     islandFireLook, islandFireModel, layIslandFire,
-    tent, picnic, islandTree, layIslandTree, islandGeese,
+    tent, picnic, islandTree, layIslandTree, oakAsBush, islandGeese,
     /** The island's bonfire a frame on, `firesLeft` of its night's light. */
     bonfireFrame(newBeat: boolean, firesLeft: number) {
       const stop = look.stopMotion

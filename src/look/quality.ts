@@ -34,12 +34,14 @@ export interface Step {
   ao: boolean
   dpr: number
   moon: boolean
+  /** The island's oak stood down to a bush: its leaf cards cost a Mi 9's ending 16 ms (2026-11-07). */
+  islandBush: boolean
 }
 
 /**
  * The ladder for a screen whose pixel ratio is drawn at `maxDpr` at most:
  * depth of field off, then AO, then the pixel ratio down to 1.5 and 1, then
- * the moon baked. A pixel ratio the screen does not go above is no step.
+ * the moon baked, then the island's oak a bush. A pixel ratio the screen does not go above is no step.
  * The rats are never a step: a tenth of them saved nothing on the PC, the
  * iPhone or the Mi 9 (2026-11-02 to 11-06), and fewer would make the game
  * easier where it runs slower. The live moon's map is redrawn on most frames
@@ -48,12 +50,13 @@ export interface Step {
  */
 export function ladder(maxDpr: number): Step[] {
   const steps: Step[] = [
-    { dof: true, ao: true, dpr: maxDpr, moon: true },
-    { dof: false, ao: true, dpr: maxDpr, moon: true },
-    { dof: false, ao: false, dpr: maxDpr, moon: true },
+    { dof: true, ao: true, dpr: maxDpr, moon: true, islandBush: false },
+    { dof: false, ao: true, dpr: maxDpr, moon: true, islandBush: false },
+    { dof: false, ao: false, dpr: maxDpr, moon: true, islandBush: false },
   ]
-  for (const dpr of [1.5, 1]) if (dpr < maxDpr) steps.push({ dof: false, ao: false, dpr, moon: true })
-  steps.push({ dof: false, ao: false, dpr: steps[steps.length - 1].dpr, moon: false })
+  for (const dpr of [1.5, 1]) if (dpr < maxDpr) steps.push({ dof: false, ao: false, dpr, moon: true, islandBush: false })
+  const lowest = steps[steps.length - 1].dpr
+  steps.push({ dof: false, ao: false, dpr: lowest, moon: false, islandBush: false }, { dof: false, ao: false, dpr: lowest, moon: false, islandBush: true })
   return steps
 }
 

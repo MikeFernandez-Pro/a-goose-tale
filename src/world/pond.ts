@@ -407,6 +407,9 @@ export function shoreField(look: PondLook): ShoreField {
 
 export interface PondMesh {
   object: Group
+  /** Its bank and its island, in the floor's material. */
+  bank: Mesh
+  island: Mesh
   /** Lay the floor, the bank and the water again to `look`. */
   set(look: PondLook): void
 }
@@ -429,6 +432,8 @@ export function createPond(ground: Mesh, box: Bounds, look: PondLook, water: Mat
   }
   const pond = {
     object: new Group().add(bank, island, surface),
+    bank,
+    island,
     set(look: PondLook) {
       laid(ground, rolling ? rollingFloorAround(rolling, look) : floorAround(box, look))
       laid(bank, bankGeometry(look))

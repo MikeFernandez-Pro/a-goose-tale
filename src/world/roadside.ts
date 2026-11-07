@@ -38,6 +38,9 @@ const BURNING_TURN = 0.6
 /** The share of the trees' wood triangles a lean frame draws. */
 const LEAN_WOOD = 0.25
 
+/** The share of a tree's wood triangles drawn, a lean frame's or all; `?treelod=N` for another. */
+export const woodShareOf = (lean: boolean) => Math.min(Number(url.get('treelod')) || (lean ? LEAN_WOOD : 1), 1)
+
 /** The roadside, made and laid on what the page has made. */
 export async function createRoadside({ scene, goosePlay, lights, fakeLamps, backend, renderer, groundAt, pondLook, gooseFloorBox, roadShape, roadLook, ground, look, gooseTheme, gooseScenes, fallingLeaves, dev, lean }: {
   scene: Scene
@@ -171,10 +174,10 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   if (gooseTheme?.doors) Object.assign(archShell, gooseTheme.doors)
   Object.assign(archShell, matted)
   const arches = await createArches(archLook, archStone, groundAt)
+  arches.object.name = 'arches'
   scene.add(arches.object)
   // The old road's broken walls beside it (roadwalls.ts), as the walls folder edits them: of the arches' stone and in
   // their shell as the page opens, or a theme's, their own from then; `?walls=<kind>` starts with another kind (field, lane, ruins,
-  arches.object.name = 'arches'
   // tumbled, none).
   const roadWallLook = defaultRoadWallLook()
   const wallsAsked = url.get('walls')
@@ -185,10 +188,10 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   if (gooseTheme?.walls) Object.assign(wallShell, gooseTheme.walls)
   Object.assign(wallShell, matted)
   const roadWalls = await createRoadWalls(wallStone, groundAt)
+  roadWalls.object.name = 'road walls'
   scene.add(roadWalls.object)
   roadWalls.setShell(wallShell)
   // The dead trees either side of the road (deadtrees.ts), behind its walls where by one, as the dead trees folder edits
-  roadWalls.object.name = 'road walls'
   // them: scattered again on every change to it, the road, the arches or the walls; in the scenes' shell, their wood the
   // colour chosen on 2026-10-26, or a bark set the bark folder picks, laid as the floor is; swaying in the wind as
   // justASimpleTree's trees do.
@@ -215,20 +218,20 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   // A lean frame's wood about a quarter of its triangles, meshoptimizer choosing, within 2 cm of the whole: on the Mi 9
   // at dpr 2 (2026-11-06, 4 loads each, interleaved) the start 65 -> 54 ms, the dead tree 46 -> 35, the pond 46 -> 42,
   // its load no slower. `?treelod=N` for another share, `=1` for all of it; `?windmap=0` for the wind's Perlin noise.
-  const deadTreesMesh = await createDeadTrees(deadTreeLook.wood, groundAt, gooseScenes.treeWood, Math.min(Number(url.get('treelod')) || (lean ? LEAN_WOOD : 1), 1), lean && url.get('windmap') !== '0')
+  const deadTreesMesh = await createDeadTrees(deadTreeLook.wood, groundAt, gooseScenes.treeWood, woodShareOf(lean), lean && url.get('windmap') !== '0')
   deadTreesMesh.setLeaves(deadTreeLeaves)
   deadTreesMesh.setBark(deadTreeBark)
   deadTreesMesh.setWind(deadTreeWind)
   deadTreesMesh.setWood(deadTreeLook.wood, deadTreeLook.saturation)
+  deadTreesMesh.object.name = 'dead trees'
   scene.add(deadTreesMesh.object)
   deadTreesMesh.object.position.setY(deadTreeLook.y)
   deadTreesMesh.setTrunk(deadTreeLook.trunk)
-  deadTreesMesh.object.name = 'dead trees'
   deadTreesMesh.setRings(deadTreeLook.rings)
+  deadTreesMesh.own.name = 'scenes\' trees'
   scene.add(deadTreesMesh.own)
   gooseScenes.swayTree = deadTreesMesh.swayOwn
   // The falling leaves, where they fall, in the dead trees' leaf colours, as the leaves folder sets them: the mid, the
-  deadTreesMesh.own.name = 'scenes\' trees'
   // shadow, the light and the mid again, so the mid falls most, as it shows most on the trees; as much of their own
   // colour shown unlit as the trees'.
   function leavesFallAsTrees(): void {
@@ -245,10 +248,10 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   const bushLook = { show: true, y: -0.15 }
   const bushLeaves = defaultBushLeafLook()
   const bushesMesh = await createBushes(bushLeaves, groundAt)
+  bushesMesh.object.name = 'bushes'
   scene.add(bushesMesh.object)
   bushesMesh.object.position.setY(bushLook.y)
   // The game's see-through (seethrough.ts): the dead trees between the camera and him, and nothing else since the
-  bushesMesh.object.name = 'bushes'
   // change of 2026-10-26, dithered away round him by Perlin noise, as the see-through folder sets it: on 2026-10-26 a
   // wide hole, 4 m round, cut from him on, in finer blots. A tree's trunk is kept whole
   // (DeadTreesMesh.trunk), so it stands there whatever is dithered away above it: up to 0.09 of its height, under the
@@ -258,10 +261,10 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   const gooseSee = noiseSeeThrough(gooseSeeLook)
   // Its zone, for its debug: rings round him at the hole's radius and its clear core's.
   const gooseSeeZone = seeThroughZone()
+  gooseSeeZone.object.name = 'see-through'
   scene.add(gooseSeeZone.object)
   const seenThrough: Object3D[] = [deadTreesMesh.object]
   /** Where the burning tree stands, and how far round its trunk the see-through leaves it whole, m: its crown's reach. */
-  gooseSeeZone.object.name = 'see-through'
   const burningAt = uniform(new Vector2(1e6, 1e6)).setGroup(renderGroup)
   const BURNING_WHOLE = 3.5
   const burningWhole = positionWorld.xz.sub(burningAt).length().lessThan(BURNING_WHOLE)
@@ -406,16 +409,18 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     { x: 2.4, z: -2, height: 1.1, width: 1.9, turn: 2.2, variant: 2 },
     { x: 3.4, z: 0.3, height: 0.75, width: 1.4, turn: 4.1, variant: 3 },
   ]
-  /** The island's bushes where it now is, each lifted from the floor's ground to the island's. */
+  /** The bush standing in the island's oak's stead, at its trunk, on a device at the quality ladder's foot. */
+  const OAK_BUSH = { height: 1.5, width: 2.4, turn: 0.7, variant: 1 }
+  /** The island's bushes where it now is, each lifted from the floor's ground to the island's; the oak's stand-in with them while it stands in. */
   function islandBushes(variants: number): DeadTree[] {
     if (!pondLook.island.show) return []
     const middle = islandMiddle(pondLook)
-    return ISLAND_BUSHES.map((bush) => {
-      const x = middle.x + bush.x
-      const z = middle.z + bush.z
-      return { ...bush, x, z, variant: bush.variant % variants, lift: groundOf(pondLook, x, z) - groundAt(x, z) }
-    })
+    const trunk = roadside.oakAsBush ? roadside.islandTrunk?.at : undefined
+    const placed = [...ISLAND_BUSHES.map((bush) => ({ ...bush, x: middle.x + bush.x, z: middle.z + bush.z })), ...(trunk ? [{ ...OAK_BUSH, ...trunk }] : [])]
+    return placed.map((bush) => ({ ...bush, variant: bush.variant % variants, lift: groundOf(pondLook, bush.x, bush.z) - groundAt(bush.x, bush.z) }))
   }
+  /** The bushes scattered by the road and the pond as last laid, laid again with the island's when only those change. */
+  let scattered: DeadTree[] = []
   /** The bushes as the bushes folder has them, scattered as the trees are, off their trunks; and the island's own. */
   function layBushes() {
     bushesMesh.object.visible = bushLook.show
@@ -423,7 +428,14 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     if (!bushLook.show) return bushesMesh.lay([])
     const byRoad = bushes(goosePlay.plain, roadLaid.points, bushesMesh.variants, treesLaid, bushShape, wallsLaid, archesLaid, treeGround).filter((bush) => !onRoadLead(bush, bushShape.clear))
     const byPond = bushes(goosePlay.plain, pondWoodsLine(), bushesMesh.variants, treesLaid, pondWoodsShape(bushShape), [], archesLaid, pondWoodsGround(byRoad, bushShape.spacing))
-    bushesMesh.lay([...byRoad, ...byPond, ...roadside.islandBushes])
+    scattered = [...byRoad, ...byPond]
+    bushesMesh.lay([...scattered, ...roadside.islandBushes])
+  }
+  /** The island's bushes laid again, the oak's stand-in come or gone, the rest as they were scattered. */
+  function layIslandBushes() {
+    if (!bushLook.show) return
+    roadside.islandBushes = islandBushes(bushesMesh.variants)
+    bushesMesh.lay([...scattered, ...roadside.islandBushes])
   }
   /** The old road laid along the play's plain, and its arches over it, again on every change to its way. */
   const layRoad = () => {
@@ -468,13 +480,15 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     arches, archLook, archStone, archShell, archesChanged, archesShell, layArches,
     roadWalls, roadWallLook, wallStone, wallShell, layWalls,
     deadTreesMesh, deadTreeLook, deadTreeShape, deadTreeShine, deadTreeBark, deadTreeGrass, deadTreeLeaves, deadTreeWind, leavesFallAsTrees, layTrees,
-    bushesMesh, bushLook, bushShape, bushLeaves, layBushes,
+    bushesMesh, bushLook, bushShape, bushLeaves, layBushes, layIslandBushes,
     gooseSee, gooseSeeLook, gooseSeeZone, seenThrough, cutSeenThrough,
     layRoad,
     /** The island tree's trunk as last stood, none while it is hidden: a body as the dead trees' are. */
     islandTrunk: undefined as { at: { x: number; z: number }; radius: number } | undefined,
     /** The island's bushes as last laid; none with no island. */
     islandBushes: [] as DeadTree[],
+    /** Whether a bush stands in the island's oak's stead (pondworld.ts `oakAsBush`). */
+    oakAsBush: false,
     trunksChanged,
     get wallsLaid() {
       return wallsLaid

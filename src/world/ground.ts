@@ -73,6 +73,8 @@ export interface Floor {
   setRoadLook(look: RoadLook): void
   /** Where the road runs, for its stones: nothing where the floor has no road. */
   setRoad(field: RoadField): void
+  /** Part `mesh`, drawn in the floor's material, into the floor's zones as its own triangles are, now and each time they are parted again: nothing where the floor has none. */
+  part(mesh: Mesh): void
 }
 
 /**
@@ -288,6 +290,7 @@ export async function floor(
     noiseMap = false,
     strokes = true,
     roadZones = true,
+    shoreZones = true,
   }: {
     slopes?: boolean
     bed?: BedLook
@@ -303,6 +306,8 @@ export async function floor(
     strokes?: boolean
     /** Of the zones, the floor the road cannot reach under a shader without it. */
     roadZones?: boolean
+    /** Of those, the bed where neither the road nor the wells reach, the pond's bank and sand, under one with the bed alone. */
+    shoreZones?: boolean
   } = {},
 ): Promise<Floor> {
   const [map, normals] = await load(start)
@@ -516,27 +521,44 @@ export async function floor(
   const plainMaterial = zones ? zoneMaterial(seenOf(plainLeanRoad), roadColour ? mix(plainColour, roadColour, inRoad) : plainColour) : undefined
   // And with no road either, for where it cannot reach: most of the floor.
   const bareMaterial = zones && roadZones && roadColour ? zoneMaterial(seenOf(plainLean), plainColour) : undefined
+  // And the floor and its bed alone, under the water's hold, for the pond's bank and sand, where neither the road nor the wells reach.
+  const shoreMaterial =
+    shoreZones && bareMaterial && bedLean && bedNormalTexel
+      ? zoneMaterial(seenOf({ lean: mix(plainLean.lean, bedLean.lean, inBed), up: mix(plainLean.up, bedLean.up, inBed) }), mix(plainColour, bedColour, inBed).mul(held))
+      : undefined
   let shoreLaid: ShoreField | undefined
   let roadLaid: RoadField | undefined
   let wellsLaid: readonly { x: number; z: number }[] = []
-  /** Whether a triangle, its middle, its lowest corner's height and how far its corners lie from its middle, could show the bed or the wells' ground. */
-  const showsMore = (x: number, lowest: number, z: number, radius: number) => {
-    // Below the floor, the bank's sand begins; the plain's own ground lies at nought and up.
-    if (lowest < -0.001) return true
+  /** Whether a triangle, its middle and how far its corners lie from it, could show the wells' ground. */
+  const showsWells = (x: number, z: number, radius: number) => {
     const well = wellRadius.value + wellFade.value + Math.abs(wellWobble.value)
     const stretch = Math.min(wellStretch.value.x, wellStretch.value.y)
-    for (const spot of wellsLaid) {
-      if (Math.hypot((x - spot.x - wellOffset.value.x) / wellStretch.value.x, (z - spot.z - wellOffset.value.y) / wellStretch.value.y) - radius / stretch < well) return true
-    }
+    return wellsLaid.some((spot) => Math.hypot((x - spot.x - wellOffset.value.x) / wellStretch.value.x, (z - spot.z - wellOffset.value.y) / wellStretch.value.y) - radius / stretch < well)
+  }
+  /**
+   * Whether a triangle, its middle, its lowest corner's height and how far its corners lie from its middle, could show
+   * the bed, or lie under the water: as the shader reckons its share.
+   */
+  const showsBed = (x: number, lowest: number, z: number, radius: number) => {
+    // Under the water, its light held back; or below the floor and down the bank as far as its sand begins, wavered.
+    if (lowest < waterLevel.value || (lowest < 0 && -lowest + Math.abs(bedWobble.value) > bedFrom.value)) return true
     if (!shoreLaid) return false
-    const { data, minX, minZ, size } = shoreLaid
+    const { data, island, minX, minZ, size } = shoreLaid
     const cell = size / SHORE_FIELD
     const column = Math.min(Math.max(Math.floor((x - minX) / cell), 0), SHORE_FIELD - 1)
     const row = Math.min(Math.max(Math.floor((z - minZ) / cell), 0), SHORE_FIELD - 1)
-    return data[row * SHORE_FIELD + column]! - radius - cell * Math.SQRT2 < beach.value + Math.abs(beachWobble.value)
+    const margin = radius + cell * Math.SQRT2
+    // Wholly on the pond's island, its own sand up from its waterline; anywhere else the pond's beach, all bed inside its shore.
+    const onIsland = island[row * SHORE_FIELD + column]! - margin
+    if (onIsland >= 0) return onIsland < islandBeach.value + Math.abs(beachWobble.value)
+    return data[row * SHORE_FIELD + column]! - margin < beach.value + Math.abs(beachWobble.value)
   }
-  /** The floor's triangles parted anew, the shore or the wells having moved: only a phone's, with no panel moving their looks. */
+  /** The floor's triangles parted anew, and those of what else is `part`ed, the shore or the wells having moved: only a phone's, with no panel moving their looks. */
   const layZones = () => {
+    for (const each of parted) zonesOf(each)
+  }
+  /** `mesh`'s triangles parted into the zones. */
+  const zonesOf = (mesh: Mesh) => {
     if (!plainMaterial || !shoreLaid) return
     const geometry = mesh.geometry
     mesh.updateMatrixWorld()
@@ -549,8 +571,14 @@ export async function floor(
     }
     const reach = roadHalf.value + roadEdge.value + Math.abs(roadWobble.value)
     const paved = bareMaterial ? roadCanShow(roadLaid, reach) : () => true
-    const materials = bareMaterial ? [bareMaterial, plainMaterial, material] : [plainMaterial, material]
-    const zoneOf = (x: number, lowest: number, z: number, radius: number) => (showsMore(x, lowest, z, radius) ? materials.length - 1 : paved(x, z, radius) ? materials.length - 2 : 0)
+    // The whole where the wells' ground may show, or the bed with the road; the shore's where the bed shows alone.
+    const materials = [bareMaterial, plainMaterial, shoreMaterial, material].filter((zone) => zone !== undefined)
+    const zoneOf = (x: number, lowest: number, z: number, radius: number) => {
+      const bedded = showsBed(x, lowest, z, radius)
+      const road = paved(x, z, radius)
+      const zone = showsWells(x, z, radius) || (bedded && (road || !shoreMaterial)) ? material : bedded ? shoreMaterial : road ? plainMaterial : bareMaterial
+      return materials.indexOf(zone!)
+    }
     const { index, counts } = splitTriangles(world, geometry.getIndex()?.array, zoneOf, materials.length)
     geometry.setIndex(new BufferAttribute(index, 1))
     geometry.clearGroups()
@@ -568,6 +596,8 @@ export async function floor(
   const mesh: Mesh = new Mesh(new PlaneGeometry(EXTENT * 2, EXTENT * 2), material)
   mesh.rotation.x = -Math.PI / 2
   mesh.receiveShadow = true
+  /** What is parted into the zones: the floor, and what else is drawn in its material. */
+  const parted = [mesh]
   const laid: Floor = {
     mesh,
     material,
@@ -590,6 +620,10 @@ export async function floor(
       }
     },
     setWaterLevel() {},
+    part(other) {
+      parted.push(other)
+      zonesOf(other)
+    },
     setShore() {},
     setRoadLook(look) {
       if (!roadSet) return
@@ -675,10 +709,12 @@ export async function floor(
           bedNormalTexel.value = newNormals
         })
       }
+      layZones()
     },
   }
   laid.setWaterLevel = (level) => {
     waterLevel.value = level
+    layZones()
   }
   laid.setShore = (field) => {
     if (!bed) return

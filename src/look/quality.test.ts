@@ -23,25 +23,26 @@ function runUneven(q: Quality, duration: number, at = 0): { at: number; levels: 
 }
 
 describe('ladder', () => {
-  it('steps down depth of field, then AO, then the pixel ratio, then the moon to a baked one', () => {
+  it('steps down depth of field, then AO, then the pixel ratio, then the moon to a baked one, then the island tree to a bush', () => {
     expect(ladder(2)).toEqual([
-      { dof: true, ao: true, dpr: 2, moon: true },
-      { dof: false, ao: true, dpr: 2, moon: true },
-      { dof: false, ao: false, dpr: 2, moon: true },
-      { dof: false, ao: false, dpr: 1.5, moon: true },
-      { dof: false, ao: false, dpr: 1, moon: true },
-      { dof: false, ao: false, dpr: 1, moon: false },
+      { dof: true, ao: true, dpr: 2, moon: true, islandBush: false },
+      { dof: false, ao: true, dpr: 2, moon: true, islandBush: false },
+      { dof: false, ao: false, dpr: 2, moon: true, islandBush: false },
+      { dof: false, ao: false, dpr: 1.5, moon: true, islandBush: false },
+      { dof: false, ao: false, dpr: 1, moon: true, islandBush: false },
+      { dof: false, ao: false, dpr: 1, moon: false, islandBush: false },
+      { dof: false, ao: false, dpr: 1, moon: false, islandBush: true },
     ])
   })
 
   it('leaves out the pixel ratios a screen does not go above', () => {
-    expect(ladder(1).map((s) => s.dpr)).toEqual([1, 1, 1, 1])
-    expect(ladder(1.5).map((s) => s.dpr)).toEqual([1.5, 1.5, 1.5, 1, 1])
+    expect(ladder(1).map((s) => s.dpr)).toEqual([1, 1, 1, 1, 1])
+    expect(ladder(1.5).map((s) => s.dpr)).toEqual([1.5, 1.5, 1.5, 1, 1, 1])
   })
 
   it('starts a phone without depth of field or AO, and anything else with the whole look', () => {
     const steps = ladder(2)
-    expect(steps[startingStep(steps, true)]).toEqual({ dof: false, ao: false, dpr: 2, moon: true })
+    expect(steps[startingStep(steps, true)]).toEqual({ dof: false, ao: false, dpr: 2, moon: true, islandBush: false })
     expect(startingStep(steps, false)).toBe(0)
   })
 })

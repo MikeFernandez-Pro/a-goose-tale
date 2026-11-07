@@ -17,7 +17,7 @@
 // no shadow, as those don't.
 import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshLambertNodeMaterial, Sphere, Uint16BufferAttribute, Vector2, Vector3, type BufferAttribute, type Material, type Node, type Texture } from 'three/webgpu'
 import { attribute, float, floor, fract, Fn, mix, mx_noise_vec3, normalLocal, renderGroup, rotate, saturation, sin, smoothstep, step, texture, time, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
-import { createBark, createFootGrass, createLeafMaterial, createStretches, defaultBarkLook, defaultGrassLook, defaultLeafLook, loadLeafMap, thinTips, type BarkLook, type GrassLook, type LeafLook, type Stretches } from './deadtrees'
+import { createBark, createFootGrass, createLeafMaterial, createStretches, defaultBarkLook, defaultGrassLook, defaultLeafLook, loadLeafMap, thinTips, woodSimplifier, type BarkLook, type GrassLook, type LeafLook, type Stretches } from './deadtrees'
 import type { FloorLook } from './ground'
 import { modelLoader } from '../look/gltf'
 import type { Point } from './plain'
@@ -296,14 +296,19 @@ export interface IslandTree {
   update(dt: number): void
 }
 
-/** The tree, in `look`; its colours are its file's own, read from the ramps in its materials' extras. */
-export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeLook()): Promise<IslandTree> {
+/**
+ * The tree, in `look`, `still` with no wind, about `woodShare` of its wood's triangles kept; its colours are its
+ * file's own, read from the ramps in its materials' extras.
+ */
+export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeLook(), { still = false, woodShare = 1 } = {}): Promise<IslandTree> {
   const file = (await modelLoader().loadAsync(MODEL)).scene
   const part = (name: string) => file.getObjectByName(name) as Mesh
   const woodMesh = part('wood')
   const leafMesh = part('leaves')
   const wood = woodMesh.geometry.clone()
   thinTips(wood)
+  const simplify = await woodSimplifier(woodShare)
+  simplify(wood)
   const cards = leafMesh.geometry.clone()
   cardCentres(cards)
   cards.computeBoundingBox()
@@ -322,14 +327,17 @@ export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeL
   const barkLaid = createBark(grass)
   barkLaid.set(look.bark)
   const bark = new ShellToonMaterial({ color: look.wood, side: DoubleSide, painted: { extent: (STROKE_BODY * laid) / look.size, base: barkLaid.normal } })
-  bark.positionNode = wind.wood
+  // Still, its wood and leaves stand as laid, no wind worked out a vertex: a phone's, where it cost the ending 10 ms.
+  if (!still) bark.positionNode = wind.wood
   bark.colorNode = mix(barkLaid.colour, grass.colour, grass.amount)
   // The dead trees' leaf texture, white leaves on black, read as they read it.
   const leafMap = await loadLeafMap()
   const leafy = createLeafMaterial(texture(leafMap, uv()).r)
   const leafMaterial = leafy.material
-  leafMaterial.positionNode = wind.leaves
-  wind.flutter(leafMaterial)
+  if (!still) {
+    leafMaterial.positionNode = wind.leaves
+    wind.flutter(leafMaterial)
+  }
   // In the shadow too, its alpha the colour's, its cut-out its own: three's shadow pass reads neither off the material.
   leafMaterial.colorNode = vec4(leafMaterial.colorNode as Node<'vec3'>, 1)
   leafMaterial.maskShadowNode = (leafMaterial.opacityNode as Node<'float'>).greaterThan(0.5)
@@ -340,6 +348,9 @@ export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeL
   const woodStretch: Stretches = createStretches([wood], bark as Material, laid, groundAt, true)
   const crownStretch: Stretches = createStretches([cards], leafMaterial as Material, laid, groundAt, true)
   const fall = createTreeFall(leafMap)
+  woodStretch.object.name = 'island tree wood'
+  crownStretch.object.name = 'island tree leaves'
+  fall.object.name = 'island tree falling leaves'
   const object = new Group().add(woodStretch.object, crownStretch.object, fall.object)
 
   // The cards' centres, as laid: the crown's points the leaves fall from.
@@ -348,9 +359,6 @@ export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeL
     const x = centres.getX(k) * scale
     const z = centres.getZ(k) * scale
     return { x: at.x + x * cos + z * sin, y: foot + centres.getY(k) * scale, z: at.z - x * sin + z * cos }
-  woodStretch.object.name = 'island tree wood'
-  crownStretch.object.name = 'island tree leaves'
-  fall.object.name = 'island tree falling leaves'
   }
   const downwind = () => {
     const angle = (look.wind.direction * Math.PI) / 180
