@@ -526,18 +526,20 @@ measuringSwitches(look, backend, lean)
 // the whole look, and the step moves as the frames come. A measuring switch
 // holds it, so what is measured is what was asked for.
 /**
- * A phone on WebGL 2, the swarm stepped on its CPU: a number of rats of its own, none coming with the goslings, so the
- * crowd never thins or swells with how the frames come; 100 since 2026-11-06, each about 0.07 ms on a Mi 9 at dpr 2,
- * as asked. `?rats=N` to try others.
+ * A phone: a number of rats of its own, none coming with the goslings, so the crowd never thins or swells with how the
+ * frames come; 100 since 2026-11-06, each about 0.07 ms on a Mi 9 at dpr 2, as asked, on WebGPU too since 2026-11-07,
+ * where each gosling found brought 300 more. `?rats=N` to try others.
  */
-const fewRats = phone && backend !== 'WebGPU'
+const fewRats = phone
 const FEW_RATS = Number(url.get('rats')) || 100
 const wholeLadder = ladder(maxDpr)
 // A lean frame has no AO to step up to, so no steps with one; a moon not drawn live, no step baking it.
 const steps = (lean ? wholeLadder.slice(startingStep(wholeLadder, true)) : wholeLadder).filter((step) => step.moon || moon === 'vsm' || moon === 'pcf')
 const askedStep = Number(url.get('step'))
-// A phone on WebGL 2 starts at its lowest, the opening held at it, and climbs from there once it is over.
-const quality = new Quality(steps, Number.isInteger(askedStep) && url.has('step') ? Math.min(Math.max(askedStep, 0), steps.length - 1) : fewRats ? steps.length - 1 : startingStep(steps, phone))
+// A phone on WebGL 2, the swarm stepped on its CPU, starts at its lowest, the opening held at it, and climbs from there
+// once it is over.
+const lowestFirst = phone && backend !== 'WebGPU'
+const quality = new Quality(steps, Number.isInteger(askedStep) && url.has('step') ? Math.min(Math.max(askedStep, 0), steps.length - 1) : lowestFirst ? steps.length - 1 : startingStep(steps, phone))
 // `?bench=soak` and `load` let it move: what a phone settles on is what they read.
 const adapt = url.get('adapt') !== '0' && !['ao', 'dof', 'bloom', 'dpr', 'post'].some((key) => url.has(key)) && (!url.has('bench') || ['soak', 'load'].includes(url.get('bench') ?? ''))
 /** Draw at the quality's step: its pixel ratio, its look, the moon live or baked. */
