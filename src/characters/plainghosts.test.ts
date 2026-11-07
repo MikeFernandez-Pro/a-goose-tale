@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { Mesh } from 'three/webgpu'
 import { createPlainGhosts } from './ghosts'
 
 /** Two ghosts walking along x at 1 m/s, a metre apart on z. */
@@ -38,6 +39,16 @@ describe('the plain ghosts, where there is no cloth to draw', () => {
     const { x } = ghosts.lights[0]!
     ghosts.update(0.5, 2)
     expect(ghosts.lights[0]!.x).toBe(x)
+  })
+
+  it('draws each the cloth baked as it hangs walking: over its sphere, its hem behind it', () => {
+    const ghosts = createPlainGhosts(level, walk)
+    const sheet = (ghosts.object.children[0]!.children[0] as Mesh).geometry
+    sheet.computeBoundingBox()
+    const { min, max } = sheet.boundingBox!
+    expect(max.y).toBeGreaterThan(0.8)
+    expect(min.y).toBeLessThan(0.2)
+    expect(-min.z).toBeGreaterThan(max.z)
   })
 
   it('answers what the cloth ghosts do besides', () => {

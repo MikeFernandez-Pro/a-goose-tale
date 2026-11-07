@@ -24,7 +24,6 @@ import {
   Group,
   IcosahedronGeometry,
   InstancedMesh,
-  LatheGeometry,
   Matrix4,
   Mesh,
   MeshBasicNodeMaterial,
@@ -32,7 +31,6 @@ import {
   Object3D,
   PointLight,
   Raycaster,
-  Vector2,
   Vector3,
   type AnimationAction,
   type ComputeNode,
@@ -42,8 +40,8 @@ import {
 import {
   atan,
   attribute,
+  modelPosition,
   positionLocal,
-  step,
   faceDirection,
   float,
   Fn,
@@ -68,6 +66,7 @@ import {
   vec4,
 } from 'three/tsl'
 import { modelLoader } from '../look/gltf'
+import bakedPoints from './ghostsheet.json'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import type { FixedLight } from '../swarm/swarm'
@@ -147,10 +146,6 @@ const PRESETS: Record<string, Preset> = {
     look: { bodies: 1, ballHeight: 0.66, eyesAhead: 0.14, eyesApart: 0.084, eyeSize: 0.035 },
   },
 }
-
-/** How solid the plain ghost's sheet is: past the cloth's, which shows by its folds. */
-const PLAIN_OPACITY = 0.6
-const PLAIN_EYES = 0x06060c
 
 /** What the ghosts' folder edits live. */
 export interface GhostLook {
@@ -314,6 +309,46 @@ function smin(a: number, b: number, k: number): number {
   if (k <= 0) return Math.min(a, b)
   const h = Math.max(k - Math.abs(a - b), 0) / k
   return Math.min(a, b) - h * h * k * 0.25
+}
+
+/** The sheet's paint as the look has it, set again from the look each frame where the panel may change it. */
+function sheetPaint(look: GhostLook) {
+  const paint = {
+    colour: uniform(new Color(look.colour)),
+    glow: uniform(look.glow),
+    inside: uniform(look.inside),
+    opacity: uniform(look.opacity),
+    eyesAhead: uniform(look.eyesAhead),
+    eyesApart: uniform(look.eyesApart),
+    eyeSize: uniform(look.eyeSize),
+    eyeDark: uniform(look.eyeDark),
+    set(from: GhostLook) {
+      paint.colour.value.set(from.colour)
+      paint.glow.value = from.glow
+      paint.inside.value = from.inside
+      paint.opacity.value = from.opacity
+      paint.eyesAhead.value = from.eyesAhead
+      paint.eyesApart.value = from.eyesApart
+      paint.eyeSize.value = from.eyeSize
+      paint.eyeDark.value = from.eyeDark
+    },
+  }
+  return paint
+}
+
+/**
+ * `sheet` painted, the cloth's and the phones' baked one's alike: `cloth` its colour, its inside darker, glowing; its
+ * eyes dark on its front, by `restAt`, its point's place on the sheet laid flat. Its opacity, the eyes solid, returned.
+ */
+function paintSheet(sheet: MeshLambertNodeMaterial, paint: ReturnType<typeof sheetPaint>, restAt: Node<'vec2'>, cloth = paint.colour as unknown as Node<'vec3'>): Node<'float'> {
+  const eye = (side: number) => length(restAt.sub(vec2(paint.eyesApart.mul(side), paint.eyesAhead)))
+  const eyes = smoothstep(paint.eyeSize, paint.eyeSize.mul(0.8), eye(1).min(eye(-1))).mul(paint.eyeDark)
+  const shade = select(frontFacing, float(1), paint.inside)
+  sheet.colorNode = vec4(mix(cloth.mul(shade), vec3(0.02, 0.02, 0.03), eyes), 1)
+  // Every node material takes an emissive node; the types give it to the standard one alone.
+  ;(sheet as unknown as { emissiveNode: Node }).emissiveNode = cloth.mul(paint.glow).mul(shade).mul(eyes.oneMinus())
+  // The eyes as solid as they are dark, the light behind the sheet not showing through them.
+  return mix(paint.opacity, float(1), eyes)
 }
 
 export async function createGhosts(
@@ -717,14 +752,7 @@ export async function createGhosts(
   geometry.setAttribute('rest', new Float32BufferAttribute(rest, 2))
   geometry.setIndex(index)
 
-  const colour = uniform(new Color(look.colour))
-  const glow = uniform(look.glow)
-  const inside = uniform(look.inside)
-  const opacity = uniform(look.opacity)
-  const eyesAhead = uniform(look.eyesAhead)
-  const eyesApart = uniform(look.eyesApart)
-  const eyeSize = uniform(look.eyeSize)
-  const eyeDark = uniform(look.eyeDark)
+  const paint = sheetPaint(look)
   const showWorn = uniform(0)
   const sheet = new MeshLambertNodeMaterial({ side: DoubleSide, transparent: true })
   const cell = attribute('cell', 'vec3')
@@ -768,19 +796,11 @@ export async function createGhosts(
   sheet.normalNode = transformNormalToView(across.cross(along).normalize()).toVarying().mul(faceDirection)
   const worn = vertexParams.element(idAt(0, 0)).x.toFloat().toVarying()
   const restAt = attribute('rest', 'vec2')
-  const eye = (side: number) => length(restAt.sub(vec2(eyesApart.mul(side), eyesAhead)))
-  const eyes = smoothstep(eyeSize, eyeSize.mul(0.8), eye(1).min(eye(-1))).mul(eyeDark)
-  const shade = select(frontFacing, float(1), inside)
-  const cloth = mix(colour, vec3(1, 0.2, 0.1), worn.mul(showWorn))
-  sheet.colorNode = vec4(mix(cloth.mul(shade), vec3(0.02, 0.02, 0.03), eyes), 1)
-  // Every node material takes an emissive node; the types give it to the standard one alone.
-  ;(sheet as unknown as { emissiveNode: Node }).emissiveNode = cloth.mul(glow).mul(shade).mul(eyes.oneMinus())
+  const solid = paintSheet(sheet, paint, restAt, mix(paint.colour, vec3(1, 0.2, 0.1), worn.mul(showWorn)))
   // Torn: the edge cut ragged, by its angle round the middle.
   const middle = restAt.add(vec2(0, preset.behind))
   const angle = atan(middle.y, middle.x)
   const tear = float(0.86).add(sin(angle.mul(7)).mul(0.05)).add(sin(angle.mul(17).add(1.3)).mul(0.04)).add(sin(angle.mul(31).add(4.1)).mul(0.03))
-  // The eyes as solid as they are dark, the light behind the sheet not showing through them.
-  const solid = mix(opacity, float(1), eyes)
   sheet.opacityNode = preset.torn ? select(length(middle).div(preset.radius).lessThan(tear), solid, float(0)) : solid
   sheet.alphaTest = 0.05
   const sheets = new Mesh(geometry, sheet)
@@ -839,14 +859,7 @@ export async function createGhosts(
     damping.value = look.damping
     gravity.value = 9.8 * look.gravity * STEP * STEP
     wind.value = look.wind
-    colour.value.set(look.colour)
-    glow.value = look.glow
-    inside.value = look.inside
-    opacity.value = look.opacity
-    eyesAhead.value = look.eyesAhead
-    eyesApart.value = look.eyesApart
-    eyeSize.value = look.eyeSize
-    eyeDark.value = look.eyeDark
+    paint.set(look)
     showWorn.value = look.showWorn ? 1 : 0
     balls.visible = look.showBodies
     play(look.clip)
@@ -889,6 +902,23 @@ export async function createGhosts(
     }
   }
 
+  // `?ghostbake`: each ghost's sheet as it hangs now, in its own frame (x across, y up from under its feet, z ahead), its
+  // cloth's points in the grid's order, for tools/generators/ghost_sheet.mjs to bake the phones' (createPlainGhosts).
+  if (new URLSearchParams(location.search).has('ghostbake'))
+    Object.assign(globalThis, {
+      ghostSheets: async () => {
+        const all = new Float32Array(await renderer.getArrayBufferAsync(position.value))
+        // A storage buffer's vec3 may come back padded to four floats.
+        const stride = all.length / N
+        return ghosts.map((ghost, g) => {
+          invert.copy(ghost.rig.matrixWorld).invert()
+          const own: number[] = []
+          for (let v = 0; v < V; v++) own.push(...point.fromArray(all, (g * V + v) * stride).applyMatrix4(invert).toArray())
+          return own
+        })
+      },
+    })
+
   return {
     object,
     look,
@@ -901,13 +931,38 @@ export async function createGhosts(
   }
 }
 
-/** The plain ghost's outline, top down, m out and up from its feet: a sheet over a ball, its hem flaring. Turned from the hem up, so its faces look out. */
-const PLAIN_SHEET: readonly (readonly [number, number])[] = [[0.001, 0.86], [0.1, 0.85], [0.18, 0.76], [0.21, 0.62], [0.24, 0.42], [0.31, 0.2], [0.42, 0.02]]
+/** How far the baked sheet's hem swings either way, m at its feet, none at its sphere's middle, and how fast, rad/s. */
+const HEM_SWING = 0.03
+const HEM_RATE = 3.1
 
 /**
- * The ghosts where there is no compute to step their cloth, on WebGL 2: the same walk, the same lamps and the same lights,
- * for the graveyard has no other light and no way through without them (a Xiaomi Mi 9 could not finish the game, 2026-11-03);
- * each drawn as a plain sheet with its eyes, as a look of its own.
+ * The `ball` preset's sheet as the PC's cloth hangs walking, baked (ghostsheet.json, tools/generators/ghost_sheet.mjs):
+ * its grid's points in its ghost's own frame, each with its place on the sheet laid flat, as the cloth's are, for its eyes.
+ */
+function bakedSheet(preset: Preset): BufferGeometry {
+  const { side, points } = bakedPoints
+  const rest = new Float32Array(side * side * 2)
+  const index: number[] = []
+  for (let j = 0; j < side; j++)
+    for (let i = 0; i < side; i++) {
+      const n = j * side + i
+      const [x, z] = disc((i / (side - 1)) * 2 - 1, (j / (side - 1)) * 2 - 1)
+      rest.set([x * preset.radius, z * preset.radius - preset.behind], n * 2)
+      if (i + 1 < side && j + 1 < side) index.push(n, n + side, n + 1, n + 1, n + side, n + side + 1)
+    }
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new Float32BufferAttribute(points, 3))
+  geometry.setAttribute('rest', new Float32BufferAttribute(rest, 2))
+  geometry.setIndex(index)
+  geometry.computeVertexNormals()
+  return geometry
+}
+
+/**
+ * The ghosts where their cloth is not stepped: on WebGL 2, which has no compute, and on a phone (2026-11-07, as asked).
+ * The same walk, the same lamps and the same lights, for the graveyard has no other light and no way through without
+ * them (a Xiaomi Mi 9 could not finish the game, 2026-11-03); each sheet the PC's cloth baked as it hangs walking, in
+ * its paint, its hem swinging a little.
  */
 export function createPlainGhosts(groundAt: (x: number, z: number) => number, walk: Walk, lamps?: FakeLamps): Ghosts {
   const preset = PRESETS.ball!
@@ -915,14 +970,14 @@ export function createPlainGhosts(groundAt: (x: number, z: number) => number, wa
   look.reach = walk.reach
   look.walkSpeed = walk.speed
   const object = new Group()
-  const sheet = new LatheGeometry([...PLAIN_SHEET].reverse().map(([r, y]) => new Vector2(r, y)), 20)
-  const cloth = new MeshBasicNodeMaterial({ transparent: true, depthWrite: false })
-  // Its eyes painted on its front, each a round seen from ahead, solid where the rest of the sheet shows through.
-  const eyeAt = (side: number) => length(vec2(positionLocal.x.sub(side * look.eyesApart), positionLocal.y.sub(look.ballHeight)))
-  const eyeEdge = look.eyeSize * 0.15
-  const eyes = float(1).sub(smoothstep(look.eyeSize - eyeEdge, look.eyeSize + eyeEdge, eyeAt(-1).min(eyeAt(1)))).mul(step(0, positionLocal.z))
-  cloth.colorNode = mix(uniform(new Color(look.colour).multiplyScalar(look.glow)), uniform(new Color(PLAIN_EYES)), eyes)
-  cloth.opacityNode = mix(float(PLAIN_OPACITY), float(1), eyes)
+  const sheet = bakedSheet(preset)
+  const cloth = new MeshLambertNodeMaterial({ side: DoubleSide, transparent: true })
+  cloth.opacityNode = paintSheet(cloth, sheetPaint(look), attribute('rest', 'vec2'))
+  cloth.alphaTest = 0.05
+  // The hem swung round, the more the lower, each ghost on a beat of its own by where it stands.
+  const below = float(look.ballHeight).sub(positionLocal.y).div(look.ballHeight).clamp(0, 1)
+  const beat = time.mul(HEM_RATE).add(atan(positionLocal.z, positionLocal.x).mul(2)).add(modelPosition.x.add(modelPosition.z).mul(1.7))
+  cloth.positionNode = positionLocal.add(vec3(sin(beat), 0, sin(beat.add(1.3)).mul(0.6)).mul(below.mul(below).mul(HEM_SWING)))
   const rigs = Array.from({ length: walk.count }, (_, g) => {
     const rig = new Group()
     rig.add(new Mesh(sheet, cloth))

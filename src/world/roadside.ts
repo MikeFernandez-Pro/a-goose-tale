@@ -70,7 +70,8 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     const before = goosePlay.plain.braziers.slice(0, k).reverse().find((b) => b.follows === undefined)
     return fire && before ? layGraveyard(defaultGraveLook(), fire, goosePlay.layout.lights[k]?.reach ?? fire.reach, before) : undefined
   })()
-  const ghosts = graveyard && backend !== 'WebGPU'
+  // On WebGL 2 and on a phone, the sheets baked from the cloth, not stepped (createPlainGhosts).
+  const ghosts = graveyard && (backend !== 'WebGPU' || lean)
     ? createPlainGhosts(groundAt, { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook().speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) }, fakeLamps)
     : (url.has('ghosts') || graveyard) && backend === 'WebGPU'
     ? await createGhosts(
