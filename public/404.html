@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 · A Goose Tale</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preload" href="/fonts/gaegu-700-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <style>
+      /* GitHub Pages' answer to an address that leads nowhere: the badge's gosling alone in the night, rocking as he
+         waits, peeping as the goslings do in the game, and a key to bring him home. Paths from the root: it answers at
+         any depth. */
+      @font-face { font-family: Gaegu; font-weight: 700; font-display: swap; src: url('/fonts/gaegu-700-latin.woff2') format('woff2'); }
+      html, body { margin: 0; height: 100%; overflow: hidden; }
+      body { background: radial-gradient(ellipse at 50% 42%, #2a2148 0%, #151126 45%, #07060c 100%); }
+      main {
+        height: 100%; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; text-align: center; color: #f6ead0; font: 700 30px/1.2 Gaegu, cursive; text-shadow: 0 2px 4px #000c;
+      }
+      .gosling { position: relative; width: min(46vw, 220px); }
+      .gosling img { display: block; width: 100%; filter: drop-shadow(0 10px 12px #000a); transform-origin: 50% 95%; animation: rock 2.4s ease-in-out infinite; }
+      @keyframes rock { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+      .peep { position: absolute; left: 50%; top: 0; white-space: nowrap; font-size: 26px; pointer-events: none; opacity: 0; }
+      h1 { margin: 6px 0 0; font-size: min(26vw, 160px); line-height: 0.85; }
+      p { margin: 10px 0 30px; font-size: min(6.4vw, 36px); }
+      .key {
+        padding: 1px 24px; font: 700 32px/1.2 Gaegu, cursive; color: #f6ead0; text-decoration: none; text-shadow: none;
+        background: #0007; border: 3px solid #f6ead0; border-radius: 13px; box-shadow: 0 4px 0 #f6ead099;
+        transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+      }
+      .key:hover, .key:focus-visible { background: #e9a23b55; }
+      .key:focus { outline: none; }
+      .key:focus-visible { outline: 3px solid #f6ead0; outline-offset: 3px; }
+      .key:active { transform: translateY(4px); box-shadow: 0 0 0 #f6ead099; }
+      @media (prefers-reduced-motion: reduce) { .gosling img { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="gosling"><img src="/ui/gosling-badge.webp" alt="A lost gosling" /></div>
+      <h1>404</h1>
+      <p>This gosling took a wrong turn.</p>
+      <a class="key" href="/">Bring him home</a>
+    </main>
+    <script>
+      // His peeps, as the game writes them over a gosling: popping up, tilted, rising and fading.
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const gosling = document.querySelector('.gosling')
+        const peep = () => {
+          const word = document.createElement('div')
+          word.className = 'peep'
+          word.setAttribute('aria-hidden', 'true')
+          word.textContent = Math.random() < 0.3 ? '*peep?*' : '*peep*'
+          const side = Math.random() < 0.5 ? -1 : 1
+          const x = side * (30 + Math.random() * 50), tilt = side * (4 + Math.random() * 10)
+          gosling.append(word)
+          word.animate([
+            { opacity: 0, transform: `translate(calc(-50% + ${x}px), 0) rotate(${tilt}deg) scale(0.4)` },
+            { opacity: 1, transform: `translate(calc(-50% + ${x}px), -14px) rotate(${tilt}deg) scale(1.15)`, offset: 0.12 },
+            { opacity: 1, transform: `translate(calc(-50% + ${x}px), -22px) rotate(${tilt}deg) scale(1)`, offset: 0.4 },
+            { opacity: 0, transform: `translate(calc(-50% + ${x * 1.2}px), -40px) rotate(${tilt}deg) scale(1)` },
+          ], { duration: 1100, easing: 'ease-out' }).finished.then(() => word.remove())
+          setTimeout(peep, 700 + Math.random() * 1600)
+        }
+        setTimeout(peep, 600)
+      }
+    </script>
+  </body>
+</html>
