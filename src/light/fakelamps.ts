@@ -16,7 +16,7 @@
 // fragment found in the projector's view and that fire's light taken away where they cover it, a few taps round it
 // softening the edge the further it falls from them.
 import { AnalyticLightNode, Color, Frustum, Light, Matrix4, Object3D, Sphere, Vector3, type Camera, type Material, type Node, type NodeBuilder, type Texture } from 'three/webgpu'
-import { Break, cameraViewMatrix, cameraWorldMatrix, float, getDistanceAttenuation, If, Loop, max, mix, positionView, select, texture, uniform, uniformArray, vec2, vec3, vec4 } from 'three/tsl'
+import { Break, cameraViewMatrix, cameraWorldMatrix, float, getDistanceAttenuation, If, Loop, max, mix, positionView, renderGroup, select, texture, uniform, uniformArray, vec2, vec3, vec4 } from 'three/tsl'
 
 /** How many lamps light at once, the loop's length: past it the furthest down the list are left dark. */
 const MAX_FAKE_LAMPS = 32
@@ -95,21 +95,25 @@ const TAPS: readonly (readonly [number, number])[] = [
   [-0.2, 0.79],
 ]
 
-/** The lamps in the shader: their arrays, filled every frame with the lamps lit, packed to the front. */
+/**
+ * The lamps in the shader: their arrays, filled every frame with the lamps lit, packed to the front. Each in the render's
+ * group: in the object's, a mesh that never moves keeps the lamps of its first drawing, the cage and the island's props
+ * dark by their fires once the camera's culling left those fires out at the start (2026-11-08).
+ */
 class FakeLampsNode extends AnalyticLightNode<FakeLamps> {
-  private readonly places = uniformArray(Array.from({ length: MAX_FAKE_LAMPS }, () => new Vector3()), 'vec3')
-  private readonly colours = uniformArray(Array.from({ length: MAX_FAKE_LAMPS }, () => new Color()), 'color')
-  private readonly reaches = uniformArray(new Array<number>(MAX_FAKE_LAMPS).fill(0), 'float')
-  private readonly decays = uniformArray(new Array<number>(MAX_FAKE_LAMPS).fill(0), 'float')
-  private readonly lit = uniform(0, 'int')
+  private readonly places = uniformArray(Array.from({ length: MAX_FAKE_LAMPS }, () => new Vector3()), 'vec3').setGroup(renderGroup)
+  private readonly colours = uniformArray(Array.from({ length: MAX_FAKE_LAMPS }, () => new Color()), 'color').setGroup(renderGroup)
+  private readonly reaches = uniformArray(new Array<number>(MAX_FAKE_LAMPS).fill(0), 'float').setGroup(renderGroup)
+  private readonly decays = uniformArray(new Array<number>(MAX_FAKE_LAMPS).fill(0), 'float').setGroup(renderGroup)
+  private readonly lit = uniform(0, 'int').setGroup(renderGroup)
   /** Which of the lamps lit is shadowed, -1 none. */
-  private readonly shadowed = uniform(-1, 'int')
-  private readonly view = uniform(new Matrix4())
-  private readonly projector = uniform(new Vector3())
-  private readonly blocker = uniform(1)
-  private readonly strength = uniform(1)
-  private readonly colour = uniform(new Color(0x000000))
-  private readonly softness = uniform(0.1)
+  private readonly shadowed = uniform(-1, 'int').setGroup(renderGroup)
+  private readonly view = uniform(new Matrix4()).setGroup(renderGroup)
+  private readonly projector = uniform(new Vector3()).setGroup(renderGroup)
+  private readonly blocker = uniform(1).setGroup(renderGroup)
+  private readonly strength = uniform(1).setGroup(renderGroup)
+  private readonly colour = uniform(new Color(0x000000)).setGroup(renderGroup)
+  private readonly softness = uniform(0.1).setGroup(renderGroup)
 
   static get type(): string {
     return 'FakeLampsNode'
