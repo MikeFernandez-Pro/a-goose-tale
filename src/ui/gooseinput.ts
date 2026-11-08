@@ -52,11 +52,24 @@ export function createGooseInput({ settings, opening, ending, editing, setPaused
     input.commands = gooseControls.frame({ keys: pressed, pressed: keysDown, clicked, pads, touches, tapped, viewport: viewport(), state })
     keysDown.clear()
     clicked = false
-    // The stick and the button drawn on a phone, or wherever touch is in use, each only where it does something: the
-    // words Resume and Play again are buttons themselves, and a second there would be one too many.
-    const touchShown = !!thumbs && (phone || input.commands.device === 'touch')
+    stateWas = state
+    touchShown = !!thumbs && (phone || input.commands.device === 'touch')
     input.thumbsShown = touchShown && (state === 'opening' || state === 'play')
-    thumbs?.draw(gooseControls.thumbs, { stick: touchShown && state === 'play', button: input.thumbsShown, pause: touchShown && (state === 'opening' || state === 'play' || state === 'ending') }, state === 'opening' ? opening.skipHolding / SKIP_HOLD : 0)
+  }
+  /** Where the game was at the controls' last frame, and whether the thumbs are drawn: on a phone, or wherever touch is in use. */
+  let stateWas: ControlsState = 'none'
+  let touchShown = false
+  /**
+   * The thumbs drawn for this frame, after the hints: each only where it does something, the words Resume and Play again
+   * being buttons themselves, a second there one too many. In the play the button only while the hint over the goose has
+   * it do something, `holding` how far its hold has got, 0 to 1; null where it does nothing. In the opening, the skip.
+   */
+  function thumbsFrame(holding: number | null) {
+    const state = stateWas
+    const opens = state === 'opening'
+    const button = touchShown && (opens || (state === 'play' && holding !== null))
+    const pause = touchShown && (opens || state === 'play' || state === 'ending')
+    thumbs?.draw(gooseControls.thumbs, { stick: touchShown && state === 'play', button, pause }, opens ? opening.skipHolding / SKIP_HOLD : (holding ?? 0))
   }
   const input = {
     /** The keys held. */
@@ -69,6 +82,7 @@ export function createGooseInput({ settings, opening, ending, editing, setPaused
     /** The pause screen's sound key, which takes Enter and Space for itself: elsewhere there they resume. */
     soundKey: undefined as HTMLButtonElement | undefined,
     frame: controlsFrame,
+    thumbsFrame,
   }
   // Captured on the way down: lil-gui stops keys from bubbling out of the panel.
   addEventListener(

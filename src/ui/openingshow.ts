@@ -6,9 +6,10 @@ import type { PlaySwarm } from '../swarm/play'
 import type { Goose } from '../characters/goose'
 import { type PerspectiveCamera, type WebGPURenderer, type Scene, Vector3 } from 'three/webgpu'
 import { type FakeLamps, FakeLamp } from '../light/fakelamps'
-import { createPadButton, promptedOf } from './holdhint'
+import { createPadButton, FILL, promptedOf } from './holdhint'
 import type { Commands } from './goosecontrols'
 import { OPENING } from '../game/openingscript'
+import { BUTTON_RADIUS, touchLayout } from './goosetouch'
 
 /** How the opening is shown, on what the page has made. */
 export function createOpeningShow({ opening, goosePlay, goose, camera, renderer, gooseSounds, hisAt, fakeLamps, scene, standAt }: {
@@ -36,7 +37,7 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
   if (skipHint) {
     skipHint.style.cssText = 'position:fixed;right:28px;bottom:24px;display:flex;align-items:center;gap:10px;opacity:0;transition:opacity 0.6s;font-family:Gaegu,cursive;font-weight:700;font-size:26px;color:#f6ead0;text-shadow:0 2px 4px #000c;pointer-events:none'
     skipSpace.style.cssText = `${SKIP_KEY};position:relative;overflow:hidden;width:96px;text-align:center`
-    skipFill.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:0;background:#e9a23b;opacity:0.6'
+    skipFill.style.cssText = `position:absolute;left:0;top:0;bottom:0;width:0;background:${FILL}`
     const label = document.createElement('span')
     label.textContent = 'space'
     label.style.position = 'relative'
@@ -45,8 +46,8 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
     skipHint.append(word('hold to skip'), skipSpace, skipPad.element)
     document.body.append(skipHint)
   }
-  /** How high the words stand over the screen's foot on touch, px: clear of the button. */
-  const SKIP_OVER_BUTTON = 102
+  /** How high the words stand over the button's top on touch, px: clear of the ring round it. */
+  const SKIP_OVER_BUTTON = 30
   function skipHintFrame(commands: Commands) {
     if (!skipHint) return
     const shown = opening.running() && opening.t > 0.8 && opening.t < OPENING.end - 0.6
@@ -56,7 +57,11 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
     skipSpace.style.display = prompted ? 'none' : ''
     // On touch no button of its own: the words stand over the one button there is, which fills.
     skipPad.update(prompted === 'touch' ? null : prompted, share)
-    skipHint.style.bottom = prompted === 'touch' ? `${SKIP_OVER_BUTTON}px` : '24px'
+    // On touch, over the button, its right end over the button's right edge.
+    const { button } = touchLayout({ width: innerWidth, height: innerHeight })
+    const touch = prompted === 'touch'
+    skipHint.style.bottom = touch ? `${innerHeight - button.y + BUTTON_RADIUS + SKIP_OVER_BUTTON}px` : '24px'
+    skipHint.style.right = touch ? `${innerWidth - button.x - BUTTON_RADIUS}px` : '28px'
     skipFill.style.width = `${Math.round(share * 100)}%`
   }
   /** His shouts after his goslings as they bolt: HONK! over his head, one at each of OPENING.shouts, popping up and rising off it, SHOUT_SHOWS s each. */

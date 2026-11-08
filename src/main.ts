@@ -924,7 +924,7 @@ renderer.setAnimationLoop(() => {
   // The lamp, the fog, the sun and the camera after the light, before the swarm is told what the fog hides: this frame's fog, not the last one's.
   follow(dt, newBeat, frame)
   fires.branchFrame(newBeat, held)
-  hints.holdHintFrame(shown, stood)
+  input.thumbsFrame(hints.holdHintFrame(shown, stood))
   felt.lifeFrame()
   hints.aheadFrame()
   hints.goslingCallFrame(dt)

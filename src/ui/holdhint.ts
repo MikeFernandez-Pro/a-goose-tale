@@ -51,6 +51,9 @@ const crossDrawn = (size: number) => signDrawn(size, (stroke) => `<path d="${CRO
 /** The touch button's sign drawn `size` px across, a circle in the same strokes as the ✕. */
 export const touchSignDrawn = (size: number) => signDrawn(size, (stroke) => `<circle r="6.5" ${stroke}/>`)
 
+/** How deep the ink ledge under a round button `size` px across stands, px: the key's own, in proportion. */
+export const ledgeOf = (size: number) => Math.round(size / 12)
+
 /** A pad's button drawn as the key is, round: its glyph over a fill from the left. Spans, so it may sit in a button. */
 export interface PadButton {
   readonly element: HTMLSpanElement
@@ -61,9 +64,9 @@ export interface PadButton {
 /** A pad's button `size` px across, hidden till given its glyph, then laid out as `display`. */
 export function createPadButton(size: number, display = 'block'): PadButton {
   const element = document.createElement('span')
-  element.style.cssText = `position:relative;overflow:hidden;box-sizing:border-box;width:${size}px;height:${size}px;flex:none;display:none;border:3px solid ${INK};border-radius:50%;background:#0007;box-shadow:0 ${Math.round(size / 12)}px 0 ${INK}99`
+  element.style.cssText = `position:relative;overflow:hidden;box-sizing:border-box;width:${size}px;height:${size}px;flex:none;display:none;border:3px solid ${INK};border-radius:50%;background:#0007;box-shadow:0 ${ledgeOf(size)}px 0 ${INK}99`
   const fill = document.createElement('span')
-  fill.style.cssText = `position:absolute;left:0;top:0;bottom:0;width:0;background:${FILL};opacity:0.6`
+  fill.style.cssText = `position:absolute;left:0;top:0;bottom:0;width:0;background:${FILL}`
   const face = document.createElement('span')
   face.style.cssText = `position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Gaegu,cursive;font-weight:700;font-size:${Math.round(size * 0.68)}px;line-height:1;color:${INK}`
   element.append(fill, face)
@@ -100,7 +103,7 @@ export function createHoldHint(): HoldHint {
   const key = document.createElement('div')
   key.style.cssText = `position:relative;overflow:hidden;box-sizing:border-box;width:${KEY_WIDTH}px;margin:0 auto;font-size:32px;line-height:1.2;padding:1px 0;border:3px solid ${INK};border-radius:13px;background:#0007;box-shadow:0 4px 0 ${INK}99`
   const fill = document.createElement('div')
-  fill.style.cssText = `position:absolute;left:0;top:0;bottom:0;width:0;background:${FILL};opacity:0.6`
+  fill.style.cssText = `position:absolute;left:0;top:0;bottom:0;width:0;background:${FILL}`
   const label = document.createElement('span')
   label.textContent = 'space'
   label.style.position = 'relative'

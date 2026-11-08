@@ -41,13 +41,17 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
   const hintAt = new Vector3()
   /**
    * The hold indicator over him as the camera now sees him: filling as the bucket comes up at the well, as the dead tree
-   * catches, as the torch fills at a fire; hidden elsewhere.
+   * catches, as the torch fills at a fire; hidden elsewhere. How far its hold has got, 0 to 1, where it shows the
+   * button doing something; else null.
    */
-  function holdHintFrame(shown: { x: number; z: number }, stood: number) {
+  function holdHintFrame(shown: { x: number; z: number }, stood: number): number | null {
     holdShown = false
-    if (!holdHint) return
+    if (!holdHint) return null
     holdHint.prompt(promptedOf(input.commands))
-    if (opening.running() || ending.running() || goosePlay.down) return holdHint.update(null, 0)
+    if (opening.running() || ending.running() || goosePlay.down) {
+      holdHint.update(null, 0)
+      return null
+    }
     const well = goosePlay.scenes.find((s) => s.kind === 'well' && s.near)
     const winching = well?.kind === 'well'
     const tree = goosePlay.scenes.find((s) => s.kind === 'tree' && s.near)
@@ -62,18 +66,26 @@ export function createGooseHints({ goosePlay, goslings, gooseSounds, opening, en
     const unlit = goosePlay.scenes.some((s) => s.kind === 'tree' && waiting(s) && Number.isNaN(s.calledAt) && !goosePlay.run.torch.lit && inZone(goosePlay.zoneOf(s), holder))
     // By the burning branch, lying there: one press.
     const branch = goosePlay.atBranch
-    if (!winching && !lighting && !unlocking && !pressing && !unlit && !branch && !goosePlay.atRefill) return holdHint.update(null, 0)
+    if (!winching && !lighting && !unlocking && !pressing && !unlit && !branch && !goosePlay.atRefill) {
+      holdHint.update(null, 0)
+      return null
+    }
     holdShown = true
     hintAt.set(shown.x, stood + HINT_HEIGHT, shown.z).project(camera)
     const box = renderer.domElement.getBoundingClientRect()
     const at = { x: box.left + ((hintAt.x + 1) / 2) * box.width, y: box.top + ((1 - hintAt.y) / 2) * box.height }
-    if (branch) holdHint.update(at, 0, 'pick it up!')
-    else if (winching) holdHint.update(at, well.wound)
-    else if (lighting) holdHint.update(at, tree.catching)
-    else if (unlocking) holdHint.update(at, cage.unlocking, 'hold to unlock')
-    else if (pressing) holdHint.update(at, 0, 'pick it up')
-    else if (goosePlay.atRefill) holdHint.update(at, goosePlay.run.torch.lit ? goosePlay.run.fuel : goosePlay.kindled, torchFilledOnce() ? 'hold to refill' : 'light your torch')
-    else holdHint.update(at, 0, 'light your torch', false)
+    let share = 0
+    let said: string | undefined
+    let keyed = true
+    if (branch) said = 'pick it up!'
+    else if (winching) share = well.wound
+    else if (lighting) share = tree.catching
+    else if (unlocking) [share, said] = [cage.unlocking, 'hold to unlock']
+    else if (pressing) said = 'pick it up'
+    else if (goosePlay.atRefill) [share, said] = [goosePlay.run.torch.lit ? goosePlay.run.fuel : goosePlay.kindled, torchFilledOnce() ? 'hold to refill' : 'light your torch']
+    else [said, keyed] = ['light your torch', false]
+    holdHint.update(at, share, said, keyed)
+    return keyed ? share : null
   }
   /**
    * `?marker` (the game's default, the portrait) or `?marker=doodle`: the calling gosling's badge

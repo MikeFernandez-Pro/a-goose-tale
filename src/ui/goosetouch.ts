@@ -24,10 +24,15 @@ export interface Viewport {
   readonly height: number
 }
 
-/** How far in from the screen's sides and foot the stick and the button stand, px. */
-const EDGE = 28
+/**
+ * How far in from its side of the screen the stick's middle rests and the button's stands, px, and how high over the
+ * screen's foot: the same for both, mirrored, as the thumbs are, so they stand on one line; the stick's ring well clear
+ * of the edge, for a thumb set on it to have room to push left.
+ */
+const THUMB_IN = 100
+const THUMB_UP = 90
 /** How far the stick reaches from its middle, px: its ring's radius. */
-export const STICK_REACH = 44
+export const STICK_REACH = 56
 /** The button's radius, px; how far from its middle a thumb landing holds it, px, past its edge for a thumb's slop. */
 export const BUTTON_RADIUS = 32
 const BUTTON_CATCH = BUTTON_RADIUS * 1.8
@@ -41,8 +46,8 @@ export interface ScreenPoint {
 /** Where the stick rests and the button stands on `viewport`, px. */
 export function touchLayout(viewport: Viewport): { stick: ScreenPoint; button: ScreenPoint } {
   return {
-    stick: { x: EDGE + STICK_REACH, y: viewport.height - EDGE - STICK_REACH },
-    button: { x: viewport.width - EDGE - BUTTON_RADIUS, y: viewport.height - EDGE - BUTTON_RADIUS },
+    stick: { x: THUMB_IN, y: viewport.height - THUMB_UP },
+    button: { x: viewport.width - THUMB_IN, y: viewport.height - THUMB_UP },
   }
 }
 

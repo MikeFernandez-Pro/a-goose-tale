@@ -35,7 +35,7 @@ const LOOK_SPEED = 0.0025
  * The game's cameras, V going round them (?orbit, ?locked or ?chase starts in one) (2026-10-24). The fixed one,
  * the page's own: GOOSE_CAMERA from his feet, looking at GOOSE_TARGET, the chosen framing, captured on the panel on
  * 2026-10-24, 22 degrees down from 5.5 m (or the panel's capture kept since); nothing the mouse does turns it, but the
- * pointer's place on the screen slides it a little, as Portfolio2024's camera does: up to PARALLAX m across
+ * mouse's place on the screen slides it a little, as Portfolio2024's camera does (a touch's does not): up to PARALLAX m across
  * and up, eased over PARALLAX_EASE s, the way it looks unchanged. The orbit, free, from the same framing. The locked
  * one, the same framing, never turned across; the drag tilts it only, between LOCKED_TILT's angles down from the
  * horizon. The chase, from CHASE_LOOK m over him, CHASE_CAMERA back and up, turning on the locked pointer, he turning
@@ -476,7 +476,9 @@ export function createGooseView({ camera, renderer, light, goslings, run, feel, 
           if (!debugOn || event.code !== 'KeyV' || event.repeat || event.target instanceof HTMLInputElement) return
           setGooseCamera(GOOSE_CAMERAS[(GOOSE_CAMERAS.indexOf(gooseCamera) + 1) % GOOSE_CAMERAS.length]!, true)
         })
-        addEventListener('mousemove', (event) => {
+        // A mouse's alone: a phone sends a mouse's move after each tap, which would slide the camera to every thumb.
+        addEventListener('pointermove', (event) => {
+          if (event.pointerType !== 'mouse') return
           pointerShare.x = (event.clientX / innerWidth) * 2 - 1
           pointerShare.y = (event.clientY / innerHeight) * 2 - 1
         })
