@@ -101,6 +101,8 @@ const FAIL_WITHIN = 10000
 export class Quality {
   /** The step drawn now: an index into the ladder, 0 the whole look. */
   level: number
+  /** Whether the last window judged was far behind: at the ladder's foot, no step is left that saves it. */
+  farBehind = false
   /** No step above this is tried again: those were too slow. */
   private ceiling = 0
   private readonly failures: number[]
@@ -151,7 +153,7 @@ export class Quality {
     if (now - this.windowStart < WINDOW) return false
 
     const keepingUp = this.slow <= this.frames * SLOW_SHARE
-    const farBehind = this.far > this.frames / 2
+    const farBehind = (this.farBehind = this.far > this.frames / 2)
     const length = now - this.windowStart
     const foot = this.steps.length - 1
     this.windowStart = -1
@@ -181,6 +183,7 @@ export class Quality {
 
   private change(level: number, now: number): boolean {
     this.level = level
+    this.farBehind = false
     this.smooth = 0
     this.settledAt = now + SETTLE
     return true

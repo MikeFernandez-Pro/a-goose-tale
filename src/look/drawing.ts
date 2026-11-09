@@ -4,6 +4,15 @@ import { watchForDrawFailure, nextAfterFailure } from '../ui/cannotdraw'
 import { WebGPURenderer, type Object3D, PCFShadowMap, VSMShadowMap } from 'three/webgpu'
 import { maxPixelRatio } from './quality'
 
+/** What `use` says of the device's storage, or false where the browser refuses it, as one with cookies blocked does. */
+function stored(use: () => boolean): boolean {
+  try {
+    return use()
+  } catch {
+    return false
+  }
+}
+
 /** The renderer made and put on the page, and what a device and the address ask of its frame. */
 export async function createDrawing() {
   /** Where a phone has found this tab's WebGPU cannot draw the game: it stays on WebGL 2 for the tab. */
@@ -107,7 +116,14 @@ export async function createDrawing() {
    * A phone's frame, which never has the AO, the bloom or the tilt's blur: the scene pass writes less (post.ts).
    * It keeps the tilt's camera and its grade, which the look stands on. `?lean=0` to measure against it, `?lean` to try it elsewhere.
    */
-  const lean = url.get('lean') !== '0' && (phone || url.has('lean'))
+  const LEAN_ON_THE_DEVICE = 'a-goose-tale.lean'
+  /**
+   * A PC kept lean: one that fell far behind at the last step of the whole look (main.ts) loads lean from then on, kept
+   * on the device, a PC's GPU being the same from one visit to the next. A laptop drew 3 fps whole, 12 to 18 lean
+   * (2026-11-09).
+   */
+  const leanKept = !phone && url.get('lean') !== '0' && stored(() => localStorage.getItem(LEAN_ON_THE_DEVICE) === '1')
+  const lean = url.get('lean') !== '0' && (phone || url.has('lean') || leanKept)
   /**
    * The moon's shadows, `?moon=vsm`, `pcf`, `baked` or `none`, `none` taking the fires' shadows of him and his goslings
    * with them: on a phone baked, drawn once of what stands still (moonbake.ts), since 2026-11-06; none before. Live, they
@@ -134,6 +150,16 @@ export async function createDrawing() {
     renderer,
     backend,
     lean,
+    leanKept,
+    /** Keep this device lean, and load it so: a run in play is kept through the reload (keptrun.ts). */
+    goLean() {
+      // Kept nowhere, the reload would load the whole look again, and again.
+      if (stored(() => (localStorage.setItem(LEAN_ON_THE_DEVICE, '1'), true))) location.reload()
+    },
+    /** Load the whole look again on this device's next visit. */
+    forgetLean() {
+      stored(() => (localStorage.removeItem(LEAN_ON_THE_DEVICE), true))
+    },
     moon,
     maxDpr,
     timestamps,

@@ -86,6 +86,19 @@ describe('Quality', () => {
     expect(run(q, 333, 6000).levels).toEqual([steps.length - 1])
   })
 
+  it('says a device is far behind at the foot only once a window there is judged', () => {
+    const steps = ladder(2)
+    const q = new Quality(steps, 0)
+    let t = 0
+    while (!q.frame(333, (t += 333)));
+    expect(q.level).toBe(steps.length - 1)
+    expect(q.farBehind).toBe(false)
+    for (const end = t + 4000; t < end; ) q.frame(333, (t += 333))
+    expect(q.farBehind).toBe(true)
+    for (const end = t + 4000; t < end; ) q.frame(16.7, (t += 16.7))
+    expect(q.farBehind).toBe(false)
+  })
+
   it('held, as in the opening, moves only for a device far behind', () => {
     const steps = ladder(2)
     const slow = new Quality(steps, 0)

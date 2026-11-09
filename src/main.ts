@@ -109,7 +109,7 @@ const DARK_MARGIN = 0.5
 const { look, gooseTheme } = startingLook()
 const beats = createBeats(look.stopMotion)
 
-const { renderer, backend, lean, moon, maxDpr, timestamps, benchTools, gpuQueue, allBuilt } = await createDrawing()
+const { renderer, backend, lean, leanKept, goLean, forgetLean, moon, maxDpr, timestamps, benchTools, gpuQueue, allBuilt } = await createDrawing()
 const camera = new PerspectiveCamera(CAMERA_FOV, innerWidth / innerHeight, 0.1, 100)
 const scene = new Scene()
 const skyFog = createSkyFog(scene, camera, look.fog.enabled)
@@ -566,8 +566,8 @@ const wholeLadder = ladder(maxDpr)
 const steps = (lean ? wholeLadder.slice(startingStep(wholeLadder, true)) : wholeLadder).filter((step) => step.moon || step.islandBush || moon === 'vsm' || moon === 'pcf')
 const askedStep = Number(url.get('step'))
 // A phone on WebGL 2, the swarm stepped on its CPU, starts at its lowest, the opening held at it, and climbs from there
-// once it is over.
-const lowestFirst = phone && backend !== 'WebGPU'
+// once it is over; so does a PC kept lean, known to fall far behind.
+const lowestFirst = (phone && backend !== 'WebGPU') || leanKept
 const quality = new Quality(steps, Number.isInteger(askedStep) && url.has('step') ? Math.min(Math.max(askedStep, 0), steps.length - 1) : lowestFirst ? steps.length - 1 : startingStep(steps, phone))
 // `?bench=soak` and `load` let it move: what a phone settles on is what they read.
 const adapt = url.get('adapt') !== '0' && !['ao', 'dof', 'bloom', 'dpr', 'post'].some((key) => url.has(key)) && (!url.has('bench') || ['soak', 'load'].includes(url.get('bench') ?? ''))
@@ -820,6 +820,30 @@ function watchFrames(ms: number) {
   if (now - watched.from < 1000) return
   benchTools?.logToServer({ kind: 'second', ms: Math.round(now), opening: Math.round(opening.t * 10) / 10, frames: watched.frames, worst: Math.round(watched.worst), next: Math.round(watched.next), rats: swarm.count, drawn: rats.drawn, step: quality.level })
   Object.assign(watched, { frames: 0, worst: 0, next: 0, from: now })
+}
+
+/** How long a PC kept lean holds the top of its ladder before it loads the whole look again on its next visit, ms. */
+const LEAN_FORGOTTEN_AFTER = 60_000
+/** How long it has held it, ms. */
+let leanTopFor = 0
+/** Whether this page has reloaded lean, or let the device go: once is enough. */
+let leanDecided = false
+/**
+ * A device far behind at the ladder's foot, the whole look loaded, reloads lean and is kept so (drawing.ts); a PC kept
+ * lean that holds the ladder's top is let go. Not where the address asks for lean or not, which a reload would keep.
+ */
+function leanFrame(frame: number) {
+  if (!adapt || leanDecided || url.has('lean')) return
+  if (!lean && quality.farBehind && quality.level === steps.length - 1) {
+    leanDecided = true
+    goLean()
+  } else if (leanKept) {
+    leanTopFor = quality.level === 0 && !settings.paused ? leanTopFor + frame * 1000 : 0
+    if (leanTopFor > LEAN_FORGOTTEN_AFTER) {
+      leanDecided = true
+      forgetLean()
+    }
+  }
 }
 
 /** Whether the quality has moved to a step not yet drawn at. */
@@ -1093,6 +1117,7 @@ renderer.setAnimationLoop(() => {
   // ending, its oak not to turn to a bush before the player. A step is taken at the head of the next frame: resized
   // here, past this frame's drawing, the canvas would show empty, a black frame.
   if (adapt && !loading && !ending.running() && quality.frame(frame * 1000, start, opening.running())) qualityDue = true
+  if (!loading) leanFrame(frame)
   if (!loading && url.get('bench') === 'load') watchFrames(frame * 1000)
   if (!loading) {
     if (!benchMade) {
