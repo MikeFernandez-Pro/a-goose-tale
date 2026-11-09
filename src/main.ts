@@ -280,6 +280,12 @@ const moonFrom = new Color()
 const moonTo = new Color()
 /** The torch as the swarm reads it: where the holder is, its reach as a share of the swarm's full light, and lit. */
 const light: Light = { x: run.holder.x, z: run.holder.z, strength: 0, on: false }
+/** The torch gone out, its smoke goes on off the charred tip for this long, s, from this much thicker, thinning to nothing. */
+const SMOKE_DIES = 3.5
+const SMOKE_THICK = 1.5
+/** When the torch last went out, on the beats' clock, and whether its smoke is still dying away. */
+let wentOut = Number.NEGATIVE_INFINITY
+let smokeDying = false
 /** Hand the swarm the torch as the run has it, and the debug switch: true if it went out or was relit. */
 function torchChanged(): boolean {
   const torch = run.torch
@@ -289,6 +295,8 @@ function torchChanged(): boolean {
   const on = torch.lit && settings.on
   if (on === light.on) return false
   light.on = on
+  smokeDying = !on
+  if (!on) wentOut = beats.clock
   return true
 }
 torchChanged()
@@ -504,10 +512,10 @@ function lookChanged() {
   // The burning branch in the dead trees' shell, as their wood is; its embers the torch's.
   burningBranch?.setShell({ ...look.goose, ...deadTreeShine })
   branchEmbers?.set(look.flame.embers)
-  // The torch out, burnt down or put out: its flame, its smoke and its embers go with it.
+  // The torch out, burnt down or put out: its flame and its embers go with it, its smoke once it has died away.
   flame.object.visible &&= light.on
   embers.object.visible &&= light.on
-  smoke.object.visible &&= light.on
+  smoke.object.visible &&= light.on || smokeDying
   // The character hidden takes its torch with it: the lamp alone stays, burning where the flame would.
   goose.object.visible &&= settings.character
   flame.object.visible &&= settings.character
@@ -940,7 +948,7 @@ renderer.setAnimationLoop(() => {
   zoneRings.frame(drawn)
   // The lamp, the fog, the sun and the camera after the light, before the swarm is told what the fog hides: this frame's fog, not the last one's.
   follow(dt, newBeat, frame)
-  fires.branchFrame(newBeat, held)
+  fires.branchFrame(newBeat, held, light.on)
   input.thumbsFrame(hints.holdHintFrame(shown, stood))
   felt.lifeFrame()
   hints.aheadFrame()
@@ -998,8 +1006,16 @@ renderer.setAnimationLoop(() => {
   if (!(stop.enabled && stop.swarm) || !swarm.ready) swarm.sample(performance.now())
   else if (stop.stagger) swarm.sampleStaggered(performance.now(), beats.clock, stop.fps)
   else if (newBeat) swarm.hold(performance.now())
-  // The smoke on the run's held time too, trailing from the flame's tip.
-  smoke.update(held, flame.tip(flameTip), camera.position)
+  // The smoke on the run's held time too, trailing from the flame's tip; the torch out, from its charred tip, thinning
+  // away to nothing and then gone.
+  // A clock turned back since it went out, the smoke is long gone.
+  const out = beats.clock < wentOut ? SMOKE_DIES : Math.max(0, held - wentOut)
+  if (smokeDying && out >= SMOKE_DIES) {
+    smokeDying = false
+    smoke.object.visible = false
+  }
+  const smokeFrom = light.on ? flame.tip(flameTip) : (burningBranch?.end(flameTip) ?? flame.tip(flameTip))
+  smoke.update(held, smokeFrom, camera.position, light.on ? 1 : SMOKE_THICK * Math.max(0, 1 - out / SMOKE_DIES))
   // The embers on the run's held time, so they hold on the beat; born where the flame burns.
   embers.update(held, flameAt)
   feathers.update(held, groundAt)

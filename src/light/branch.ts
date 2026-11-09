@@ -10,8 +10,9 @@
 // broken end, and laid by a pose: where its butt is, how it is
 // turned, and how long it is, the same size lying as carried. Its bark
 // painted in strokes
-// as the goose is, its broken end charred black and its very tip glowing a
-// little red, as bright as the grave candles' flames, in the scenes' shell.
+// as the goose is, its broken end charred black and, while it burns, its very
+// tip glowing a little red, as bright as the grave candles' flames, in the
+// scenes' shell.
 import { BufferAttribute, BufferGeometry, CatmullRomCurve3, Matrix4, Mesh, Quaternion, Vector3, type Object3D } from 'three/webgpu'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from '../look/shell'
 import type { ToonLook } from '../look/toon'
@@ -124,6 +125,8 @@ export interface BurningBranch {
   place(pose: BranchPose): void
   /** Where its broken end is, as last placed: where it burns. */
   end(out: Vector3): Vector3
+  /** Its tip glowing while it burns; out, charred black as the rest of its end. */
+  setLit(lit: boolean): void
 }
 
 export function createBranch(): BurningBranch {
@@ -132,12 +135,24 @@ export function createBranch(): BurningBranch {
   object.castShadow = object.receiveShadow = true
   object.frustumCulled = false
   const tip = new Vector3()
+  let colours = branchColours()
+  let lit = true
+  const paint = () => {
+    material.parts[0]!.value.set(colours.bark)
+    material.parts[1]!.value.set(colours.char)
+    material.parts[2]!.value.set(lit ? colours.ember : colours.char)
+    material.setGlow(2, lit ? EMBER_GLOW : 0)
+  }
   const branch: BurningBranch = {
     object,
-    setColours({ bark, char, ember }) {
-      material.parts[0]!.value.set(bark)
-      material.parts[1]!.value.set(char)
-      material.parts[2]!.value.set(ember)
+    setColours(next) {
+      colours = next
+      paint()
+    },
+    setLit(on) {
+      if (on === lit) return
+      lit = on
+      paint()
     },
     setShell(look) {
       material.set(look)
@@ -154,8 +169,7 @@ export function createBranch(): BurningBranch {
       return out.copy(tip.set(0, 1, 0)).applyMatrix4(object.matrixWorld)
     },
   }
-  branch.setColours(branchColours())
-  material.setGlow(2, EMBER_GLOW)
+  paint()
   return branch
 }
 

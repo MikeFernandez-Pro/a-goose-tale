@@ -64,8 +64,8 @@ export interface Smoke {
   readonly object: Mesh
   /** Take the smoke's controls. */
   set(look: SmokeLook): void
-  /** Lay the trail at `time` seconds, the flame's tip at `tip` and the camera at `eye`, world space. */
-  update(time: number, tip: Vector3, eye: Vector3): void
+  /** Lay the trail at `time` seconds, the flame's tip at `tip` and the camera at `eye`, world space; `thick` times its width. */
+  update(time: number, tip: Vector3, eye: Vector3, thick?: number): void
 }
 
 export function createSmoke(): Smoke {
@@ -115,7 +115,7 @@ export function createSmoke(): Smoke {
       material.color.set(look.color)
       material.opacity = look.opacity
     },
-    update(time, tip, eye) {
+    update(time, tip, eye, thick = 1) {
       const seconds = Math.max(0.05, look.seconds)
       const interval = seconds / (POINTS - 1)
       // Never placed, moved rather than carried, or the clock turned back: the trail starts over at the tip.
@@ -151,7 +151,7 @@ export function createSmoke(): Smoke {
         at.lerpVectors(places[k], places[k + 1], t)
         const s = r / ROWS
         // Thin at the flame, widest a third along, thinning to its end.
-        let half = look.width * 0.5 * (0.25 + 0.75 * Math.min(1, s * 3)) * (1 - s) ** 0.8
+        let half = look.width * thick * 0.5 * (0.25 + 0.75 * Math.min(1, s * 3)) * (1 - s) ** 0.8
         // Past the break, dashes: each tapered to both its ends, and nothing in the gaps.
         if (breaks > 0 && s > BREAK_FROM) {
           const u = ((s - BREAK_FROM) % period) / period

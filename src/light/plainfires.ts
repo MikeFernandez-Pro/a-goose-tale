@@ -250,9 +250,9 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
   /**
    * The burning branch as the play and the opening have it: hidden in the crown until it snaps; falling, tumbling, its
    * flame and embers on its broken end; lying there burning, its lamp lit; and once he has it, in his beak, where his own
-   * torch lay, his torch's flame burning on it, its own out.
+   * torch lay, his torch's flame burning on it, its own out, and its tip out whenever `torchLit` is false.
    */
-  function branchFrame(newBeat: boolean, held: number) {
+  function branchFrame(newBeat: boolean, held: number, torchLit: boolean) {
     const branch = goosePlay.branch
     if (!burningBranch || !branchFire || !branchEmbers || !branch) return
     const stop = look.stopMotion
@@ -260,6 +260,7 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
     // As long lying as carried, as he is drawn now.
     const { carrier, butt, end } = goose.held
     const length = carrier.localToWorld(branchButt.copy(butt)).distanceTo(carrier.localToWorld(branchAtNow.copy(end)))
+    burningBranch.setLit(!branch.carried || torchLit)
     if (branch.carried) {
       burningBranch.object.visible = goose.object.visible
       burningBranch.place(carriedPose(goose.held, branchLaid))
