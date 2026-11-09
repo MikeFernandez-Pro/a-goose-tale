@@ -15,11 +15,12 @@ import type { GooseSounds } from '../sound/goosesounds'
 import type { Goose } from '../characters/goose'
 import { type PerspectiveCamera, type WebGPURenderer, Color, Vector3 } from 'three/webgpu'
 import { url } from './address'
+import { leafGlow } from '../look/leaflight'
 import { type Stage, type Island, layEnding, ganderAt, planAt, aimOf, motherAt, goslingOf, againOf, heartsOf, HEART_SHOWS, morningOf, fadeOf, titleOf, byOf, DRAIN, dawnOf } from './endingscript'
 import { type PadButton, padBeside } from '../ui/holdhint'
 import { dropKeptRun } from './keptrun'
 
-/** The lights the dawn brings up: the low sun, the sky's fill, and the fires', the torch's among them, dying down; the water's horizon and the floor's colour with them. */
+/** The lights the dawn brings up: the low sun, the sky's fill, and the fires', the torch's among them, dying down; the water's horizon, the floor's colour and the leaves' own with them. */
 interface DawnLook {
   sun: { color: number; intensity: number; x: number; y: number; z: number; softness: number; shadowColor: number; darkness: number }
   fill: { sky: number; ground: number; intensity: number }
@@ -27,11 +28,12 @@ interface DawnLook {
   fires: number
   water: { horizon: number }
   floor: { saturation: number; lightness: number }
+  leaves: { glow: number }
 }
 /**
  * The dawn as set from the panel on 2026-10-31: a pink sun high on the moon's side, its shadows soft and violet, a
  * pale pink sky over a dark violet ground, the water's horizon turquoise, the floor more coloured; the fires a third
- * of their night's.
+ * of their night's; and since 2026-11-09 every leaf showing all its own colour.
  */
 const DAWN: DawnLook = {
   sun: { color: 0xff94a4, intensity: 4.7, x: -23.5, y: 27, z: 25, softness: 1.5, shadowColor: 0x241d3a, darkness: 0.64 },
@@ -40,6 +42,7 @@ const DAWN: DawnLook = {
   fires: 0.35,
   water: { horizon: 0x7cfef5 },
   floor: { saturation: 1.1, lightness: 0.64 },
+  leaves: { glow: 1 },
 }
 
 /**
@@ -158,6 +161,7 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
     fires: 1,
     water: { horizon: waterLook.horizon },
     floor: { saturation: from.floor.saturation, lightness: from.floor.lightness },
+    leaves: { glow: from.leaves.glow },
   })
   const dawnFrom = new Color()
   const dawnTo = new Color()
@@ -195,6 +199,8 @@ export function createEnding({ goosePlay, pondLook, islandGeese, tent, look, wat
       deadTreesMesh.setGrass(deadTreeGrass, look.floor)
       islandTree.setGrass(look.floor)
     }
+    look.leaves.glow = between(night.leaves.glow, DAWN.leaves.glow)
+    leafGlow.value = look.leaves.glow
     nightLights.dawned(look, light.on)
   }
   /**
