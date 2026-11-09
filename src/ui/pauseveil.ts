@@ -2,14 +2,15 @@
 import type { PlayerInput } from './gooseinput'
 import type { Settings } from '../settings'
 import type { GooseSounds } from '../sound/goosesounds'
-import { filming } from '../game/address'
+import { debugOn, filming } from '../game/address'
 import { type PadButton, padBeside, besideOf } from './holdhint'
 
 /**
  * The game paused (#197), by Escape, P, Start, losing the window or the pad in use unplugged: a dark veil over it, as the
  * loading screen and the ending's card are ink on black, "paused" on it in the hints' hand, and under it Resume, as the
  * loading screen's Enter is drawn, the pad's button beside it on a pad. Resume clicked, or Escape, Start or the bottom
- * face button again, it goes on. Not in edit mode, which pauses as well, nor filmed.
+ * face button again, it goes on. Not in edit mode, which pauses as well, nor filmed, nor on the developer's page, whose
+ * panel has its own pause.
  */
 export function createPauseVeil({ settings, input, gooseSounds, loaded, editing, setPaused }: {
   settings: Settings
@@ -19,7 +20,7 @@ export function createPauseVeil({ settings, input, gooseSounds, loaded, editing,
   editing: () => boolean | undefined
   setPaused: (on: boolean) => void
 }) {
-  const pauseVeil = filming ? undefined : document.createElement('div')
+  const pauseVeil = filming || debugOn ? undefined : document.createElement('div')
   let resumePad: PadButton | undefined
   let resumeKey: HTMLButtonElement | undefined
   if (pauseVeil) {
