@@ -1306,7 +1306,7 @@ describe('the goose play', () => {
       expect(g.state).toBe('circle')
     })
 
-    it('stops him at its bars while it is shut, and lets his goslings walk out of it once open', () => {
+    it('stops him at its bars, shut or open, and lets his goslings walk out of it once open', () => {
       const { play, b, cage } = atCage()
       // Walked at it from its far side, he stands off it.
       const away = { x: cage.x + (cage.x - b.x), z: cage.z + (cage.z - b.z) }
@@ -1318,6 +1318,15 @@ describe('the goose play', () => {
       unlock(play)
       stand(play, 2)
       expectArcBehind(play)
+      // Open, walked at its middle, he stops at its bars as he did shut.
+      const bars = [
+        { x: -CAGE, z: -CAGE },
+        { x: CAGE, z: -CAGE },
+        { x: CAGE, z: CAGE },
+        { x: -CAGE, z: CAGE },
+      ]
+      walkTo(play, cage, 0.05, 3, () => expect(offWell(cage, play.holder, bars)).toBeGreaterThan(HOLDER_RADIUS - 0.01))
+      expect(offWell(cage, play.holder, bars)).toBeLessThan(HOLDER_RADIUS + 0.05)
     })
   })
 

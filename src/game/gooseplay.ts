@@ -84,8 +84,8 @@
 //   key, the interact key picks it up; carried
 //   back to the cage, the interact key held its set time unlocks it, let go
 //   early starting again from none, and the cage opens and its gosling joins
-//   the goose's circle. With no key the cage does nothing. Shut, it is a body as the well
-//   is; open, its gosling walks out of it. Its brazier is the set's campfire,
+//   the goose's circle. With no key the cage does nothing. It is a body as the well
+//   is, shut or open; open, its gosling walks out of it. Its brazier is the set's campfire,
 //   the set turned so the campfire stands on it (`Cage.turn`); the set's cart
 //   behind the cage is a body, open or shut.
 // - The burning tree's trunk on the spawn's light, the fire pit by each well,
@@ -600,7 +600,7 @@ const TREE_FIRE_AHEAD = 0.35
 const TREE_DARK = 1.5
 /** How far short of a scene's zone a debug key stands him, m (`standBy`). */
 const STAND_BY = 0.3
-/** How far the shut cage's bars stand from its middle, m, along x and z: a box. */
+/** How far the cage's bars stand from its middle, m, along x and z: a box. */
 export const CAGE = 0.3
 /** How close to a flame he fills his torch at it, m from the flame: a fire's dip. */
 export const DIP = 0.8
@@ -794,8 +794,8 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
   water: FixedLight
   /** Each well's bodies as the swarm holds rats off them, after the pond: the well's outline, a shore round its middle. */
   private readonly wells: FixedLight[]
-  /** The bodies he and his goslings keep out of that stand still with their scene: each well's, each cage's bars, gone once it opens, and its cart. The rest are laid live (`bodies`). */
-  private readonly solid: { scene: SceneState; body: Body; bars?: boolean }[]
+  /** The bodies he and his goslings keep out of that stand still with their scene: each well's, each cage's bars, shut or open, and its cart. The rest are laid live (`bodies`). */
+  private readonly solid: Body[]
   /** And what the old road's arches stand on, as the page lays them (`setStones`): none until it does. */
   private stones: Body[] = []
   /** And the dead trees' trunks by the road, each round its middle, as the page lays them (`setTrunks`): none until it does. */
@@ -980,13 +980,13 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
       { x: CAGE, z: CAGE },
       { x: -CAGE, z: CAGE },
     ]
-    this.solid = this.scenes.flatMap((scene): { scene: SceneState; body: Body; bars?: boolean }[] => {
+    this.solid = this.scenes.flatMap((scene): Body[] => {
       const middle = { x: 0, z: 0 }
-      if (scene.kind === 'well') return wellBodiesOf(scene).map((body) => ({ scene, body: { ...body, at: scene } }))
+      if (scene.kind === 'well') return wellBodiesOf(scene).map((body) => ({ ...body, at: scene }))
       if (scene.kind === 'cage') {
         return [
-          { scene, body: { outline: square, middle, at: scene }, bars: true },
-          { scene, body: { outline: cartOf(scene), middle: cartMiddleOf(scene), at: scene } },
+          { outline: square, middle, at: scene },
+          { outline: cartOf(scene), middle: cartMiddleOf(scene), at: scene },
         ]
       }
       return []
@@ -994,8 +994,8 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
   }
 
   /**
-   * The bodies on the ground now: every well's, every cage's bars while shut
-   * and its cart; the burning tree's trunk, the fire pit by each well, and each cage's
+   * The bodies on the ground now: every well's, every cage's bars and its
+   * cart; the burning tree's trunk, the fire pit by each well, and each cage's
    * campfire, on their lights wherever they stand; each dead tree and the
    * brazier by it; each dead body, round its
    * skull; and the arches' stones.
@@ -1020,7 +1020,7 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
       return []
     })
     return [
-      ...this.solid.flatMap(({ scene, body, bars }) => (bars && scene.kind === 'cage' && scene.open ? [] : [body])),
+      ...this.solid,
       ...(this.spawnPit() ? [{ at: lights[0]!, outline: SPAWN_TRUNK, middle: ORIGIN }] : []),
       ...pits.map((at) => ({ at, outline: PIT_OUTLINE, middle: ORIGIN })),
       ...sets,
