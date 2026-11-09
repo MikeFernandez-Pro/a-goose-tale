@@ -101,6 +101,15 @@ describe('PhoneBench', () => {
     expect(readings[0]!.frameMs.mean).toBe(20)
   })
 
+  it('reads a device drawing a few frames a second, though each frame is past a hitch on a fast one', () => {
+    const readings: Reading[] = []
+    const bench = new PhoneBench([{ name: 'a', go: () => {} }], [], { report: (r) => readings.push(r) })
+    play(bench, readings, 333)
+    expect(bench.done).toBe(true)
+    expect(readings[0]!.gaps).toBe(0)
+    expect(readings[0]!.frameMs.mean).toBe(333)
+  })
+
   it('reports no queue without one to ask', () => {
     const readings: Reading[] = []
     play(new PhoneBench([{ name: 'a', go: () => {} }], [], { report: (r) => readings.push(r) }), readings)

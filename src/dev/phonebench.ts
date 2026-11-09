@@ -42,7 +42,7 @@ export interface Reading {
   cost: string | null
   side: 'base' | 'off'
   frames: number
-  /** Frames past GAP: each starts the reading again, and none is read. */
+  /** Hitches, frames past GAP and HITCH times the frames before them: each starts the reading again, and none is read. */
   gaps: number
   /** The share of the frames that missed a 30 fps target. */
   slow: number
@@ -72,8 +72,15 @@ const SETTLE = 1500
 const PLACE_SETTLE = 3000
 /** How long a reading lasts, ms. */
 const SAMPLE = 3000
-/** A frame longer than this is no frame, ms. */
+/** A frame longer than this is no frame, ms, and longer than HITCH times the frames before it. */
 const GAP = 250
+/**
+ * How many of the frames before it a frame must pass to be no frame: a laptop drawing 3 fps had every frame past GAP,
+ * and never finished a reading (2026-11-09).
+ */
+const HITCH = 3
+/** The frames before it a frame is held against, as many as this. */
+const RECENT = 15
 /** A frame longer than this missed 30 fps, ms: 33.3 and a little for the clock. */
 const SLOW_FRAME = 34
 /** How many times each cost is read, each way round: drift, a phone warming, falls on both sides alike. */
@@ -112,6 +119,8 @@ export class PhoneBench {
   private page: number[] = []
   private queue: number[] = []
   private gaps = 0
+  /** The last frames, settling or read. */
+  private recent: number[] = []
 
   constructor(
     private readonly places: BenchPlace[],
@@ -125,8 +134,11 @@ export class PhoneBench {
   frame(frameMs: number, pageMs: number, now: number): void {
     if (this.done) return
     if (this.k < 0) this.begin(0, now, undefined)
+    const hitch = frameMs > Math.max(GAP, HITCH * spread(this.recent).p50)
+    this.recent.push(frameMs)
+    if (this.recent.length > RECENT) this.recent.shift()
     if (now < this.sampleFrom) return
-    if (frameMs > GAP) {
+    if (hitch) {
       // A hitch: what was read may be what led to it, and a reading needs its seconds.
       this.gaps++
       this.frames = []
