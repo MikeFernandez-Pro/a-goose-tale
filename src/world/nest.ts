@@ -85,9 +85,9 @@ export function defaultNeedleLook(): NeedleLook {
   return { ...NEEDLE_DEFAULTS['pine needles'] }
 }
 
-/** The nest's needles to start: three warm straw browns, set from the panel on 2026-10-31; the light a deeper gold since 2026-11-09. */
+/** The nest's needles to start: three warm straw browns, set from the panel on 2026-10-31, brighter and more orange since 2026-11-09. */
 export function defaultNestLeafLook(): LeafLook {
-  return { show: true, textured: true, cutout: 0.5, shadow: 0x896448, mid: 0xd29760, light: 0xf3c177, shadowTo: 0.5, lightFrom: 0.8, shading: 0.6, variation: 1 }
+  return { show: true, textured: true, cutout: 0.5, shadow: 0xa0785a, mid: 0xef9b4e, light: 0xffca7a, shadowTo: 0.5, lightFrom: 0.8, shading: 0.6, variation: 1 }
 }
 
 /** How far round the rim's cross-section its cards run, radians from straight out: from low on its outside, over its top, down into the hollow. */

@@ -32,8 +32,8 @@ const GLOWS_FROM = 0.95
 const SIDES = 10
 const RINGS = 40
 
-/** Bark, set from the panel on 2026-11-02, and its char, a burnt black. */
-const BARK = 0xf5ccff
+/** Bark, set from the panel on 2026-11-09, and its char, a burnt black. */
+const BARK = 0xf3c2ff
 const CHAR = 0x2a1f1f
 /** Its tip's glow: a little red, and as bright as the grave candles' flames glow (gravecandles.ts). */
 const EMBER = 0xc4452c
