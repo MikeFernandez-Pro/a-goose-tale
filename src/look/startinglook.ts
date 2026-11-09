@@ -200,8 +200,8 @@ export function startingLook() {
   Object.assign(look.trails, { enabled: true, seconds: 0.11, width: 0.01, taper: 1.9, wave: 2, strength: 4, fade: 6, wiggle: 0, wiggleSpeed: 1.6, eyeColour: true })
   const gooseTheme = gooseThemeOf(url.get('theme') ?? GOOSE_THEME)
   if (gooseTheme) layInto(look, gooseTheme.look)
-  // The game's rats matt, whatever the theme, since 2026-10-26: no highlight and no rim.
-  Object.assign(look.rats, { specular: 0, rim: false })
+  // The game's rats matt, whatever the theme, since 2026-10-26: no highlight. Their rim, the theme's, back in violet since 2026-11-09.
+  Object.assign(look.rats, { specular: 0, rim: true, rimColor: 0x875cff })
   // Since 2026-10-26: no fog, a pale violet moon, a mauve fill, and the rats all one dusty
   // mauve; the lamp, the moon and the fill as set from the panel, the lamp's light reaching less far.
   look.fog.enabled = false
@@ -209,8 +209,8 @@ export function startingLook() {
   Object.assign(look.sun, { color: 0xa094ff, intensity: 2.5, x: -23.5, y: 27, z: 25, shadows: true, softness: 1.5, darkness: 0.64, shadowColor: 0x241d3a })
   Object.assign(look.fill, { sky: 0x754b8b, ground: 0x221a28, intensity: 0.8 })
   look.rats.variants = [{ tint: 0x5c4d5a, share: 1 }]
-  // The torch's smoke white and faint, whatever the theme, since 2026-11-01.
-  Object.assign(look.flame.smoke, { color: 0xffffff, opacity: 0.1 })
+  // The torch's smoke faint, whatever the theme, since 2026-11-01; a pale lilac since 2026-11-09.
+  Object.assign(look.flame.smoke, { color: 0xf3d6ff, opacity: 0.1 })
   // The fog paler toward the horizon (2026-10-25), whatever the theme: a soft gradient down the frame, the top of which
   // looks out nearly level. Its own colour lifted, so the horizon stays in the fog's family.
   look.fog.horizon ??= paler(look.fog.color, HORIZON_LIFT)
