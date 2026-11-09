@@ -11,8 +11,8 @@ import { gooseThemeOf, layInto } from './goosethemes'
 
 /**
  * A stylized floor's look to start: as painted, a tile two and a half metres
- * wide, unturned, its normal map as authored; no highlight; the earth's
- * strokes; three steps; and over that, `own`.
+ * wide, unturned, its normal map as authored; no highlight, a rim since
+ * 2026-11-09; the earth's strokes; three steps; and over that, `own`.
  */
 const stylizedFloor = (texture: FloorName, own: Partial<Look['floor']> = {}): Look['floor'] => ({
   texture,
@@ -22,7 +22,7 @@ const stylizedFloor = (texture: FloorName, own: Partial<Look['floor']> = {}): Lo
   scale: 2.5,
   relief: 1,
   rotation: 0,
-  shell: { specular: 0, shininess: 53, softness: 0, specularColor: 0xffffff, rim: false, rimStrength: 0.25, rimWidth: 0, rimSoftness: 0, rimColor: 0xe7febe },
+  shell: { specular: 0, shininess: 53, softness: 0, specularColor: 0xffffff, rim: true, rimStrength: 0.25, rimWidth: 0, rimSoftness: 0, rimColor: 0xe6c3fe },
   paint: { strength: 4, density: 0.7, size: 3.35, rounding: 0.01 },
   toon: { steps: 3, three: [0.3, 0.51, 1] },
   ...own,
