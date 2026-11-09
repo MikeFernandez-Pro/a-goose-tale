@@ -29,7 +29,7 @@ const kidBackgrounds = [
   { colour: '#8861a8' },
   { colour: '#ae1e33' },
   { colour: '#71c653' },
-  { colour: '#febd4d' },
+  { colour: '#f7ad2b' },
   { colour: '#517ad2' },
 ]
 /** The portrait's background, as `portraitLook` frames it now, behind gosling `kid`. */
