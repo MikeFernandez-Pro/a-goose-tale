@@ -51,7 +51,8 @@ export async function createDrawing() {
   let drawingNow = ''
   benchTools?.logLatePipelines(() => allBuilt, () => drawingNow)
   if (url.get('bench') === 'load') benchTools?.logPipelineTimes(url.has('serial'))
-  const renderer = new WebGPURenderer({ antialias: true, forceWebGL, requiredLimits, trackTimestamp: timestamps })
+  // A laptop with two GPUs asked for its stronger one; three's WebGL 2 backend does not pass it on.
+  const renderer = new WebGPURenderer({ antialias: true, forceWebGL, requiredLimits, trackTimestamp: timestamps, powerPreference: 'high-performance' })
   // The most the pixel ratio is drawn at, held to a 4K frame; the quality's steps take it lower, or `?dpr=N` sets it.
   const maxDpr = Number(url.get('dpr')) || maxPixelRatio(devicePixelRatio, innerWidth, innerHeight)
   renderer.setPixelRatio(maxDpr)

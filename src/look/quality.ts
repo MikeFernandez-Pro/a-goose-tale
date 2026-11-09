@@ -76,8 +76,17 @@ const SETTLE = 1000
 const SLOW_FRAME = 20
 /** More than this share of slow frames in a window, and the device is not keeping up. */
 const SLOW_SHARE = 0.25
-/** A gap longer than this is no frame, ms: the tab put away, or the page paused. */
-const GAP = 250
+/**
+ * Most frames in a window longer than this, ms, under 20 fps, and the device is far behind: no one step saves it, so it
+ * goes to the ladder's foot at once, a pipeline rebuilt once rather than at each step, and climbs back from there. A
+ * laptop drawing 3 fps took 15 s a step at a time (2026-11-09).
+ */
+const FAR_FRAME = 50
+/**
+ * A gap longer than this is no frame, ms: the tab put away, or the page paused. At 250 a laptop drawing 3 fps had
+ * none of its frames judged, and kept the whole look (2026-11-09).
+ */
+const GAP = 1000
 /** How long the frames must keep up before a step up is tried, ms; doubled each time a try fails. */
 const UP_WAIT = 5000
 /** Tries at a step before it is given up. */
@@ -98,6 +107,7 @@ export class Quality {
   private windowStart = -1
   private frames = 0
   private slow = 0
+  private far = 0
   /** Until when frames are not judged, ms. */
   private settledAt: number
   /** How long the frames have kept up since the last change, ms. */
@@ -122,23 +132,30 @@ export class Quality {
     return this.steps[this.level]
   }
 
-  /** A frame `ms` long, ending at `now` ms: true when the step changes. */
-  frame(ms: number, now: number): boolean {
+  /**
+   * A frame `ms` long, ending at `now` ms: true when the step changes. `held`, as in the opening, the step moves only
+   * for a device far behind.
+   */
+  frame(ms: number, now: number, held = false): boolean {
     if (ms > GAP || now < this.settledAt) {
       this.windowStart = -1
       return false
     }
     if (this.windowStart < 0) {
       this.windowStart = now - ms
-      this.frames = this.slow = 0
+      this.frames = this.slow = this.far = 0
     }
     this.frames++
     if (ms > this.slowFrame) this.slow++
+    if (ms > FAR_FRAME) this.far++
     if (now - this.windowStart < WINDOW) return false
 
     const keepingUp = this.slow <= this.frames * SLOW_SHARE
+    const farBehind = this.far > this.frames / 2
     const length = now - this.windowStart
+    const foot = this.steps.length - 1
     this.windowStart = -1
+    if (held) return farBehind && this.level < foot && this.change(foot, now)
     if (!keepingUp) {
       this.smooth = 0
       if (this.trying || now - this.triedAt < FAIL_WITHIN) {
@@ -148,8 +165,8 @@ export class Quality {
         if (++this.failures[this.level] >= TRIES) this.ceiling = this.level + 1
         this.upWait *= 2
       }
-      if (this.level === this.steps.length - 1) return false
-      return this.change(this.level + 1, now)
+      if (this.level === foot) return false
+      return this.change(farBehind ? foot : this.level + 1, now)
     }
     if (this.trying) {
       this.trying = false

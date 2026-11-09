@@ -80,6 +80,24 @@ describe('Quality', () => {
     expect(runUneven(q, 3000).levels).toEqual([1])
   })
 
+  it('goes to the foot at once from a few frames a second', () => {
+    const steps = ladder(2)
+    const q = new Quality(steps, 0)
+    expect(run(q, 333, 6000).levels).toEqual([steps.length - 1])
+  })
+
+  it('held, as in the opening, moves only for a device far behind', () => {
+    const steps = ladder(2)
+    const slow = new Quality(steps, 0)
+    let levels: number[] = []
+    for (let t = 25; t <= 6000; t += 25) if (slow.frame(25, t, true)) levels.push(slow.level)
+    expect(levels).toEqual([])
+    const far = new Quality(steps, 0)
+    levels = []
+    for (let t = 333; t <= 6000; t += 333) if (far.frame(333, t, true)) levels.push(far.level)
+    expect(levels).toEqual([steps.length - 1])
+  })
+
   it('ignores one hitch among smooth frames', () => {
     const q = new Quality(ladder(2), 0)
     let { at } = run(q, 16.7, 2000)

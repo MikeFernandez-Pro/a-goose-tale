@@ -1089,10 +1089,10 @@ renderer.setAnimationLoop(() => {
   const steeringMs = swarm instanceof GpuSwarm ? swarm.gpuMs : swarm.ms
   readouts({ drawn: rats.drawn, count: swarm.count, triangles, drawCalls, steeringMs, states: swarm.steps, pageMs: performance.now() - start, frameMs: frame * 1000 })
   // The loading's frames are slow by design, and say nothing of the device; the opening is the page's first
-  // impression, not to be seen stepping up and down; nor the ending, its oak not to turn to a bush before the player. A
-  // step is taken at the head of the next frame: resized here, past this frame's drawing, the canvas would show empty,
-  // a black frame.
-  if (adapt && !loading && !opening.running() && !ending.running() && quality.frame(frame * 1000, start)) qualityDue = true
+  // impression, not to be seen stepping up and down, save a device far behind going to the ladder's foot; nor the
+  // ending, its oak not to turn to a bush before the player. A step is taken at the head of the next frame: resized
+  // here, past this frame's drawing, the canvas would show empty, a black frame.
+  if (adapt && !loading && !ending.running() && quality.frame(frame * 1000, start, opening.running())) qualityDue = true
   if (!loading && url.get('bench') === 'load') watchFrames(frame * 1000)
   if (!loading) {
     if (!benchMade) {
