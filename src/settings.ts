@@ -77,6 +77,11 @@ export interface Look {
   /** The cold fill: a colour from above, another from below. */
   fill: { sky: number; ground: number; intensity: number }
   /**
+   * Every leaf, the trees', the bushes', the nest's and those falling: how much of its own colour it shows unlit, 0 none,
+   * lit alone; and how much the lights, the moon's and the lamps', light it, 1 as they light the rest.
+   */
+  leaves: { glow: number; light: number }
+  /**
    * The fog round the light, on or off, which the sky shares: clear up to `near` metres
    * from the light, solid from `far`, and between them as thick as `density`
    * makes it (1 a plain ramp, more thick soon past near); its edge frayed by

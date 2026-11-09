@@ -693,7 +693,6 @@ function addLeaves(folder: GUI, leaves: LeafLook, changed: () => void, shown = t
   colours.addColor(leaves, 'mid').name('mid')
   colours.addColor(leaves, 'light').name('light')
   colours.add(leaves, 'variation', 0, 1, 0.01).name('variation')
-  shading.add(leaves, 'glow', 0, 1, 0.01).name('own colour, unlit (0 = lit only)')
   section.onChange(changed)
 }
 
@@ -1223,6 +1222,10 @@ function addLook(gui: GUI, settings: Settings, look: Look, changed: PanelEvents,
   fill.addColor(look.fill, 'ground')
   fill.add(look.fill, 'intensity', 0, 3, 0.05)
 
+  const leaves = gui.addFolder('leaves (all)')
+  leaves.add(look.leaves, 'glow', 0, 1, 0.01).name('own colour, unlit (0 = lit only, 0.48 the trees before)')
+  leaves.add(look.leaves, 'light', 0, 1, 0.01).name('moon and fires on them (1 = as on the rest)')
+
   // The fog, the stop motion, the outlines, the palette and the depth of field: their folders hidden, the game's look
   // setting them.
   const fog = gui.addFolder('fog').hide()
@@ -1309,7 +1312,7 @@ function addLook(gui: GUI, settings: Settings, look: Look, changed: PanelEvents,
   const goose = addCharacterFolder(gui, look.goose)
   const flame = addFlameFolder(gui, look.flame, fires)
 
-  for (const folder of [lamp, sun, fill, fog, rats, levels, ground, ...frame, ...lens, goose, flame]) folder.onChange(changed.look)
+  for (const folder of [lamp, sun, fill, leaves, fog, rats, levels, ground, ...frame, ...lens, goose, flame]) folder.onChange(changed.look)
 }
 
 /** The look of the rats as the rats folder and the levels of detail folder edit it: their colours, variants, eyes, shell, strokes, steps and levels. */

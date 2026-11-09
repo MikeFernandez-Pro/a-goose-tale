@@ -232,13 +232,11 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   scene.add(deadTreesMesh.own)
   gooseScenes.swayTree = deadTreesMesh.swayOwn
   // The falling leaves, where they fall, in the dead trees' leaf colours, as the leaves folder sets them: the mid, the
-  // shadow, the light and the mid again, so the mid falls most, as it shows most on the trees; as much of their own
-  // colour shown unlit as the trees'.
+  // shadow, the light and the mid again, so the mid falls most, as it shows most on the trees.
   function leavesFallAsTrees(): void {
     if (!fallingLeaves || !deadTreesMesh.leaves) return
-    const { mid, shadow, light, glow } = deadTreeLeaves
+    const { mid, shadow, light } = deadTreeLeaves
     fallingLeaves.look.colours.splice(0, 4, mid, shadow, light, mid)
-    fallingLeaves.look.glow = glow
     fallingLeaves.set()
   }
   leavesFallAsTrees()

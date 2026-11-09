@@ -85,6 +85,9 @@ export function startingLook() {
     sun: { color: 0xb9c0bd, intensity: 3.2, x: 0, y: 23, z: 0, shadows: true, softness: 1.5, darkness: 0.9, shadowColor: 0x000000 },
     // A green fill, and a green fog to match it: the dark has a colour.
     fill: { sky: 0x268265, ground: 0x324d44, intensity: 0.7 },
+    // A little of their own colour in the dark, as set on 2026-11-09; the trees' were 0.48 before. The lights under half
+    // as strong on them: at full, the moon and the fires turned their colours (2026-11-09).
+    leaves: { glow: 0.13, light: 0.4 },
     // Round the light, not the camera: the dark closes in on the holder from every side, further out than the lamp
     // reaches; on to start, a plain ring, its density 1 and no wisps (`?fog=0` or the folder's switch for none).
     fog: { enabled: url.get('fog') !== '0', color: 0x141916, near: 1, far: 5.5, density: 1, wisp: 0, scale: 2.75, drift: 0.6, lit: 0, litColor: 0xff7a2e, litSpread: 1.5 },

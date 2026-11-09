@@ -64,6 +64,7 @@ import {
   vec3,
   vec4,
 } from 'three/tsl'
+import { leafFacing, leafLight } from './leaflight'
 import { strokesAt } from './strokes'
 import { createToonGradient, writeToon, type ToonLook } from './toon'
 
@@ -143,11 +144,8 @@ const asVec3 = (node: Node) => node as unknown as Vec3Node
 /** Lambert's diffuse of `color`, typed as the vec3 it is. */
 const lambert = (color: Node) => asVec3(BRDF_Lambert({ diffuseColor: color }))
 
-/** The toon step for a light from `lightDirection`: `gradient` read where the light falls on the surface, moved by `shift`. */
-const toonStep = (gradient: DataTexture, lightDirection: Vec3Node, shift: Node<'float'>) => {
-  const dotNL = normalView.dot(lightDirection)
-  return texture(gradient, vec2(dotNL.mul(0.5).add(0.5).add(shift), 0)).r
-}
+/** The toon step for a light falling as square as `dotNL` on the surface: `gradient` read there, moved by `shift`. */
+const toonStep = (gradient: DataTexture, dotNL: Node<'float'>, shift: Node<'float'>) => texture(gradient, vec2(dotNL.mul(0.5).add(0.5).add(shift), 0)).r
 
 /** What scales a shell's rim, drawing by drawing: its strength and its width, each times the look's. */
 export interface RimScale {
@@ -161,17 +159,20 @@ class ShellLightingModel extends LightingModel {
     private readonly gradient: DataTexture,
     private readonly rimScale?: RimScale,
     private readonly specularScale?: Node<'float'>,
+    private readonly thin = false,
   ) {
     super()
   }
 
-  override direct({ lightDirection: direction, lightColor: color, reflectedLight }: LightingModelDirectInput): void {
+  override direct({ lightDirection: direction, lightColor, lightNode, reflectedLight }: LightingModelDirectInput): void {
+    const color = this.thin ? asVec3(lightColor).mul(leafLight) : lightColor
     const { sheen, shininess, softness, specularColor, rimSoftness, rimColor } = this.shell
     const specular = this.specularScale === undefined ? this.shell.specular : this.shell.specular.mul(this.specularScale)
     const rimStrength = this.rimScale === undefined ? this.shell.rimStrength : this.shell.rimStrength.mul(this.rimScale.strength)
     const rimWidth = this.rimScale === undefined ? this.shell.rimWidth : this.shell.rimWidth.mul(this.rimScale.width)
     const lightDirection = asVec3(direction)
-    const irradiance = asVec3(color).mul(toonStep(this.gradient, lightDirection, this.shell.shadeShift))
+    const dotNL = this.thin ? leafFacing({ lightDirection: direction, lightNode }) : normalView.dot(lightDirection)
+    const irradiance = asVec3(color).mul(toonStep(this.gradient, dotNL, this.shell.shadeShift))
     const directDiffuse = asVec3(reflectedLight.directDiffuse)
     const directSpecular = asVec3(reflectedLight.directSpecular)
 
@@ -184,7 +185,7 @@ class ShellLightingModel extends LightingModel {
     const halfway = lightDirection.add(positionViewDirection).normalize()
     const lobe = normalView.dot(halfway).clamp().pow(shininess)
     const spot = smoothstep(float(0.5).sub(softness), float(0.5).add(softness), lobe)
-    const lit = step(0, normalView.dot(lightDirection))
+    const lit = step(0, dotNL)
     directSpecular.addAssign(irradiance.mul(spot).mul(lit).mul(specularColor).mul(specular).mul(1 / Math.PI))
 
     // The rim: where the shell turns away from the camera, on the lit side, the light's colour in a hard band.
@@ -228,6 +229,8 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   private readonly rimScale: RimScale | undefined
   /** What scales its highlight pixel by pixel, as made: a wet patch's shine; none, and the look's highlight alone. */
   private readonly specularScale: Node<'float'> | undefined
+  /** Whether it is leaves, as made: a lamp's light through the card from either side (leaflight.ts). */
+  private readonly thin: boolean
   /** The painted normals' uniforms; unused on a shell made without them. */
   readonly paint = { strength: uniform(0), density: uniform(6), rounding: uniform(0), strokeOffset: uniform(new Vector2()), extent: uniform(1) }
   /** The strokes' texture node, its texture the one at the folder's stroke size. */
@@ -239,9 +242,10 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     painted,
     rimScale,
     specularScale,
+    thin = false,
     sharing,
     ...parameters
-  }: ConstructorParameters<typeof MeshToonNodeMaterial>[0] & { parts?: number; tint?: Node; painted?: Painted; rimScale?: RimScale; specularScale?: Node<'float'>; sharing?: ShellToonMaterial } = {}) {
+  }: ConstructorParameters<typeof MeshToonNodeMaterial>[0] & { parts?: number; tint?: Node; painted?: Painted; rimScale?: RimScale; specularScale?: Node<'float'>; thin?: boolean; sharing?: ShellToonMaterial } = {}) {
     const gradient = sharing?.gradient ?? createToonGradient()
     super({ ...parameters, gradientMap: gradient })
     this.gradient = gradient
@@ -252,6 +256,7 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     }
     this.rimScale = rimScale
     this.specularScale = specularScale
+    this.thin = thin
     if (painted !== undefined) {
       // Strokes laid over the body by its rest-pose position, slanted so no
       // face sees them edge on, bumped over the base normal by three's bump
@@ -295,7 +300,7 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   }
 
   override setupLightingModel(): ShellLightingModel {
-    return new ShellLightingModel(this.shell, this.gradient, this.rimScale, this.specularScale)
+    return new ShellLightingModel(this.shell, this.gradient, this.rimScale, this.specularScale, this.thin)
   }
 
   /** Take a toon folder's steps; the shader reads them from the next frame. */

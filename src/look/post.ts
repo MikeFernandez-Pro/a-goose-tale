@@ -327,8 +327,8 @@ export function leaveGlowing(material: NodeMaterial, glow: Node<'vec3'>): void {
 
 /**
  * Mark `material` as glowing nothing the bloom reads, whatever its emission:
- * the dead trees' leaves, which show their own colour as light, but are not
- * lights to halo.
+ * the leaves and the feathers, which show their own colour as light, but are
+ * not lights to halo.
  */
 export function leaveOutOfBloom(material: NodeMaterial): void {
   material.mrtNode = mrt({ output, glow: vec4(0) })

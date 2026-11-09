@@ -28,7 +28,6 @@
 // light, hard-edged, here by that baked shade: the game's own lights light
 // them after. The texture is justASimpleTree's own, white leaves on black, as
 // it paints it (tools/generators/leaves_texture.mjs), not the file's copy.
-// Their glow, their own colour shown as light, is kept out of the bloom.
 import { Box3, BufferAttribute, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, InstancedMesh, Matrix4, NoColorSpace, Quaternion, Sphere, TextureLoader, Vector2, Vector3, type Material, type Texture, SRGBColorSpace } from 'three/webgpu'
 import { abs, attribute, dFdx, dFdy, dot, float, fract, hue, materialColor, max, mix, mx_noise_float, normalView, normalViewGeometry, normalWorld, positionGeometry, positionView, positionWorld, pow, renderGroup, saturation, select, smoothstep, texture, uniform, uv, vec2, vec3 } from 'three/tsl'
 import { modelLoader } from '../look/gltf'
@@ -36,7 +35,7 @@ import type { Frustum, Mesh, Node } from 'three/webgpu'
 import { load as loadFloor, type FloorLook, type FloorName } from './ground'
 import type { Plain, Point } from './plain'
 import type { StoneBlock } from './roadwalls'
-import { leaveOutOfBloom } from '../look/post'
+import { glowAsLeaf } from '../look/leaflight'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from '../look/shell'
 import { NO_COLOUR, NO_NORMALS, setLayer } from '../look/texturesets'
 import { random } from '../swarm/swarm'
@@ -376,16 +375,11 @@ export interface LeafLook {
   shading: number
   /** How much of the clumps' own tints, baked in their colours, shows, 0 none, 1 as baked. */
   variation: number
-  /**
-   * How much of their own colour they show whatever the light falls on them, 0 none, lit by the game's lights alone, 1
-   * all of it: justASimpleTree's leaves show their colours as their own light, which the night's dim light lost.
-   */
-  glow: number
 }
 
-/** The leaves to start, as set from the panel on 2026-10-26: three reds, most of the shade the mid, a little of it light. */
+/** The leaves to start, as set from the panel on 2026-11-09: three reds, half the shade the mid, a fifth of it light, little of it baked. */
 export function defaultLeafLook(): LeafLook {
-  return { show: true, textured: true, cutout: 0.5, shadow: 0x872c2c, mid: 0xd04343, light: 0xdd4b4b, shadowTo: 0.59, lightFrom: 0.95, shading: 0.55, variation: 1, glow: 0.48 }
+  return { show: true, textured: true, cutout: 0.5, shadow: 0x872c2c, mid: 0xd04343, light: 0xfb5b5b, shadowTo: 0.49, lightFrom: 0.81, shading: 0.12, variation: 1 }
 }
 
 /** How light a colour is, by the eye's weights. */
@@ -401,7 +395,7 @@ export interface LeafMaterial {
 /**
  * The leaves' shell, cut out by `leaf`, the leaf texture's mask, 1 a leaf: each card's colour one of the three by its
  * baked shade, darkened by as much of that shade as `shading` keeps, tinted as its clump; lit by its clump's normal on
- * both sides; as much of its colour its own light as `glow` has, kept out of the bloom.
+ * both sides, a lamp's from either side of the card, its own colour shown unlit as much as every leaf's (leaflight.ts).
  */
 export function createLeafMaterial(leaf: Node<'float'>): LeafMaterial {
   const colours = { shadow: uniform(new Color()).setGroup(renderGroup), mid: uniform(new Color()).setGroup(renderGroup), light: uniform(new Color()).setGroup(renderGroup) }
@@ -410,9 +404,7 @@ export function createLeafMaterial(leaf: Node<'float'>): LeafMaterial {
   const shading = uniform(0.5).setGroup(renderGroup)
   const variation = uniform(1).setGroup(renderGroup)
   const cut = uniform(1).setGroup(renderGroup)
-  const glow = uniform(0.7).setGroup(renderGroup)
-  const material = new ShellToonMaterial({ side: DoubleSide, alphaTest: 0.5 })
-  leaveOutOfBloom(material)
+  const material = new ShellToonMaterial({ side: DoubleSide, alphaTest: 0.5, thin: true })
   const baked = attribute('color', 'vec4').rgb
   const shade = dot(baked, LUMA)
   const band = select(shade.lessThan(shadowTo), colours.shadow, select(shade.lessThan(lightFrom), colours.mid, colours.light))
@@ -422,8 +414,7 @@ export function createLeafMaterial(leaf: Node<'float'>): LeafMaterial {
   // Lit by the clump's normal on both sides, as justASimpleTree lights them: three turns a card's normal round on its
   // back, into the clump, and a card seen from behind went black.
   material.normalNode = normalViewGeometry
-  // Typed on the standard node material but not on the toon one; three's node material reads it on both.
-  ;(material as unknown as { emissiveNode: Node }).emissiveNode = own.mul(glow)
+  glowAsLeaf(material, own)
   material.opacityNode = mix(float(1), leaf, cut)
   return {
     material,
@@ -437,7 +428,6 @@ export function createLeafMaterial(leaf: Node<'float'>): LeafMaterial {
       lightFrom.value = look.lightFrom
       shading.value = look.shading
       variation.value = look.variation
-      glow.value = look.glow
     },
   }
 }

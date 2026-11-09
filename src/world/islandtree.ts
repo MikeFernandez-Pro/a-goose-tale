@@ -15,14 +15,14 @@
 // or the water, all of it in the vertex shader, as the game's other falling leaves
 // (fallingleaves.ts): one mesh, no storage and no compute pass. They cast
 // no shadow, as those don't.
-import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshLambertNodeMaterial, Sphere, Uint16BufferAttribute, Vector2, Vector3, type BufferAttribute, type Material, type Node, type Texture } from 'three/webgpu'
+import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, Sphere, Uint16BufferAttribute, Vector2, Vector3, type BufferAttribute, type Material, type Node, type Texture } from 'three/webgpu'
 import { attribute, float, floor, fract, Fn, mix, mx_noise_vec3, normalLocal, renderGroup, rotate, saturation, sin, smoothstep, step, texture, time, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
 import { createBark, createFootGrass, createLeafMaterial, createStretches, defaultBarkLook, defaultGrassLook, defaultLeafLook, loadLeafMap, thinTips, woodSimplifier, type BarkLook, type GrassLook, type LeafLook, type Stretches } from './deadtrees'
 import type { FloorLook } from './ground'
 import { modelLoader } from '../look/gltf'
 import type { Point } from './plain'
 import { groundOf, islandMiddle, type PondLook } from './pond'
-import { leaveOutOfBloom } from '../look/post'
+import { glowAsLeaf, LeafLambertMaterial } from '../look/leaflight'
 import { ShellToonMaterial, type PaintLook, type ShellLook } from '../look/shell'
 import { random } from '../swarm/swarm'
 import type { ToonLook } from '../look/toon'
@@ -97,7 +97,7 @@ export function defaultIslandTreeLook(): IslandTreeLook {
     turn: 0,
     size: 5,
     wood: 0xffffff,
-    leaves: { ...defaultLeafLook(), shadowTo: 0.45, lightFrom: 0.8 },
+    leaves: { ...defaultLeafLook(), shadowTo: 0.45, lightFrom: 0.8, shading: 0.55 },
     wind: { ...defaultTreeWindLook(), strength: 0.22 },
     fall: { amount: 277, lifetime: 14, speed: 0.42, size: 0.17 },
     bark: defaultBarkLook(),
@@ -181,7 +181,6 @@ function createTreeFall(leaf: Texture): TreeFall {
   const lifetime = uniform(14).setGroup(renderGroup)
   const shown = uniform(0.5).setGroup(renderGroup)
   const size = uniform(0.17).setGroup(renderGroup)
-  const glow = uniform(0).setGroup(renderGroup)
   const gustSpeed = uniform(0.83).setGroup(renderGroup)
   const gustSize = uniform(0.05).setGroup(renderGroup)
   /** How fast a leaf creeps downwind once it has landed, m/s along x and z. */
@@ -193,7 +192,7 @@ function createTreeFall(leaf: Texture): TreeFall {
   const landing = attribute<'vec4'>('landing')
   const corner = attribute<'vec2'>('corner')
   const draw = attribute<'vec4'>('draw')
-  const material = new MeshLambertNodeMaterial({ side: DoubleSide, alphaTest: 0.5 })
+  const material = new LeafLambertMaterial({ side: DoubleSide, alphaTest: 0.5 })
   material.positionNode = Fn(() => {
     const life = fract(clock.div(lifetime).add(draw.x))
     const seed = draw.y
@@ -222,10 +221,7 @@ function createTreeFall(leaf: Texture): TreeFall {
   // The tree's mid colour, each leaf its own shade of it, a little toward the shadow's to a little toward the light's, a touch more vivid.
   const painted = saturation(mix(mix(mid!, shadow!, 0.4), mix(mid!, light!, 0.4), draw.z), VIVID) as unknown as Node<'vec3'>
   material.colorNode = vec4(painted, 1)
-  // Its own colour as its own light, as the crown's, but no light for the bloom to halo. Typed on the standard node
-  // material but not on the Lambert one; three's node material reads it on both.
-  ;(material as unknown as { emissiveNode: Node }).emissiveNode = painted.mul(glow)
-  leaveOutOfBloom(material)
+  glowAsLeaf(material, painted)
 
   const object = new Mesh(geometry, material)
   object.castShadow = object.receiveShadow = false
@@ -254,7 +250,6 @@ function createTreeFall(leaf: Texture): TreeFall {
       lifetime.value = Math.max(0.1, fall.lifetime)
       shown.value = fall.amount / MOST_FALLING
       size.value = fall.size
-      glow.value = leaves.glow
       gustSpeed.value = wind.speed
       gustSize.value = 1 / Math.max(1, wind.gustSize)
       creep.value.set(downwind.x, downwind.z).multiplyScalar(wind.strength * FLOOR_CREEP)

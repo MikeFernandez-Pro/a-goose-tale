@@ -2,11 +2,11 @@
 // alone: no litter on the ground, so a leaf lies a while where it lands and
 // shrinks away. Its colours are the litter's as they were, unless the game
 // gives it the dead trees' (roadside.ts).
-import { BufferGeometry, Color, DataTexture, DataUtils, DoubleSide, Float32BufferAttribute, HalfFloatType, LinearFilter, Mesh, MeshLambertNodeMaterial, RedFormat, Uint16BufferAttribute, Vector2, type Node } from 'three/webgpu'
+import { BufferGeometry, Color, DataTexture, DataUtils, DoubleSide, Float32BufferAttribute, HalfFloatType, LinearFilter, Mesh, RedFormat, Uint16BufferAttribute, Vector2, type Node } from 'three/webgpu'
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { abs, attribute, cos, float, floor, fract, Fn, int, max, mix, normalLocal, select, sin, smoothstep, step, texture, uniform, vec2, vec3, vec4 } from 'three/tsl'
 import type { HeightGrid } from '../swarm/heights'
-import { leaveOutOfBloom } from '../look/post'
+import { glowAsLeaf, LeafLambertMaterial } from '../look/leaflight'
 import { random } from '../swarm/swarm'
 
 /** Leaves falling at most, a quad each. */
@@ -33,8 +33,6 @@ export interface FallLook {
   /** The leaves' colours, and how much each leaf's brightness strays. */
   colours: [number, number, number, number]
   stray: number
-  /** How much of its own colour a leaf shows whatever light falls on it, 0 none, lit alone, as the dead trees' leaves (LeafLook.glow). */
-  glow: number
   /** How dark a leaf's edge and vein, 0 none. */
   edge: number
   vein: number
@@ -53,7 +51,6 @@ export const defaultFallLook = (): FallLook => ({
   size: 0.105,
   colours: [0xc8641e, 0x9a3a14, 0xd49a2a, 0x5a3418],
   stray: 0.25,
-  glow: 0,
   edge: 0.35,
   vein: 0.3,
 })
@@ -126,7 +123,6 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
 
   const colours = look.colours.map((c) => uniform(new Color(c)))
   const stray = uniform(look.stray)
-  const glow = uniform(look.glow)
   const edge = uniform(look.edge)
   const vein = uniform(look.vein)
   /** A leaf's colour: its pick of the colours and its brightness, two hashes, at (along, across) its length and width, each -1 to 1. */
@@ -194,7 +190,7 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
     return { at: vec3(x, y, z), corner: turn(vec3(across, 0, along)), normal: turn(vec3(0, 1, 0)), hidden }
   }
 
-  const material = new MeshLambertNodeMaterial({ side: DoubleSide, alphaTest: 0.5 })
+  const material = new LeafLambertMaterial({ side: DoubleSide, alphaTest: 0.5 })
   material.positionNode = Fn(() => {
     const leaf = leafNow()
     normalLocal.assign(leaf.normal)
@@ -208,10 +204,7 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
   material.opacityNode = step(across, float(1))
   const painted = paint(fract(draw.x.mul(31.7)), fract(draw.y.mul(17.3)), along, across)
   material.colorNode = vec4(painted, 1)
-  // Its own colour as its own light, but no light for the bloom to halo. Typed on the standard node material but not on
-  // the Lambert one; three's node material reads it on both.
-  ;(material as unknown as { emissiveNode: Node }).emissiveNode = painted.mul(glow)
-  leaveOutOfBloom(material)
+  glowAsLeaf(material, painted)
 
   const object = new Mesh(geometry, material)
   object.frustumCulled = false
@@ -230,7 +223,6 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
       size.value = look.size
       look.colours.forEach((c, k) => colours[k]!.value.set(c))
       stray.value = look.stray
-      glow.value = look.glow
       edge.value = look.edge
       vein.value = look.vein
       // A round: the fall, at its speed, and the lying after it.
@@ -270,7 +262,6 @@ export function mountFallControls(falling: FallingLeaves, Gui: typeof GUI): void
   const leaf = gui.addFolder('leaf').close()
   look.colours.forEach((_, k) => leaf.addColor(look.colours, k as 0).name(`colour ${k + 1}`).onChange(changed))
   leaf.add(look, 'stray', 0, 1, 0.01).name('brightness strays').onChange(changed)
-  leaf.add(look, 'glow', 0, 1, 0.01).name('own colour, unlit (0 = lit only)').onChange(changed)
   leaf.add(look, 'edge', 0, 1, 0.01).name('edge dark').onChange(changed)
   leaf.add(look, 'vein', 0, 1, 0.01).name('vein dark').onChange(changed)
   // The values as the folder has them, to hand back; and the values the page started on.

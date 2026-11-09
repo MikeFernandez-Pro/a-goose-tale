@@ -63,6 +63,7 @@ import { createDrawing } from './look/drawing'
 import { ladder, startingStep, Quality } from './look/quality'
 import { createSkyFog } from './look/skyfog'
 import { createNightLights } from './light/nightlights'
+import { leafGlow, leafLight } from './look/leaflight'
 import { createMoonBake } from './light/moonbake'
 import { createOpening } from './game/opening'
 import { createOpeningShow } from './ui/openingshow'
@@ -448,6 +449,8 @@ function lookChanged() {
   const nudge = (channel: number) => (stop.strokeJitter ? stop.strokeAmount * beats.vary(channel) : 0)
 
   nightLights.set(look, light.on, beats.vary)
+  leafGlow.value = look.leaves.glow
+  leafLight.value = look.leaves.light
   skyFog.set(look.fog)
 
   rats.material.color.set(look.rats.color)

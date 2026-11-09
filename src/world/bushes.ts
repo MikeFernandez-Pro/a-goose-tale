@@ -27,7 +27,7 @@ export function defaultBushShape(): DeadTreeShape {
  * nearly all of each card's baked shade and tinted as its clump, a touch of their own colour unlit, cut out at half.
  */
 export function defaultBushLeafLook(): LeafLook {
-  return { show: true, textured: true, cutout: 0.5, shadow: 0x40732b, mid: 0x5ba040, light: 0x8fcf4f, shadowTo: 0.55, lightFrom: 0.8, shading: 0.96, variation: 1, glow: 0.04 }
+  return { show: true, textured: true, cutout: 0.5, shadow: 0x40732b, mid: 0x5ba040, light: 0x8fcf4f, shadowTo: 0.55, lightFrom: 0.8, shading: 0.96, variation: 1 }
 }
 
 /** How close to a dead tree's trunk a bush may stand, m. */
