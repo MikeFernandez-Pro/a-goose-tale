@@ -1872,6 +1872,18 @@ describe('the bodies on the ground', () => {
     })
   })
 
+  it('has a way clear only where no wall or trunk stands on it', () => {
+    const play = new GoosePlay(FEW)
+    play.setTrunks([{ at: { x: 20, z: 2 }, radius: 0.2 }])
+    // A wall's stone 4 m long across x = 10, 0.4 m thick.
+    play.setStones([{ at: { x: 10, z: 0 }, outline: [{ x: -0.2, z: -2 }, { x: 0.2, z: -2 }, { x: 0.2, z: 2 }, { x: -0.2, z: 2 }] }])
+    expect(play.clearWay({ x: 8, z: 0 }, { x: 12, z: 0 }, GOSLING_RADIUS)).toBe(false)
+    expect(play.clearWay({ x: 8, z: 2.1 }, { x: 12, z: 2.1 }, GOSLING_RADIUS)).toBe(false)
+    expect(play.clearWay({ x: 8, z: 2.5 }, { x: 12, z: 2.5 }, GOSLING_RADIUS)).toBe(true)
+    expect(play.clearWay({ x: 18, z: 2 }, { x: 22, z: 2 }, GOSLING_RADIUS)).toBe(false)
+    expect(play.clearWay({ x: 18, z: 1.5 }, { x: 22, z: 1.5 }, GOSLING_RADIUS)).toBe(true)
+  })
+
   describe("the dead tree's pumpkins", () => {
     /** The play, one pumpkin `radius` m round laid 2 m up the plain from his start, the trunks laid too; and that pumpkin. */
     function byPumpkin(radius = 0.25) {

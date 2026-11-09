@@ -13,6 +13,7 @@
 // ending.ts), the camera (gooseview.ts), the input (gooseinput.ts), what is heard, written and felt (gooseheard.ts,
 // goosehints.ts, goosefelt.ts), and the loading (loadingscreen.ts). The developer's panels, route editor and benches are in src/dev.
 import {
+  Color,
   type Mesh,
   type Node,
   type NodeMaterial,
@@ -57,7 +58,7 @@ import { createFallingLeaves, defaultFallLook, mountFallControls } from './world
 import { createFakeLamps, shown as drawnInScene } from './light/fakelamps'
 import { createFireShadow, defaultFireShadowLook } from './light/fireshadow'
 import type { Bench } from './dev/pagebench'
-import { OPENING, cowering, litShare, ratsOut, startled } from './game/openingscript'
+import { DARKENED_MOON, OPENING, cowering, litShare, ratsOut, skyDarkened, startled } from './game/openingscript'
 import { RemoteSwarm } from './swarm/swarm-remote'
 import { createDrawing } from './look/drawing'
 import { ladder, startingStep, Quality } from './look/quality'
@@ -272,6 +273,11 @@ const run = goosePlay.run
 // The lit areas see every wall that stops the rats.
 areas.setWalls(new Walls(run.walls()))
 const opening = createOpening(goosePlay, burningTreeLight)
+/** The moon the page opened on, which the opening darkens to DARKENED_MOON's as the rats come out; how far it has, as last set. */
+const openingMoon = look.sun.color
+let skyShare = 0
+const moonFrom = new Color()
+const moonTo = new Color()
 /** The torch as the swarm reads it: where the holder is, its reach as a share of the swarm's full light, and lit. */
 const light: Light = { x: run.holder.x, z: run.holder.z, strength: 0, on: false }
 /** Hand the swarm the torch as the run has it, and the debug switch: true if it went out or was relit. */
@@ -738,7 +744,7 @@ function gooseFrame(dt: number, held: number) {
   heard.frame(dt)
   islandGeese.direct(ending.cue())
   ending.frame()
-  if (opening.on && !opening.settled) opening.goslingsFrame()
+  if (opening.on && !opening.settled) opening.goslingsFrame((g) => view.inView(g.x, g.z, GOSLING_SEEN))
   // Bolting in the opening, none is in its scene yet: up its tree or down its well.
   islandGeese.object.visible = ending.running() || islandNear()
   // The island's oak a bush at the quality ladder's foot, or an oak again: changed while the island is out of view.
@@ -746,7 +752,7 @@ function gooseFrame(dt: number, held: number) {
   const bushed = url.has('islandbush') ? url.get('islandbush') === '1' : quality.step.islandBush
   if (roadside.oakAsBush !== bushed && !ending.running() && !islandNear()) pondWorld.oakAsBush(bushed)
   if (islandGeese.object.visible) islandGeese.update(dt, held)
-  goslings.update(goosePlay, dt, held, !opening.on || opening.settled ? (k) => gooseScenes.lift(goosePlay, k) : undefined, ending.running() ? ending.act : undefined)
+  goslings.update(goosePlay, dt, held, !opening.on || opening.settled ? (k) => gooseScenes.lift(goosePlay, k) : undefined, ending.running() ? ending.act : opening.act)
   openingShow.skipHintFrame(input.commands)
 }
 
@@ -836,6 +842,14 @@ renderer.setAnimationLoop(() => {
   const dt = settings.paused || loading ? 0 : Math.min(frame, FRAME_CAP)
   beats.clock += dt
   if (opening.running()) opening.t = Math.min(OPENING.end, opening.t + dt)
+  // The sky darkening as the rats come out: into the look, the panel's and the dawn's from there on. Skipped, or no
+  // opening, it is dark from the start.
+  const darkened = skyDarkened(opening.t)
+  if (darkened !== skyShare) {
+    skyShare = darkened
+    look.sun.color = moonFrom.setHex(openingMoon).lerp(moonTo.setHex(DARKENED_MOON), darkened).getHex()
+    nightLights.set(look, light.on, beats.vary)
+  }
   if (ending.running()) ending.t = Math.min(ENDING.end, ending.t + dt)
   input.frame(loading)
   // The chase camera's hold on the mouse let go, for a click to reach the veil.

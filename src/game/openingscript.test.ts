@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHAT, OPENING, WALK_PACE, roadAheadOf, afterglow, branchAt, branchFlare, branchLanded, cowering, flameGrown, goslingAt, litShare, ratsOut, rumbleAt, shakeAt, startled, walkAt, walkOf } from './openingscript'
+import { CHAT, OPENING, WALK_PACE, roadAheadOf, roundHisBack, boltWays, boltJump, afterglow, skyDarkened, branchAt, branchFlare, branchLanded, cowering, flameGrown, goslingAt, litShare, ratsOut, rumbleAt, shakeAt, startled, walkAt, walkOf } from './openingscript'
 
 const AT = { x: 0, z: 0 }
 const UP = { x: 0, z: -1 }
@@ -46,7 +46,7 @@ describe('the opening', () => {
     expect(ahead.x).toBeCloseTo(Math.SQRT1_2)
     expect(ahead.z).toBeCloseTo(-Math.SQRT1_2)
     expect(roadAheadOf(AT)).toEqual(UP)
-    const running = goslingAt(OPENING.bolt + OPENING.stagger + 1, 1, 0, 3, AT, UP, ahead, HOME, false)
+    const running = goslingAt(OPENING.bolt + 1, 0, 3, AT, UP, ahead, 0, HOME, false, false)
     expect(running.x).toBeGreaterThan(1)
   })
 
@@ -65,7 +65,8 @@ describe('the opening', () => {
   it('stops them dead at the strike, frightened, before the goslings bolt', () => {
     expect(startled(OPENING.strike - 0.01)).toBeUndefined()
     expect(startled(OPENING.strike + 0.1)).toBeGreaterThan(0)
-    expect(cowering(OPENING.strike + 0.1)).toBe(true)
+    expect(OPENING.bolt).toBeGreaterThan(OPENING.strike)
+    expect(cowering((OPENING.strike + OPENING.bolt) / 2)).toBe(true)
     expect(cowering(OPENING.bolt)).toBe(false)
   })
 
@@ -74,6 +75,14 @@ describe('the opening', () => {
     expect(afterglow(OPENING.strike + 0.2)).toBeGreaterThan(afterglow(OPENING.strike + 0.8))
     expect(afterglow(OPENING.strike + 0.8)).toBeGreaterThan(0)
     expect(afterglow(OPENING.strike + 3)).toBe(0)
+  })
+
+  it('darkens the sky just after the strike, as the rats come out, whole by the end and after', () => {
+    expect(skyDarkened(OPENING.strike + 0.5)).toBe(0)
+    expect(skyDarkened(OPENING.rush)).toBeGreaterThan(0)
+    expect(skyDarkened(OPENING.rush + 1)).toBeGreaterThan(skyDarkened(OPENING.rush))
+    expect(skyDarkened(OPENING.end)).toBe(1)
+    expect(skyDarkened(OPENING.end + 5)).toBe(1)
   })
 
   it('keeps the tree dark until the strike, lit at once by it, and the rats away until their rush after it', () => {
@@ -95,17 +104,57 @@ describe('the opening', () => {
   })
 
   it('walks the goslings round his back, bolts them up the plain, and has them waiting once out of view', () => {
-    const walking = goslingAt(0, 1, 0, 3, AT, UP, UP, HOME, false)
+    const walking = goslingAt(0, 0, 3, AT, UP, UP, 0, HOME, false, false)
     expect(Math.hypot(walking.x, walking.z)).toBeLessThan(1)
     expect(walking.z).toBeGreaterThan(0)
-    const running = goslingAt(OPENING.bolt + OPENING.stagger + 1, 1, 0, 3, AT, UP, UP, HOME, false)
+    const running = goslingAt(OPENING.bolt + 1, 0, 3, AT, UP, UP, 0, HOME, false, false)
     expect(running.z).toBeLessThan(walking.z - 1)
-    expect(goslingAt(OPENING.end, 1, 0, 3, AT, UP, UP, HOME, false)).toEqual(HOME)
+    expect(goslingAt(OPENING.end, 0, 3, AT, UP, UP, 0, HOME, false, false)).toEqual(HOME)
+    // Still in view as the opening nears its end, he runs on; out of it, he waits.
+    expect(goslingAt(OPENING.end - 0.5, 0, 3, AT, UP, UP, 0, HOME, false, false).z).toBeLessThan(running.z - 10)
+    expect(goslingAt(OPENING.bolt + 1, 0, 3, AT, UP, UP, 0, HOME, false, true)).toEqual(HOME)
+  })
+
+  it('fans the goslings out wide up the road, each on the side he walks, with nothing in the way', () => {
+    const from = [0, 1, 2].map((index) => roundHisBack(index, 3, AT, UP))
+    const ways = boltWays(from, UP, () => true)
+    expect(ways[0]).toBeGreaterThan(0.6)
+    expect(ways[1]).toBeCloseTo(0)
+    expect(ways[2]).toBeLessThan(-0.6)
+    // The first walks on his right, +x, and bolts to it.
+    expect(from[0]!.x).toBeGreaterThan(0)
+    expect(goslingAt(OPENING.bolt + 1, 0, 3, AT, UP, UP, ways[0]!, HOME, false, false).x).toBeGreaterThan(1)
+  })
+
+  it('turns a gosling off his place in the fan the least he can, to a way no wall stands on', () => {
+    const from = [0, 1, 2].map((index) => roundHisBack(index, 3, AT, UP))
+    // A wall along x = 2, the right side of the road.
+    const clear = (a: { x: number }, b: { x: number }) => Math.max(a.x, b.x) < 2
+    const ways = boltWays(from, UP, clear)
+    const open = boltWays(from, UP, () => true)
+    expect(ways[0]).toBeLessThan(open[0]!)
+    expect(ways[0]).toBeGreaterThan(ways[1]!)
+    from.forEach((start, index) => expect(start.x + Math.sin(ways[index]!) * 10).toBeLessThan(2))
+  })
+
+  it('jumps each gosling where he stands as they bolt, all at once, and runs him the moment his jump is over', () => {
+    expect(boltJump(OPENING.bolt - 0.01)).toBeUndefined()
+    expect(boltJump(OPENING.bolt)?.clip).toBe('jump')
+    let runs = OPENING.bolt
+    while (boltJump(runs) !== undefined) runs += 0.005
+    // Past his landing, before the hop's clip is played out.
+    expect(runs).toBeGreaterThan(OPENING.bolt + OPENING.jump * 0.6)
+    expect(runs).toBeLessThan(OPENING.bolt + OPENING.jump)
+    const lifts = Array.from({ length: 20 }, (_, k) => boltJump(OPENING.bolt + (k / 20) * (runs - OPENING.bolt))!.lift)
+    expect(Math.max(...lifts)).toBeGreaterThan(0)
+    const stood = goslingAt(OPENING.bolt, 0, 3, AT, UP, UP, 0, HOME, false, false)
+    expect(goslingAt(runs - 0.01, 0, 3, AT, UP, UP, 0, HOME, false, false)).toEqual(stood)
+    expect(goslingAt(runs + 0.1, 0, 3, AT, UP, UP, 0, HOME, false, false).z).toBeLessThan(stood.z - 0.2)
   })
 
   it('stops the one that freezes where he waits', () => {
     const near = { x: 2, z: 1 }
-    expect(goslingAt(OPENING.end, 0, 0, 3, AT, UP, UP, near, true)).toEqual(near)
+    expect(goslingAt(OPENING.end, 0, 3, AT, UP, UP, 0, near, true, false)).toEqual(near)
   })
 
   it('snaps the burning branch off the crown after the strike, and has it lying where it lands before the opening ends', () => {

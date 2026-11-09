@@ -1048,6 +1048,20 @@ export class GoosePlay<S extends PlaySwarm = SteppedSwarm> {
     this.pumpkins = pumpkins
   }
 
+  /** Whether a body `radius` m round could go straight from `from` to `to` without touching any body or trunk on the ground. */
+  clearWay(from: Point, to: Point, radius: number): boolean {
+    for (const { at, outline } of this.bodies()) {
+      if (crosses(outline, { x: from.x - at.x, z: from.z - at.z }, { x: to.x - at.x, z: to.z - at.z }, radius)) return false
+    }
+    const ox = to.x - from.x
+    const oz = to.z - from.z
+    const length = ox * ox + oz * oz
+    return this.rounds().every(({ at, radius: trunk }) => {
+      const t = length > 0 ? Math.max(0, Math.min(1, ((at.x - from.x) * ox + (at.z - from.z) * oz) / length)) : 0
+      return Math.hypot(at.x - from.x - ox * t, at.z - from.z - oz * t) >= trunk + radius
+    })
+  }
+
   /** What is round on the ground: the trunks and the pumpkins. */
   private rounds(): Trunk[] {
     return [...this.trunks, ...this.pumpkins]

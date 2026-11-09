@@ -3,15 +3,17 @@
 // dark, his goslings round his back, peeping at him as they go and he
 // answering them, nothing else about. Lightning strikes the foot of a tree
 // in leaf by the road beside them, shaking the screen, and they stop dead,
-// frightened: he jumps, the goslings cower, and the fire climbs the tree
-// from its foot to its crown. A moment after the strike a burning branch
-// snaps off the crown and drops, fast, to lie burning by the trunk. The
-// goslings bolt, each his own way up the plain, out of view, the one that
-// freezes stopping at the light's edge, and he shouts after them. Then the
+// frightened: he jumps, and as the flash lights them the goslings jump where
+// they stand and bolt, all at once, each his own way up the plain until out
+// of view, the one that freezes stopping at the light's edge; he shouts
+// after them. The fire climbs the tree from its foot to its crown, and a
+// moment after the strike a burning branch snaps off the crown and drops,
+// fast, to lie burning by the trunk. Then the
 // ground rumbles and the rats come, from out of view on every side, rushing
 // in at him. The branch lies there as the opening ends, his torch to pick up.
 // What happens when, where he walks, and how the screen shakes, as the
 // opening's time has it; the page draws it (opening.ts, openingshow.ts).
+import { HOP_AIR, hopAt, type Act } from './endingscript'
 import type { Point } from '../world/plain'
 
 /** When each beat comes, s into the opening. */
@@ -22,9 +24,9 @@ export const OPENING = {
   spread: 2.4,
   /** How long the screen shakes from the strike, s. */
   shaking: 2,
-  /** The goslings bolt, each up to `stagger` s after the first, and he shouts after them, a shout at each of `shouts` s. */
-  bolt: 9.9,
-  stagger: 0.4,
+  /** The goslings bolt as the strike's flash lights them, all at once: each jumps where he stands, his hop played at `jump` s whole, and runs a beat after he lands; and he shouts after them, a shout at each of `shouts` s. */
+  bolt: 9.05,
+  jump: 0.55,
   shouts: [10.1, 10.55, 11.3, 11.75],
   /** The rats rush in from out of view, the ground rumbling. */
   rush: 10.4,
@@ -62,10 +64,19 @@ export const CHAT: readonly { at: number; who: number | 'query' | 'mutter' }[] =
 export const WALK_PACE = 0.7
 /** How far behind and ahead of him the walk is read for the way he faces, m: he turns round a bend over that much of it, not at once. */
 const TURN_OVER = 0.8
-/** How far a bolting gosling runs before he is out of view, m, at what pace, m/s, and how far either side of up the road he may go, rad. */
-const BOLT_RUN = 10
-const BOLT_PACE = 3.6
-const BOLT_SPREAD = 0.45
+/**
+ * How fast a bolting gosling runs, m/s, and how far he can by the opening's end, m, out of view or not; how far either
+ * side of up the road the goslings fan out, rad, each his own place in the fan; how far off up the road one may turn
+ * from his place to find a way clear of walls and trunks the whole run, rad, and in what steps he looks for it, rad.
+ */
+const BOLT_PACE = 4.2
+const BOLT_RUN = BOLT_PACE * (OPENING.end - OPENING.bolt)
+/** How long after the bolt a gosling runs, s: a beat, LANDED s, after he lands from his jump. */
+const LANDED = 0.1
+const RUNS = OPENING.jump * HOP_AIR[1] + LANDED
+const BOLT_SPREAD = 0.65
+const BOLT_TURN = Math.PI / 2
+const BOLT_LOOK = 0.05
 /** How far behind him the goslings walk, m, and how far round his back their arc reaches either side, rad. */
 const BEHIND = 0.55
 const ARC = 1.2
@@ -105,11 +116,29 @@ export function afterglow(t: number): number {
 /** Whether the rats are about yet: from their rush. */
 export const ratsOut = (t: number): boolean => t >= OPENING.rush
 
+/** The moon's colour once the sky has darkened, the strike over and the rats out: the night the game is played in. */
+export const DARKENED_MOON = 0x8a7aff
+
+/** When the sky starts to darken, s after the strike: as its bolt is gone (plainfires.ts, `seconds`); and over how long, s, the rats rushing in meanwhile. */
+const SKY_DARKENS = { after: 0.8, over: 3 }
+
+/** How far the sky has darkened `t` s into the opening, 0 the night it opened on to 1 DARKENED_MOON's: from just after the strike, eased in and out, whole once SKY_DARKENS.over has passed. */
+export function skyDarkened(t: number): number {
+  const share = Math.min(1, Math.max(0, (t - OPENING.strike - SKY_DARKENS.after) / SKY_DARKENS.over))
+  return share * share * (3 - 2 * share)
+}
+
 /** How far through his jump of fright at the strike he is, 0 to 1; none before it or once it is over, over STARTLE s. */
 const STARTLE = 1.33
 export function startled(t: number): number | undefined {
   const share = (t - OPENING.strike) / STARTLE
   return share >= 0 && share < 1 ? share : undefined
+}
+
+/** A bolting gosling's jump where he stands `t` s into the opening, before he runs: his hop from the bolt, at OPENING.jump s whole, till he runs; none else. */
+export function boltJump(t: number): Act | undefined {
+  const share = (t - OPENING.bolt) / OPENING.jump
+  return share >= 0 && t < OPENING.bolt + RUNS ? hopAt(share) : undefined
 }
 
 /** Whether the goslings cower, from the strike until they bolt. */
@@ -206,36 +235,58 @@ export function walkAt(walk: readonly Point[], t: number): { at: Point; facing: 
   return { at: pointAlong(walk, along), facing: d > 1e-6 ? { x: (ahead.x - behind.x) / d, z: (ahead.z - behind.z) / d } : { x: 0, z: -1 } }
 }
 
-/** A draw from 0 to 1, the same for the same `k` and `channel`. */
-function draw(k: number, channel: number): number {
-  const s = Math.sin(k * 127.1 + channel * 311.7) * 43758.5453
-  return s - Math.floor(s)
+/** Where the `index`th of `count` goslings walks round the back of the goose at `at` facing `facing`: the first on his right. */
+export function roundHisBack(index: number, count: number, at: Point, facing: Point): Point {
+  const share = count > 1 ? index / (count - 1) - 0.5 : 0
+  const round = Math.atan2(-facing.z, -facing.x) + share * 2 * ARC
+  return { x: at.x + BEHIND * Math.cos(round), z: at.z + BEHIND * Math.sin(round) }
+}
+
+/** `ahead` turned `way` rad, BOLT_RUN m long, from `from`: as far as a gosling bolting that way can run. */
+function boltEnd(from: Point, ahead: Point, way: number): Point {
+  const cos = Math.cos(way)
+  const sin = Math.sin(way)
+  return { x: from.x + (ahead.x * cos - ahead.z * sin) * BOLT_RUN, z: from.z + (ahead.x * sin + ahead.z * cos) * BOLT_RUN }
 }
 
 /**
- * Where gosling `k`, the `index`th of `count`, is `t` s into the opening, with the goose at `at` facing `facing`: walking in
- * an arc round the goose's back, then bolting on up the road, `ahead` as roadAheadOf has it, on a way of his own near it, and once
- * out of view at `home`, where he waits; or, if he is the one that `freezes`, running only as far as `home`, and
- * stopping there.
+ * The way each gosling bolts, rad off up the road, `ahead`, from where he stands round his back, `from`, in the order
+ * he walks there: fanned out evenly over BOLT_SPREAD either side, each on the side he walks, so no two ways cross; and
+ * turned off his place in the fan, the least he can, to a way `clear` has clear for BOLT_RUN m. None clear within
+ * BOLT_TURN of up the road, he keeps his place.
  */
-export function goslingAt(t: number, k: number, index: number, count: number, at: Point, facing: Point, ahead: Point, home: Point, freezes: boolean): Point {
-  const share = count > 1 ? index / (count - 1) - 0.5 : 0
-  const round = Math.atan2(-facing.z, -facing.x) + share * 2 * ARC
-  const walking = { x: at.x + BEHIND * Math.cos(round), z: at.z + BEHIND * Math.sin(round) }
-  const leaves = OPENING.bolt + OPENING.stagger * draw(k, 1)
-  if (t < leaves) return walking
-  const ran = (t - leaves) * BOLT_PACE
+export function boltWays(from: readonly Point[], ahead: Point, clear: (from: Point, to: Point) => boolean): number[] {
+  return from.map((start, index) => {
+    const share = from.length > 1 ? index / (from.length - 1) - 0.5 : 0
+    const place = -share * 2 * BOLT_SPREAD
+    for (let off = 0; off <= 2 * BOLT_TURN; off += BOLT_LOOK) {
+      for (const way of off === 0 ? [place] : [place + off, place - off]) {
+        if (Math.abs(way) <= BOLT_TURN && clear(start, boltEnd(start, ahead, way))) return way
+      }
+    }
+    return place
+  })
+}
+
+/**
+ * Where the `index`th of `count` goslings is `t` s into the opening, with the goose at `at` facing `facing`: walking in
+ * an arc round the goose's back, then, his jump over, bolting `way` rad off up the road, `ahead` as roadAheadOf has it and `way` as
+ * boltWays, until `gone`, out of view, or the opening is over, then at `home`, where he waits; or, if he is the one
+ * that `freezes`, running only as far as `home`, and stopping there.
+ */
+export function goslingAt(t: number, index: number, count: number, at: Point, facing: Point, ahead: Point, way: number, home: Point, freezes: boolean, gone: boolean): Point {
+  const walking = roundHisBack(index, count, at, facing)
+  if (t < OPENING.bolt) return walking
+  if (gone || t >= OPENING.end) return { ...home }
+  const ran = Math.max(0, t - OPENING.bolt - RUNS) * BOLT_PACE
   if (freezes) {
     const d = Math.hypot(home.x - walking.x, home.z - walking.z)
     if (ran >= d) return { ...home }
     return { x: walking.x + ((home.x - walking.x) * ran) / d, z: walking.z + ((home.z - walking.z) * ran) / d }
   }
-  if (ran >= BOLT_RUN) return { ...home }
-  // The road's way ahead, turned `way` either side.
-  const way = (draw(k, 2) * 2 - 1) * BOLT_SPREAD
-  const cos = Math.cos(way)
-  const sin = Math.sin(way)
-  return { x: walking.x + (ahead.x * cos - ahead.z * sin) * ran, z: walking.z + (ahead.x * sin + ahead.z * cos) * ran }
+  const end = boltEnd(walking, ahead, way)
+  const s = Math.min(1, ran / BOLT_RUN)
+  return { x: walking.x + (end.x - walking.x) * s, z: walking.z + (end.z - walking.z) * s }
 }
 
 /** How hard the screen shakes at the strike, m the camera is thrown, and how fast, Hz. */

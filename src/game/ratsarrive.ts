@@ -33,9 +33,10 @@ export function createRatsArrive({ goosePlay, settings, opening, swarm }: {
   }
   /**
    * How far past the edge of the view the rats are set down for the rush, m, at the nearest and the farthest: fewest
-   * near it and more the further out, so they come in one by one at first, then thicker, never as a block.
+   * near it and more the further out, so they come in one by one at first, then thicker, never as a block. The farthest
+   * half what it was (2026-11-09), so the swarm is in just after the goslings have bolted out of view.
    */
-  const RUSH_FROM = [0.6, 18] as const
+  const RUSH_FROM = [0.6, 9] as const
   /** How far either side of the way spared the rats of a rush do not come from, rad. */
   const RUSH_SPARED = Math.PI / 4
   /**

@@ -1,8 +1,9 @@
 // The opening (openingscript.ts), as the page plays it: its clock, his walk up the road and the goslings', and how it is skipped.
-import { OPENING, branchLanded, goslingAt, roadAheadOf, walkAt, walkOf } from './openingscript'
+import { OPENING, boltJump, boltWays, branchLanded, goslingAt, roadAheadOf, roundHisBack, walkAt, walkOf } from './openingscript'
 import { url } from './address'
-import type { GoosePlay } from './gooseplay'
+import { GOSLING_RADIUS, type GoosePlay } from './gooseplay'
 import type { PlaySwarm } from '../swarm/play'
+import type { Point } from '../world/plain'
 
 /** How long the skip is held to skip, s. */
 export const SKIP_HOLD = 0.8
@@ -18,6 +19,10 @@ export function createOpening(goosePlay: GoosePlay<PlaySwarm>, burningTreeLight:
   const walkUp = on ? walkOf(goosePlay.plain.start, goosePlay.plain.road) : []
   /** The way on up the road from where he starts, the goslings bolting along it. */
   const roadAhead = on ? roadAheadOf(goosePlay.plain.start, goosePlay.plain.road) : { x: 0, z: -1 }
+  /** The way each of his brood bolts, in the order they walk round his back: picked as they bolt, he standing still by then. */
+  let ways: number[] | undefined
+  /** The goslings bolted out of view, each now where he waits. */
+  const gone = new Set<number>()
   const opening = {
     on,
     t: on ? 0 : OPENING.end,
@@ -50,14 +55,33 @@ export function createOpening(goosePlay: GoosePlay<PlaySwarm>, burningTreeLight:
     /** His goslings in the opening, walking round his back: not a ghost's, who follows it in the graveyard. */
     brood: () => goosePlay.goslings.flatMap((g, k) => (g && goosePlay.plain.braziers[k]!.follows === undefined ? [k] : [])),
     /**
-     * The goslings as the opening has them: walking round his back, bolting up the plain, then where each waits; the
-     * spawn's own, freezing, running only to his place at the light's edge. Over or skipped, each where he waits.
+     * The goslings as the opening has them: walking round his back, bolting up the plain until `seen` loses him, then
+     * where each waits; the spawn's own, freezing, running only to his place at the light's edge. Over or skipped, each
+     * where he waits.
      */
-    goslingsFrame() {
+    goslingsFrame(seen: (at: Point) => boolean = () => false) {
       const found = opening.brood()
-      found.forEach((k, index) => Object.assign(goosePlay.goslings[k]!, goslingAt(opening.t, k, index, found.length, goosePlay.holder, goosePlay.facing, roadAhead, goosePlay.waitsAt[k]!, k === burningTreeLight)))
+      const { holder, facing } = goosePlay
+      if (opening.t >= OPENING.bolt) {
+        ways ??= boltWays(
+          found.map((_, index) => roundHisBack(index, found.length, holder, facing)),
+          roadAhead,
+          (from, to) => goosePlay.clearWay(from, to, GOSLING_RADIUS),
+        )
+      }
+      found.forEach((k, index) => {
+        const g = goosePlay.goslings[k]!
+        const freezes = k === burningTreeLight
+        Object.assign(g, goslingAt(opening.t, index, found.length, holder, facing, roadAhead, ways?.[index] ?? 0, goosePlay.waitsAt[k]!, freezes, gone.has(k)))
+        if (!freezes && opening.t > OPENING.bolt && !gone.has(k) && !seen(g)) {
+          gone.add(k)
+          Object.assign(g, goosePlay.waitsAt[k]!)
+        }
+      })
       opening.settled = !opening.running()
     },
+    /** Gosling `k`'s jump into his run as he bolts, for the goslings' clips: his brood's, while the opening runs. */
+    act: (k: number) => (opening.running() && opening.brood().includes(k) ? { act: boltJump(opening.t) } : undefined),
     /** The skip held through `frame` s of the page, `skipping` if it is held now: skipped once held SKIP_HOLD s. */
     skipFrame(skipping: boolean, frame: number) {
       if (!opening.running()) return
