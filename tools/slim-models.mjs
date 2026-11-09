@@ -32,8 +32,6 @@ const KEEP_CLIPS = {
   ],
   // islandgeese.ts
   'gooseMother.glb': ['lady_nest_idle', 'lady_idle', 'lady_run_happy'],
-  // ghosts.ts: its panel's rig clips
-  'ghostGoose.glb': ['idle', 'water_idle', 'swim', 'walk', 'shake_dry'],
 }
 // Scenes nobody loads: the default scene stays, these go.
 const DROP_SCENES = ['Lady Goose - Preview']

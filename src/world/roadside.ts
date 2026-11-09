@@ -62,8 +62,8 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   dev: Pick<typeof import('../dev/devtools'), 'GUI'> | undefined
   lean: boolean
 }) {
-  // Ghost geese (`?ghosts`, `=float`, `=rag` or `=ball`, `&ghostcount=`), cloth sheets on the GPU (ghosts.ts); WebGPU only.
-  // `?graveyard` (the game's default, ball ghosts): they walk the graveyard's chain behind the last fire as
+  // Ghost geese (`?ghosts`, `&ghostcount=`), cloth sheets on the GPU (ghosts.ts); WebGPU only.
+  // `?graveyard` (the game's default): they walk the graveyard's chain behind the last fire as
   // graveyard.ts lays it, on the play's clock, so they meet where and when they meet there.
   const graveyard = (() => {
     if (!featureOn('graveyard')) return undefined
@@ -77,11 +77,10 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   const ghosts = graveyard && (backend !== 'WebGPU' || lean)
     ? createPlainGhosts(groundAt, { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook().speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) }, fakeLamps)
     : (url.has('ghosts') || graveyard) && backend === 'WebGPU'
-    ? await createGhosts(
+    ? createGhosts(
         renderer,
         goosePlay.holder,
         groundAt,
-        url.get('ghosts') || 'ball',
         Number(url.get('ghostcount') ?? 4),
         graveyard && { count: graveyard.ghosts.length, reach: graveyard.ghosts[0]?.light.reach ?? 1, speed: defaultGraveLook().speed, at: (g, t) => ghostAt(graveyard.ghosts[g]!, t) },
         fakeLamps,
