@@ -763,13 +763,13 @@ function addWell(gui: GUI, { colours, glows, changed, bucket, ground, fire, reac
     addShine(shiny, shine.look)
     shiny.onChange(shine.changed)
   }
-  // The fire pit by it: its iron's colour, and its own highlight and rim.
+  // The fire pit by it: its iron's colour, and its own rim; matt, no highlight.
   if (pit) {
     const pitFolder = folder.addFolder('fire pit')
     pitFolder.addColor(pit.look, 'colour').name('iron').onChange(pit.changed)
-    const shiny = pitFolder.addFolder('highlight and rim')
-    addShine(shiny, pit.shine)
-    shiny.onChange(pit.shineChanged)
+    const rim = pitFolder.addFolder('rim')
+    addRim(rim, pit.shine)
+    rim.onChange(pit.shineChanged)
   }
   if (bucket) for (const axis of ['x', 'y', 'z'] as const) folder.add(bucket, axis, -1, 1, 0.01).name(`bucket offset ${axis} m`)
   // The fire pit by it, across it from the lantern: its light moves with it, read live by the play.
@@ -1565,6 +1565,11 @@ function addShine(folder: GUI, shell: ShineLook): void {
   folder.add(shell, 'shininess', 1, 200, 1).name('highlight tightness')
   folder.add(shell, 'softness', 0, 0.5, 0.01).name('highlight softness')
   folder.addColor(shell, 'specularColor').name('highlight colour')
+  addRim(folder, shell)
+}
+
+/** A shell's rim alone, in `folder`. */
+function addRim(folder: GUI, shell: ShineLook): void {
   folder.add(shell, 'rim').name('rim light')
   folder.add(shell, 'rimStrength', 0, 3, 0.01).name('rim strength')
   folder.add(shell, 'rimWidth', 0, 1, 0.01).name('rim width')

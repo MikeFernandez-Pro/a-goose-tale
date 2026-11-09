@@ -246,9 +246,9 @@ const BONE_COLOUR = new Color(0.8, 0.8, 0.8)
 const MODEL_CART_WOOD = 'Material.009'
 /** The fire pit's file: an iron bowl on legs, logs in it, in metres, its foot on the origin. */
 const PIT_MODEL = './models/firePit.glb'
-/** How big the fire pit is drawn, times its file; and its iron. */
+/** How big the fire pit is drawn, times its file; and its iron, a warm brown since 2026-11-09. */
 const PIT_SCALE = 0.8
-const PIT_IRON = 0x564c48
+const PIT_IRON = 0x775e55
 /** How high the top of the logs in the fire pit stands, m, where its flame burns. */
 export const PIT_BOWL = 0.36 * PIT_SCALE
 /** The fire pit's light as the lights draw it: its lamp alone, over the bowl, the page burning the torch's flame on the logs. */
