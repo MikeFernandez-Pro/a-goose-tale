@@ -63,6 +63,12 @@ that made models and textures, and `sfx/` the sounds' build.
 
 ## Credits and licence
 
-The code is MIT (see `LICENSE`). Code ported from other projects, and the
-models that are not the game's own, keep their own terms:
-`THIRD_PARTY_NOTICES.md` lists them, and `public/licence.txt` credits the rat.
+The MIT licence in `LICENSE` covers the game's source code. It does not cover
+the models, textures, music and fonts by other authors in `public/` and
+`models/`: they keep their own licences, which `public/licence.txt` lists with
+their credits, and some do not allow commercial use or passing their files on
+by themselves. Code ported from other projects keeps its own licence too:
+`THIRD_PARTY_NOTICES.md` lists it, and the font's is `public/fonts/OFL.txt`.
+
+If something you make builds on this game, a credit and a link back are
+welcome, though the licence does not ask for them.
