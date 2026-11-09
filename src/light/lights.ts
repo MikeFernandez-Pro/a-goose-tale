@@ -183,7 +183,7 @@ export function createLights(placed: readonly PlacedLight[], seen: Texture, time
     const masked = options.masked ?? true
     const centre = uniform(new Vector2(light.x, light.z))
     let lamp: PointLight | FakeLamp
-    if (options.lamps && !masked) lamp = options.lamps.track(new FakeLamp(kind.lamp, kind.intensity, 1, 0))
+    if (options.lamps && !masked) lamp = options.lamps.track(new FakeLamp(kind.lamp, kind.intensity, 1))
     else {
       const point = new PointLight(kind.lamp, kind.intensity, 1, 0)
       point.castShadow = masked

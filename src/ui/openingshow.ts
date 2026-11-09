@@ -101,7 +101,7 @@ export function createOpeningShow({ opening, goosePlay, goose, camera, renderer,
    * pool `height` m over him, coming up over its first `fadeIn` s and gone over its last `fadeOut` s; no shadow from it.
    */
   const openingLightLook = { show: true, color: 0xdde4ff, intensity: 2, reach: 5, height: 2.6, fadeIn: 1.5, fadeOut: 2 }
-  const openingLight = opening.on ? fakeLamps.track(new FakeLamp(openingLightLook.color, 0, openingLightLook.reach, 0)) : undefined
+  const openingLight = opening.on ? fakeLamps.track(new FakeLamp(openingLightLook.color, 0, openingLightLook.reach)) : undefined
   if (openingLight) {
     openingLight.shadows = false
     scene.add(openingLight)

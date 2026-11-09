@@ -16,12 +16,15 @@
 // fragment found in the projector's view and that fire's light taken away where they cover it, a few taps round it
 // softening the edge the further it falls from them.
 import { AnalyticLightNode, Color, Frustum, Light, Matrix4, Object3D, Sphere, Vector3, type Camera, type Material, type Node, type NodeBuilder, type Texture } from 'three/webgpu'
-import { Break, cameraViewMatrix, cameraWorldMatrix, float, getDistanceAttenuation, If, Loop, max, mix, positionView, renderGroup, select, texture, uniform, uniformArray, vec2, vec3, vec4 } from 'three/tsl'
+import { Break, cameraViewMatrix, cameraWorldMatrix, float, If, Loop, max, mix, positionView, renderGroup, select, texture, uniform, uniformArray, vec2, vec3, vec4 } from 'three/tsl'
 
 /** How many lamps light at once, the loop's length: past it the furthest down the list are left dark. */
 const MAX_FAKE_LAMPS = 32
 
-/** A lamp: where it stands is its own place in the scene, a point light's colour, strength, reach and falloff. */
+/**
+ * A lamp: where it stands is its own place in the scene, a point light's colour, strength and reach; its light as
+ * strong all the way out, fading only near its reach, as a point light with no decay.
+ */
 export class FakeLamp extends Object3D {
   readonly isFakeLamp = true
   color: Color
@@ -29,17 +32,14 @@ export class FakeLamp extends Object3D {
   intensity: number
   /** How far it reaches, m, its light falling to nothing there; 0 no end. */
   distance: number
-  /** How its light falls with distance: 0 not at all, inside its reach; 2 as light does. */
-  decay: number
   /** Whether the fire shadow (fireshadow.ts) may fall from it. */
   shadows = true
 
-  constructor(color: number = 0xffffff, intensity = 1, distance = 0, decay = 2) {
+  constructor(color: number = 0xffffff, intensity = 1, distance = 0) {
     super()
     this.color = new Color(color)
     this.intensity = intensity
     this.distance = distance
-    this.decay = decay
   }
 }
 
@@ -104,7 +104,6 @@ class FakeLampsNode extends AnalyticLightNode<FakeLamps> {
   private readonly places = uniformArray(Array.from({ length: MAX_FAKE_LAMPS }, () => new Vector3()), 'vec3').setGroup(renderGroup)
   private readonly colours = uniformArray(Array.from({ length: MAX_FAKE_LAMPS }, () => new Color()), 'color').setGroup(renderGroup)
   private readonly reaches = uniformArray(new Array<number>(MAX_FAKE_LAMPS).fill(0), 'float').setGroup(renderGroup)
-  private readonly decays = uniformArray(new Array<number>(MAX_FAKE_LAMPS).fill(0), 'float').setGroup(renderGroup)
   private readonly lit = uniform(0, 'int').setGroup(renderGroup)
   /** Which of the lamps lit is shadowed, -1 none. */
   private readonly shadowed = uniform(-1, 'int').setGroup(renderGroup)
@@ -134,7 +133,6 @@ class FakeLampsNode extends AnalyticLightNode<FakeLamps> {
       ;(this.places.array[n] as Vector3).copy(place)
       ;(this.colours.array[n] as Color).copy(lamp.color).multiplyScalar(lamp.intensity)
       ;(this.reaches.array as number[])[n] = lamp.distance
-      ;(this.decays.array as number[])[n] = lamp.decay
       if (lamp === shadow.lamp && shadow.strength > 0) this.shadowed.value = n
       n++
     }
@@ -180,13 +178,13 @@ class FakeLampsNode extends AnalyticLightNode<FakeLamps> {
       const at = this.places.element(i) as unknown as Node<'vec3'>
       const colour = this.colours.element(i) as unknown as Node<'vec3'>
       const reach = this.reaches.element(i) as unknown as Node<'float'>
-      const decay = this.decays.element(i) as unknown as Node<'float'>
       const vector = cameraViewMatrix.mul(vec4(at, 1)).xyz.sub(here)
       const lightDistance = vector.length()
       // Past its reach it lights nothing: the rest of its work skipped, as the lamps far off are for most of the screen.
       If(reach.equal(0).or(lightDistance.lessThan(reach)), () => {
-        const attenuation = getDistanceAttenuation({ lightDistance, cutoffDistance: reach, decayExponent: decay })
-        const light = colour.mul(float(attenuation))
+        // Three's point light with no decay: full strength, faded out over the last of its reach.
+        const attenuation = select(reach.greaterThan(0), lightDistance.div(reach).pow4().oneMinus().clamp().pow2(), float(1))
+        const light = colour.mul(attenuation)
         const lightColor = lets ? light.mul(select(i.equal(this.shadowed), lets, vec3(1))) : light
         lightsNode.setupDirectLight(builder, this, { lightDirection: vector.normalize(), lightColor })
       })

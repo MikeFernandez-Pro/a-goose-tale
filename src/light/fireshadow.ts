@@ -74,7 +74,7 @@ export function createFireShadow(renderer: WebGPURenderer, lamps: FakeLamps, loo
       const d = lamp.getWorldPosition(flame).distanceTo(at)
       if (lamp.distance > 0 && d >= lamp.distance) continue
       const cut = lamp.distance > 0 ? Math.max(0, 1 - (d / lamp.distance) ** 4) ** 2 : 1
-      const light = (lamp.intensity * cut) / Math.max(d, 0.01) ** lamp.decay
+      const light = lamp.intensity * cut
       if (light > most) {
         most = light
         best = lamp

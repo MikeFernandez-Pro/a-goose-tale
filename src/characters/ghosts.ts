@@ -406,7 +406,7 @@ export async function createGhosts(
     ball.position.y = look.ballHeight
     const rig = new Group().add(preset.ball ? ball : body)
     // Its lamp, as a brazier's (lights.ts): no falling off inside its reach, cut at it; no shadow, so no new pipelines for one.
-    const lamp = lamps ? lamps.track(new FakeLamp(look.lamp, look.lampStrength, look.reach, 0)) : new PointLight(look.lamp, look.lampStrength, look.reach, 0)
+    const lamp = lamps ? lamps.track(new FakeLamp(look.lamp, look.lampStrength, look.reach)) : new PointLight(look.lamp, look.lampStrength, look.reach, 0)
     rig.add(lamp)
     object.add(rig)
     const mixer = new AnimationMixer(model)
@@ -981,7 +981,7 @@ export function createPlainGhosts(groundAt: (x: number, z: number) => number, wa
   const rigs = Array.from({ length: walk.count }, (_, g) => {
     const rig = new Group()
     rig.add(new Mesh(sheet, cloth))
-    const lamp = lamps?.track(new FakeLamp(look.lamp, look.lampStrength, look.reach, 0))
+    const lamp = lamps?.track(new FakeLamp(look.lamp, look.lampStrength, look.reach))
     if (lamp) {
       lamp.position.y = look.lampHeight
       rig.add(lamp)

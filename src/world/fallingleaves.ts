@@ -113,7 +113,6 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
   const rounds = uniform(0)
   /** The share of a round a leaf is falling; the rest it lies. */
   const falls = uniform(0.7)
-  const shown = uniform(look.amount)
   const square = uniform(look.square)
   const height = uniform(look.height)
   const sway = uniform(look.sway)
@@ -142,7 +141,7 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
     return texture(heights, vec2(u, v)).level(int(0)).r
   }
 
-  /** A leaf as it is now: its middle, its vertex's corner from the middle and its normal, turned, and how far up it is hidden, m. */
+  /** A leaf as it is now: its middle, and its vertex's corner from the middle and its normal, turned. */
   const leafNow = () => {
     const place = attribute<'vec3'>('position')
     const corner = attribute<'vec2'>('corner')
@@ -168,7 +167,7 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
     const tilt = sin(spin.add(seed)).mul(1.2).mul(air)
     const roll = cos(spin.mul(0.7).add(seed.mul(2))).mul(0.9).mul(air)
     const yaw = draw.x.mul(Math.PI * 2).add(spin.mul(0.4).mul(air))
-    // Shrinking into the litter over the last of its lying; and hidden, far up, past the share shown.
+    // Shrinking into the litter over the last of its lying.
     const left = smoothstep(1, mix(falls, float(1), 0.5), phase)
     const along = corner.y.sub(0.5).mul(size).mul(left)
     const across = corner.x.sub(0.5).mul(size).mul(0.6).mul(left)
@@ -186,15 +185,14 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
       const y2 = p.x.mul(sr).add(y1.mul(cr))
       return vec3(x2.mul(cy).add(z1.mul(sy)), y2, x2.negate().mul(sy).add(z1.mul(cy)))
     }
-    const hidden = step(shown, fract(draw.x.mul(57.1).add(draw.y.mul(13.7)))).mul(999)
-    return { at: vec3(x, y, z), corner: turn(vec3(across, 0, along)), normal: turn(vec3(0, 1, 0)), hidden }
+    return { at: vec3(x, y, z), corner: turn(vec3(across, 0, along)), normal: turn(vec3(0, 1, 0)) }
   }
 
   const material = new LeafLambertMaterial({ side: DoubleSide, alphaTest: 0.5 })
   material.positionNode = Fn(() => {
     const leaf = leafNow()
     normalLocal.assign(leaf.normal)
-    return leaf.at.add(leaf.corner).add(vec3(0, leaf.hidden, 0))
+    return leaf.at.add(leaf.corner)
   })()
   // The leaf's shape on its quad, pointed at both ends.
   const draw = attribute<'vec2'>('draw')
@@ -214,7 +212,8 @@ export function createFallingLeaves(ground: HeightGrid, look = defaultFallLook()
     object,
     look,
     set() {
-      shown.value = look.amount
+      // The share shown the first leaves, the rest not drawn: the leaves lie in no order, so the first are as scattered as any.
+      geometry.setDrawRange(0, Math.round(Math.min(1, Math.max(0, look.amount)) * FALLING) * 6)
       square.value = Math.max(1, look.square)
       height.value = Math.max(0.5, look.height)
       sway.value = look.sway

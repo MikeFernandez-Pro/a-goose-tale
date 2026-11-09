@@ -27,7 +27,8 @@
 // targets that pull the rats as the holder does, picked as the CPU step picks them, another; and it
 // spawns the rats, by the swarm's own rule, uploading the new ones only. What
 // comes back is small and late: the rats whose gait changed, listed by the
-// step, read back a list at a time, and how many rats the last step found at
+// step, read back a list at a time, only while the page wants the gaits (the
+// stop motion's; smooth, every rat runs), and how many rats the last step found at
 // the holder, never awaited on the frame. Played (play.ts), the play setting
 // its rats down by where they are, every rat's place comes back too, a
 // frame or two late, and a rat set down is where it was set down until a read
@@ -142,6 +143,10 @@ export const MOST_STEPS = 4
 export const MOST_FRAME = MOST_STEPS * STEP
 /** Vectors a rat's motion takes: (vx, vz, sx, sz), (flinch, burn, whim, gait since), (side, gait, tolerance, timid), (dash left, 0, 0, 0). */
 const MOTION = 4
+/** The step's gaits: none worked out; worked out; worked out, the first step after they are turned on, every rat from Run and listed whatever its gait. */
+const GAITS_OFF = 0
+const GAITS_ON = 1
+const GAITS_FRESH = 2
 /** The grid's most cells a side: past it the cells grow wider than the feel, which only adds candidates. */
 const GRID_MAX = 512
 const CELLS_MAX = GRID_MAX * GRID_MAX + 1
@@ -386,8 +391,10 @@ export class GpuSwarm implements PlaySwarm {
   /** Rats alive, and the range's radius. */
   count: number
   rangeRadius: number
-  /** What each rat's feet play, as last read back: a step or two late. */
+  /** What each rat's feet play, as last read back: a step or two late; stale while the gaits are not wanted. */
   readonly gait: Uint8Array
+  /** Whether the page wants the gaits, read at the next `send`: off, the steps work none out and none is read back. */
+  gaited = true
   /** Where each rat stands, as last read back once the play moves the swarm on, a frame or two late; a rat spawned or set down stands where it was put. */
   readonly x: Float32Array
   readonly z: Float32Array
@@ -519,6 +526,8 @@ export class GpuSwarm implements PlaySwarm {
     bounds: uniform(new Vector4(-1e30, -1e30, 1e30, 1e30)),
     round: uniform(0, 'uint'),
     clearAt: uniform(0, 'uint'),
+    /** Whether the step works out the gaits: GAITS_OFF, GAITS_ON, or GAITS_FRESH, each rat from Run and listed. */
+    gaits: uniform(GAITS_ON, 'int'),
   }
   /** The lit areas' texture the step reads. */
   private readonly seenTexture: Texture
@@ -546,6 +555,10 @@ export class GpuSwarm implements PlaySwarm {
   private round = 1
   private reading = false
   private readingHolder = false
+  /** Whether the steps work out the gaits; whether the next step starts every rat from Run and lists each; and how often they were turned on or off, so a read made before is let go. */
+  private gaitsOn = true
+  private gaitsFresh = false
+  private gaitTurns = 0
   private lastFrame: number
   /** How the rats are stood: between the pair live, held all on the beat, or each on its own beat; and whether the hold is to be taken this frame. */
   private mode: 'live' | 'held' | 'staggered' = 'live'
@@ -621,6 +634,7 @@ export class GpuSwarm implements PlaySwarm {
     const elapsed = (start - this.lastFrame) / 1000
     this.lastFrame = start
     if (count !== this.count) this.setCount(count)
+    if (this.gaited !== this.gaitsOn) this.turnGaits()
     this.placeLights(lights, tuning)
     this.placeTargets(pullTargets(targets, light))
     // The rats placed again since the last frame: the light is where it now is, not walked there from where it was.
@@ -636,7 +650,7 @@ export class GpuSwarm implements PlaySwarm {
       this.step({ x: from.x + (light.x - from.x) * k, z: from.z + (light.z - from.z) * k, strength: light.strength, on: light.on }, tuning, dark)
     }
     Object.assign(this.lightWas, light)
-    this.readGaits()
+    if (this.gaitsOn) this.readGaits()
     this.readHolder()
     if (this.played && steps > 0) this.readPlaces()
     this.ms = this.now() - start
@@ -918,6 +932,8 @@ export class GpuSwarm implements PlaySwarm {
     u.notice.value = Math.min(tuning.notice, 1e30)
     u.pull.value = Math.min(tuning.pull, 1e30)
     u.round.value = this.round
+    u.gaits.value = !this.gaitsOn ? GAITS_OFF : this.gaitsFresh ? GAITS_FRESH : GAITS_ON
+    this.gaitsFresh = false
     // The grid, a feel's width a cell, as the CPU's; but never more than GRID_MAX a side.
     const feel = 2 * r * FEEL
     const cellSize = Math.max(feel, (2 * this.rangeRadius) / (GRID_MAX - 4))
@@ -966,19 +982,20 @@ export class GpuSwarm implements PlaySwarm {
   /**
    * Read back the list the steps wrote since the last read, one read at a
    * time, never awaited on the frame: the steps go on into the other list,
-   * cleared first. Each rat listed takes the gait it was listed with.
+   * cleared first. Each rat listed takes the gait it was listed with; a read
+   * made before the gaits were last turned on or off says nothing.
    */
   private readGaits(): void {
     if (this.reading || !this.stepped) return
     const reading = this.round & 1
-    const next = 1 - reading
-    this.u.clearAt.value = next * (this.capacity + 1)
-    this.device.compute(this.clearList)
+    this.emptyList(1 - reading)
     this.round++
     this.reading = true
+    const turns = this.gaitTurns
     this.device
       .getArrayBufferAsync(this.lists, null, reading * (this.capacity + 1) * 4, (this.capacity + 1) * 4)
       .then((buffer) => {
+        if (turns !== this.gaitTurns) return
         const list = new Uint32Array(buffer)
         const listed = Math.min(list[0]!, this.capacity)
         for (let e = 1; e <= listed; e++) {
@@ -990,6 +1007,28 @@ export class GpuSwarm implements PlaySwarm {
       .finally(() => {
         this.reading = false
       })
+  }
+
+  /**
+   * The gaits turned on or off, as the page last asked. Off, the steps work
+   * none out and nothing is read back. On, every rat starts from Run, as it
+   * was drawn without them: the next step lists each whatever its gait, into
+   * a round of its own, its list emptied first.
+   */
+  private turnGaits(): void {
+    this.gaitsOn = this.gaited
+    this.gaitTurns++
+    if (!this.gaitsOn) return
+    this.gait.fill(RUN)
+    this.gaitsFresh = true
+    this.round++
+    this.emptyList(this.round & 1)
+  }
+
+  /** Empty list `k` of the two, before the steps write it. */
+  private emptyList(k: number): void {
+    this.u.clearAt.value = k * (this.capacity + 1)
+    this.device.compute(this.clearList)
   }
 
   /**
@@ -1241,9 +1280,11 @@ export class GpuSwarm implements PlaySwarm {
       storage(this.sorted, 'uint', cap).element(at).assign(uint(i))
     })().compute(cap)
 
-    // One node for the lists, the gaits' and the count at the holder: each node a binding, and the step's kernel binds all WebGPU allows.
+    // One node for the lists, the gaits' and the count at the holder, and one for the listed, however often the step reports:
+    // each node a binding, and the step's kernel binds all WebGPU allows.
     const ratLists = lists()
-    const stepRats = this.stepRats(stateIn, motionIn, stateOut(), motionOut(), cellOf, ratLists, (i, gait) => report(ratLists, listed(), i, gait))
+    const ratListed = listed()
+    const stepRats = this.stepRats(stateIn, motionIn, stateOut(), motionOut(), cellOf, ratLists, (i, gait) => report(ratLists, ratListed, i, gait))
     const bringRound = this.bringRound(stateOut(), motionOut(), (i, gait) => report(lists(), listed(), i, gait))
 
     return {
@@ -1710,28 +1751,36 @@ export class GpuSwarm implements PlaySwarm {
       diff.subAssign(diff.div(TAU).round().mul(TAU))
       const most = u.turnRate.mul(dt).mul(select(bolting.greaterThan(0.5), u.fleeTurn, float(1)))
       heading.addAssign(diff.clamp(most.negate(), most))
+      // The gait only while the page wants the gaits; else it is left as it was.
       const gait = m2.y.toVar()
-      const next = gait.toVar()
-      If(gait.equal(RUN), () => {
-        If(seen.lessThan(RUN_OUT), () => {
-          next.assign(select(seen.lessThan(WALK_OUT), float(IDLE), float(WALK)))
+      const gaitSince = m1.w.toVar()
+      If(u.gaits.notEqual(GAITS_OFF), () => {
+        If(u.gaits.equal(GAITS_FRESH), () => {
+          gait.assign(RUN)
         })
-      })
-        .ElseIf(gait.equal(WALK), () => {
-          If(seen.greaterThan(RUN_IN), () => {
-            next.assign(RUN)
-          }).ElseIf(seen.lessThan(WALK_OUT), () => {
-            next.assign(IDLE)
+        const next = gait.toVar()
+        If(gait.equal(RUN), () => {
+          If(seen.lessThan(RUN_OUT), () => {
+            next.assign(select(seen.lessThan(WALK_OUT), float(IDLE), float(WALK)))
           })
         })
-        .ElseIf(seen.greaterThan(WALK_IN), () => {
-          next.assign(select(seen.greaterThan(RUN_IN), float(RUN), float(WALK)))
+          .ElseIf(gait.equal(WALK), () => {
+            If(seen.greaterThan(RUN_IN), () => {
+              next.assign(RUN)
+            }).ElseIf(seen.lessThan(WALK_OUT), () => {
+              next.assign(IDLE)
+            })
+          })
+          .ElseIf(seen.greaterThan(WALK_IN), () => {
+            next.assign(select(seen.greaterThan(RUN_IN), float(RUN), float(WALK)))
+          })
+        If(next.notEqual(gait).and(u.now.sub(gaitSince).greaterThan(GAIT_DWELL)), () => {
+          gait.assign(next)
+          gaitSince.assign(u.now)
+          report(i, next)
+        }).ElseIf(u.gaits.equal(GAITS_FRESH), () => {
+          report(i, gait)
         })
-      const gaitSince = m1.w.toVar()
-      If(next.notEqual(gait).and(u.now.sub(gaitSince).greaterThan(GAIT_DWELL)), () => {
-        gait.assign(next)
-        gaitSince.assign(u.now)
-        report(i, next)
       })
 
       stateOut.element(i.mul(2)).assign(vec4(px, ny, pz, heading))
@@ -1833,7 +1882,7 @@ export class GpuSwarm implements PlaySwarm {
             motionOut.element(i.mul(MOTION).add(1)).assign(vec4(0, 0, m1.z, u.now))
             motionOut.element(i.mul(MOTION).add(2)).assign(vec4(0, RUN, m2.z, m2.w))
             motionOut.element(i.mul(MOTION).add(3)).assign(vec4(0, 0, 0, 0))
-            If(m2.y.notEqual(RUN), () => {
+            If(m2.y.notEqual(RUN).and(u.gaits.notEqual(GAITS_OFF)), () => {
               report(i, float(RUN))
             })
           })

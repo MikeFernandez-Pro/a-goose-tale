@@ -198,6 +198,40 @@ describe('GpuSwarm gaits', () => {
     expect(listReads(device)).toHaveLength(2)
     expect(listReads(device)[1]!.offset).toBe(0)
   })
+
+  it('empties and reads back no list while the gaits are not wanted, and still reads the count at the holder', () => {
+    const { device, swarm, frame } = swarmOf(6)
+    swarm.gaited = false
+    frame(1000 / 60)
+    frame(1000 / 60)
+    expect(device.steps).toBe(2)
+    expect(listReads(device)).toHaveLength(0)
+    expect(device.computed.some((passes) => passes[0] === swarm.clearList)).toBe(false)
+    expect(holderReads(device)).toHaveLength(1)
+  })
+
+  it('turned on again, starts every rat from Run into a list emptied for it, and lets a read made before go', async () => {
+    const { device, swarm, frame } = swarmOf(6)
+    const clears = () => device.computed.filter((passes) => passes[0] === swarm.clearList).length
+    frame(1000 / 60)
+    const [before] = listReads(device)
+    swarm.gaited = false
+    frame(1000 / 60)
+    swarm.gaited = true
+    frame(1000 / 60)
+    expect(Array.from(swarm.gait.subarray(0, 6))).toEqual(Array(6).fill(RUN))
+    // The list the steps write from now emptied; the read still out holds the next back.
+    expect(clears()).toBe(2)
+    expect(listReads(device)).toHaveLength(1)
+    await before!.answer([1, 2 * 4 + WALK])
+    expect(swarm.gait[2]).toBe(RUN)
+    // The next read is of the list the steps since wrote: round three's, list one.
+    frame(1000 / 60)
+    expect(listReads(device)).toHaveLength(2)
+    expect(listReads(device)[1]!.offset).toBe((CAPACITY + 1) * 4)
+    await listReads(device)[1]!.answer([1, 2 * 4 + IDLE])
+    expect(swarm.gait[2]).toBe(IDLE)
+  })
 })
 
 describe('GpuSwarm at the holder', () => {

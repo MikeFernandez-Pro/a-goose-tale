@@ -44,10 +44,6 @@ export function createNightLights(scene: Scene, moon: string) {
   const sunShadowNode = shadow(sun)
   const sunShadow = mix(sunShadowColor, vec3(1), sunShadowNode as unknown as Node<'float'>)
   sun.shadow.shadowNode = sunShadow
-  /** Whether the sun casts shadows, for what reads its shadow itself: its map holds still once it stops. */
-  const sunCasts = uniform(1).setGroup(renderGroup)
-  /** The sun's shadow for the unlit water (water.ts): the lit materials' own, so its map is drawn once; 1 with the sun's shadows off. */
-  const sunShadowSeen = moon === 'none' ? vec3(1) : mix(vec3(1), sunShadow, sunCasts)
   scene.add(sun, sun.target)
 
   const lamp = new PointLight()
@@ -66,8 +62,6 @@ export function createNightLights(scene: Scene, moon: string) {
     fill,
     sun,
     lamp,
-    /** The sun's shadow for the unlit water (water.ts). */
-    sunShadowSeen,
     /** The targets of three's node for the moon's shadow (moonbake.ts). */
     sunShadowTargets: sunShadowNode as unknown as ShadowTargets,
     /** The lamp's intensity as the look and the ending set it, before the torch's guttering and its catch's flare (torchFrame). */
@@ -94,7 +88,6 @@ export function createNightLights(scene: Scene, moon: string) {
       sun.color.set(look.sun.color)
       sun.intensity = look.sun.intensity * flicker(2)
       sun.castShadow = look.sun.shadows && moon !== 'none'
-      sunCasts.value = sun.castShadow ? 1 : 0
       sun.shadow.radius = softnessTexels(look.sun.softness)
       // A uniform the shadow reads: the slider recompiles nothing.
       sun.shadow.intensity = look.sun.darkness

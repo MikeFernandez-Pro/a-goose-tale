@@ -1,7 +1,6 @@
 // The pond at the road's end and all on its island: the water, the nest, the bonfire, the tent, the picnic, the oak, and the
 // geese there.
 import { type Scene, Vector3 } from 'three/webgpu'
-import type { NightLights } from '../light/nightlights'
 import type { Floor } from './ground'
 import { type PondLook, createPond, islandMiddle, groundOf, defaultPondLook, shoreAt } from './pond'
 import type { rollingGround } from './rolling'
@@ -37,9 +36,8 @@ export function pondPastHome(p: Plain): PondLook {
 }
 
 /** The pond's world on what the page has made. */
-export async function createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look, lean }: {
+export async function createPondWorld({ scene, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look, lean }: {
   scene: Scene
-  nightLights: NightLights
   beats: Beats
   ground: Floor
   gooseFloorBox: { minX: number; maxX: number; minZ: number; maxZ: number }
@@ -64,7 +62,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   // `?water=1` to `?water=5`: one of the lake looks to try (water.ts) over the default.
   const waterAsked = WATER_LOOKS[Number(url.get('water')) - 1]
   if (waterAsked) Object.assign(waterLook, waterAsked.look)
-  const water = await createWater(waterLook, nightLights.sunShadowSeen)
+  const water = await createWater(waterLook)
   const pond = createPond(ground.mesh, gooseFloorBox, pondLook, water.material, (field) => ground.setShore(field), gooseGround)
   // Parted as the floor is, where it is: the island's grass top under the plain's shader.
   ground.part(pond.bank)
@@ -101,7 +99,7 @@ export async function createPondWorld({ scene, nightLights, beats, ground, goose
   const CAMPFIRE_SIZE = 0.8
   const islandFireModel = gooseScenes.campfire()
   const islandFireFlame = plainFlame()
-  const islandFireLamp = fakeLamps.track(new FakeLamp(fireLook.lamp, islandFireLook.intensity, islandFireLook.reach, 0))
+  const islandFireLamp = fakeLamps.track(new FakeLamp(fireLook.lamp, islandFireLook.intensity, islandFireLook.reach))
   const islandFireScale = islandFireModel.scale.x
   islandFireModel.name = 'island fire'
   scene.add(islandFireModel)

@@ -356,7 +356,7 @@ const roadside = await createRoadside({ scene, goosePlay, lights, fakeLamps, bac
 const { graveyard, ghosts, graves, graveCandles, deadTreesMesh, deadTreeShine, deadTreeGrass, bushesMesh, gooseSee, gooseSeeLook, gooseSeeZone, cutSeenThrough } = roadside
 const fires = createPlainFires({ scene, goosePlay, burningTreeLight, look, gooseTheme, lights, beats, standAt, groundAt, camera, opening, gooseScenes, goose, roadside, skyFog, nightLights, rats })
 const { burningBranch, branchEmbers, plainFlames, branchFlared } = fires
-const pondWorld = await createPondWorld({ scene, nightLights, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look, lean })
+const pondWorld = await createPondWorld({ scene, beats, ground, gooseFloorBox, pondLook, gooseGround, gooseScenes, fires, fakeLamps, goose, goslingSize, roadside, look, lean })
 const { waterLook, water, tent, picnic, islandTree, islandGeese } = pondWorld
 const debugKeys = createDebugKeys({ settings, run, goosePlay, pondLook, graveyard, showDeath: () => (felt.deathShownAt = goosePlay.t) })
 /** The game's sounds (goosesounds.ts): none in a take, or with `?mute`; M mutes them. */
@@ -999,6 +999,8 @@ renderer.setAnimationLoop(() => {
   // Loading, it takes its step on STEP_FRAME, and goes on being asked till it has stood them: the worker of WebGL 2 reads
   // its input on a clock of its own, and asked for one frame alone it could miss it, and the loading wait for ever at 99 %.
   const loadHeld = loading && (loadingPage.frame < STEP_FRAME || (loadingPage.frame > STEP_FRAME && swarm.ready))
+  // The gaits worked out on the GPU only under the stop motion, the one that draws them (below).
+  if (swarm instanceof GpuSwarm) swarm.gaited = stop.enabled
   // The goslings in the dark pull the rats near them (#188).
   swarm.send(wanted, swarmLight, tuning, settings.paused || loadHeld || ratsHeld, dark, keptOff, goosePlay.targets)
   // The places: every frame when smooth; on the beat when held; and the first time a state is there, whatever the beat.

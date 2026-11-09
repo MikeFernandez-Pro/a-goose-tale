@@ -422,7 +422,7 @@ export interface PondMesh {
 export function createPond(ground: Mesh, box: Bounds, look: PondLook, water: Material, shore: (field: ShoreField) => void = () => {}, rolling?: HeightGrid): PondMesh {
   const bank = new Mesh(undefined, ground.material)
   bank.receiveShadow = true
-  // Its shadow its material's own (water.ts): receiving, it would be drawn into the sun's VSM map, a lid over the bed.
+  // It takes no shadow (water.ts): receiving, it would be drawn into the sun's VSM map, a lid over the bed.
   const surface = new Mesh(undefined, water)
   const island = new Mesh(undefined, ground.material)
   island.receiveShadow = true
