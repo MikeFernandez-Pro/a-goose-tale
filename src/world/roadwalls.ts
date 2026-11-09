@@ -1,6 +1,6 @@
 // The old road's walls: what is left of the walls that once ran beside it,
 // broken down, out in the dark between its fires. Built of the arches' stone
-// (arches.ts, `createStone`): the road's slabs, painted, tiled and wet as the
+// (arches.ts, `createStone`): the road's slabs, painted and tiled as the
 // walls folder has them, in a toon shell of their own.
 //
 // Four kinds to try (`RoadWallStyle`), each its own rule for what is left:
@@ -273,7 +273,7 @@ type Vec = [number, number, number]
 /**
  * `blocks` as one geometry, on the ground `groundAt` has under each point of them: their faces, their tops and the
  * steps between, bending with their lines, with the stone's texture layout (`createStone`): `stoneUv`, where on the
- * face, m; `stoneAlong` and `stoneOut`, the ways those grow; and `stoneUp`, how far up off the ground, m.
+ * face, m; and `stoneAlong` and `stoneOut`, the ways those grow.
  */
 export function blocksGeometry(blocks: readonly StoneBlock[], groundAt: (x: number, z: number) => number): BufferGeometry {
   const position: number[] = []
@@ -281,7 +281,6 @@ export function blocksGeometry(blocks: readonly StoneBlock[], groundAt: (x: numb
   const uv: number[] = []
   const alongs: number[] = []
   const outs: number[] = []
-  const up: number[] = []
   /** A corner: where on the ground, how far up off it, and where on its face's texture. */
   type Corner = { at: Point; y: number; u: number; v: number }
   const quad = (corners: [Corner, Corner, Corner, Corner], facing: Vec, along: Vec, out: Vec) => {
@@ -297,7 +296,6 @@ export function blocksGeometry(blocks: readonly StoneBlock[], groundAt: (x: numb
       uv.push(p.u, p.v)
       alongs.push(...along)
       outs.push(...out)
-      up.push(p.y)
     }
   }
   blocks.forEach((block, index) => {
@@ -334,7 +332,6 @@ export function blocksGeometry(blocks: readonly StoneBlock[], groundAt: (x: numb
   geometry.setAttribute('stoneUv', new BufferAttribute(new Float32Array(uv), 2))
   geometry.setAttribute('stoneAlong', new BufferAttribute(new Float32Array(alongs), 3))
   geometry.setAttribute('stoneOut', new BufferAttribute(new Float32Array(outs), 3))
-  geometry.setAttribute('stoneUp', new BufferAttribute(new Float32Array(up), 1))
   geometry.computeBoundingSphere()
   return geometry
 }

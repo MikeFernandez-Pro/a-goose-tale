@@ -573,7 +573,7 @@ function addDoors(gui: GUI, { stone, stoneChanged, shell, shellChanged }: NonNul
 }
 
 /**
- * The road's slabs on a piece of stone, as `stone` and `wet` folders under `folder`: painted, tiled and wet, each change
+ * The road's slabs on a piece of stone, as a `stone` folder under `folder`: painted and tiled, each change
  * handed to `changed`; `turn` names the slabs' turn, its tiles' size and turn left out without one (the folder has them).
  */
 function addStone(folder: GUI, stone: ArchStone, stoneChanged: () => void, turn?: string): void {
@@ -587,22 +587,6 @@ function addStone(folder: GUI, stone: ArchStone, stoneChanged: () => void, turn?
   }
   slabs.add(stone, 'relief', 0, 3, 0.01).name('relief (0 = flat)')
   slabs.onChange(stoneChanged)
-  // How wet the stone is, and where: rising from the ground, the top as wet as the rain leaves it, streaks run down.
-  const { wet } = stone
-  const water = folder.addFolder('wet')
-  water.add(wet, 'wetness', 0, 1, 0.01).name('wetness (0 = dry)')
-  water.add(wet, 'darken', 0, 1, 0.01).name('darker where wet')
-  water.add(wet, 'saturate', 0, 2, 0.01).name('more saturated where wet')
-  water.add(wet, 'shine', 0, 6, 0.01).name('highlight where wet ×')
-  water.add(wet, 'dryShine', 0, 2, 0.01).name('highlight where dry ×')
-  water.add(wet, 'fill', 0, 1, 0.01).name('water fills the joints (flatter)')
-  water.add(wet, 'rise', 0, 6, 0.05).name('wet up from the ground m')
-  water.add(wet, 'fade', 0.01, 4, 0.01).name('fades over m')
-  water.add(wet, 'top', 0, 1, 0.01).name('wet above that (0 = dry)')
-  water.add(wet, 'streaks', 0, 1, 0.01).name('drip streaks')
-  water.add(wet, 'streakWidth', 0.02, 1, 0.01).name('streak width m')
-  water.add(wet, 'streakLength', 0.2, 6, 0.05).name('streak length m')
-  water.onChange(stoneChanged)
 }
 
 /** The game's walls folder, the road's broken walls (roadwalls.ts): which kind, how many, how far off the road, how tall, and their seed; their stone and shell the doors folder's. */
@@ -1220,7 +1204,7 @@ function addLook(gui: GUI, settings: Settings, look: Look, changed: PanelEvents,
   leaves.add(look.leaves, 'glow', 0, 1, 0.01).name('own colour, unlit (0 = lit only, 0.48 the trees before)')
   leaves.add(look.leaves, 'light', 0, 1, 0.01).name('moon and fires on them (1 = as on the rest)')
 
-  // The fog, the stop motion, the outlines, the palette and the depth of field: their folders hidden, the game's look
+  // The fog, the stop motion and the depth of field: their folders hidden, the game's look
   // setting them.
   const fog = gui.addFolder('fog').hide()
   fog.add(look.fog, 'enabled').name('on')
@@ -1271,7 +1255,7 @@ function addLook(gui: GUI, settings: Settings, look: Look, changed: PanelEvents,
 
   // Every pass over the finished frame in one folder: the frame's effects, then the lens.
   const post = gui.addFolder('postprocessing')
-  const frame = addFrameEffects(post, look, true)
+  const frame = addFrameEffects(post, look)
 
   // Nothing to wire: the page reads it every frame.
   const stop = gui.addFolder('stop motion').hide()
@@ -1294,9 +1278,6 @@ function addLook(gui: GUI, settings: Settings, look: Look, changed: PanelEvents,
   between.add(look.stopMotion, 'uneven').name('uneven beats')
   between.add(look.stopMotion, 'unevenShare', 0, 1, 0.05).name('beats held longer')
   between.add(look.stopMotion, 'stagger').name('stagger the rats')
-  between.add(look.stopMotion, 'boil').name('boil the surface')
-  between.add(look.stopMotion, 'boilAmount', 0, 0.05, 0.001).name('boil amount m')
-  between.add(look.stopMotion, 'boilScale', 1, 30, 0.5).name('boil bumps a metre')
   between.add(look.stopMotion, 'snap').name('snap to baked poses')
 
   const lens = addLens(post, look, true)
@@ -1391,10 +1372,10 @@ function addLevelsFolder(gui: GUI, look: RatsLook['levels']): GUI {
 }
 
 /**
- * The post's frame effects, each a folder: the ambient occlusion, the outlines, hatching, palette, grain and paper, vignette;
- * the screen's saturation, where the look has it. `few`, the outlines and the palette hidden.
+ * The post's frame effects, each a folder: the ambient occlusion, hatching, grain and paper, vignette; the screen's
+ * saturation, where the look has it.
  */
-function addFrameEffects(gui: GUI, look: Pick<PostLook, 'ao' | 'outline' | 'hatch' | 'palette' | 'grain' | 'vignette' | 'screen'>, few = false): GUI[] {
+function addFrameEffects(gui: GUI, look: Pick<PostLook, 'ao' | 'hatch' | 'grain' | 'vignette' | 'screen'>): GUI[] {
   const occlusion = gui.addFolder('ambient occlusion')
   occlusion.add(look.ao, 'enabled').name('on')
   occlusion.add(look.ao, 'show').name('show ao only')
@@ -1407,13 +1388,6 @@ function addFrameEffects(gui: GUI, look: Pick<PostLook, 'ao' | 'outline' | 'hatc
   occlusion.add(look.ao, 'samples', [4, 8, 16, 32])
   occlusion.add(look.ao, 'resolution', [0.25, 0.5, 0.75, 1]).name('resolution (of the frame)')
 
-  const outline = gui.addFolder('outlines').show(!few)
-  outline.add(look.outline, 'enabled').name('on')
-  outline.addColor(look.outline, 'color').name('colour')
-  outline.add(look.outline, 'thickness', 0.5, 4, 0.1).name('thickness px')
-  outline.add(look.outline, 'depth', 0.005, 0.3, 0.005).name('depth break')
-  outline.add(look.outline, 'normal', 0.01, 1, 0.01).name('normal break')
-
   const hatch = gui.addFolder('hatching')
   hatch.add(look.hatch, 'enabled').name('on')
   hatch.addColor(look.hatch, 'color').name('colour')
@@ -1423,10 +1397,6 @@ function addFrameEffects(gui: GUI, look: Pick<PostLook, 'ao' | 'outline' | 'hatc
   hatch.add(look.hatch, 'angle', 0, 180, 1).name('angle deg')
   hatch.add(look.hatch, 'width', 0.05, 0.95, 0.05).name('line width')
   hatch.add(look.hatch, 'strength', 0, 1, 0.01)
-
-  const palette = gui.addFolder('palette').show(!few)
-  palette.add(look.palette, 'enabled').name('on')
-  palette.add(look.palette, 'levels', 2, 32, 1).name('levels a channel')
 
   const grain = gui.addFolder('grain and paper')
   grain.add(look.grain, 'grain').name('grain')
@@ -1446,10 +1416,10 @@ function addFrameEffects(gui: GUI, look: Pick<PostLook, 'ao' | 'outline' | 'hatc
   vignette.add(look.vignette, 'own').name("own colour, not the fog's")
   vignette.addColor(look.vignette, 'colour').name('colour')
 
-  if (!look.screen) return [occlusion, outline, hatch, palette, grain, vignette]
+  if (!look.screen) return [occlusion, hatch, grain, vignette]
   const screen = gui.addFolder('screen')
   screen.add(look.screen, 'saturation', 0, 2, 0.01).name('saturation (0 grey, 1 as drawn)')
-  return [occlusion, outline, hatch, palette, grain, vignette, screen]
+  return [occlusion, hatch, grain, vignette, screen]
 }
 
 /** The post's lens, each a folder: the depth of field and the bloom. `few`, the depth of field hidden. */

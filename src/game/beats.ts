@@ -65,7 +65,7 @@ export function createBeats(stop: Look['stopMotion']) {
         }
       }
       // The first beat after the stop motion comes on sets the look again too, for what belongs to it.
-      if (newBeat && (beats.beat === 0 || stop.shadeWobble || stop.lightFlicker || stop.strokeJitter || stop.frameJitter || stop.boil)) lookChanged()
+      if (newBeat && (beats.beat === 0 || stop.shadeWobble || stop.lightFlicker || stop.strokeJitter || stop.frameJitter)) lookChanged()
       return newBeat
     },
   }

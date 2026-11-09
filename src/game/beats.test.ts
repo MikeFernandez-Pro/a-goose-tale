@@ -21,9 +21,6 @@ const stopMotion = (over: Partial<Look['stopMotion']> = {}): Look['stopMotion'] 
   uneven: false,
   unevenShare: 0,
   stagger: false,
-  boil: false,
-  boilAmount: 0,
-  boilScale: 1,
   snap: false,
   ...over,
 })
@@ -68,10 +65,10 @@ describe('the beats', () => {
     expect(plain).toBe(1)
 
     let varied = 0
-    const boiling = createBeats(stopMotion({ boil: true }))
-    boiling.frame(() => varied++)
-    boiling.clock = 1 / 12 + 0.001
-    boiling.frame(() => varied++)
+    const wobbling = createBeats(stopMotion({ shadeWobble: true }))
+    wobbling.frame(() => varied++)
+    wobbling.clock = 1 / 12 + 0.001
+    wobbling.frame(() => varied++)
     expect(varied).toBe(2)
   })
 

@@ -162,7 +162,7 @@ const smoke = createSmoke()
 smoke.object.name = 'torch smoke'
 scene.add(smoke.object)
 // None of the torch casts a shadow, and all of it is unshaded: the flame is light,
-// and darkens nothing round it by its occlusion; and the occlusion and the outlines of what stands behind it are not drawn over it.
+// and darkens nothing round it by its occlusion; and the occlusion of what stands behind it is not drawn over it.
 for (const torch of [flame.object, embers.object, smoke.object]) {
   torch.traverse((o) => {
     o.castShadow = false
@@ -178,7 +178,7 @@ const flameTip = new Vector3()
 const flameOffset = new Vector3()
 ground.mesh.name = 'ground'
 scene.add(ground.mesh)
-// The frame goes through one scene pass and the effects after it: the ambient occlusion under its fog, the outlines, the palette.
+// The frame goes through one scene pass and the effects after it: the ambient occlusion under its fog first (post.ts).
 // With `?tilt` (the game's default), the tilt-shift: the depth of field's blur by a band across the screen (tiltshift.ts).
 const tilt = featureOn('tilt') ? createTiltShift() : undefined
 // With the tilt, the depth of field off as the page opens: the tilt's band is the blur (the dof folder still turns it on).
@@ -226,9 +226,9 @@ if (fallingLeaves) scene.add(Object.assign(fallingLeaves.object, { name: 'fallin
 // On WebGPU the rats are culled and drawn on the GPU (ADR-0052); WebGL 2, or `?batch`, draws them as the batch.
 /** How much bigger a lean frame draws its rats, their spacing as it was: fewer of them, and smaller on a phone's screen. */
 const LEAN_RAT_SCALE = 1.15
-// On a lean frame no boil, no trails and the rats drawn a little bigger (LEAN_RAT_SCALE): at the start, 200 rats round
-// him were 14 ms of 46, the boil and the trails 3.5 each (Mi 9, WebGL 2, dpr 2, 2026-11-06), as asked.
-const rats = new Rats(vat, RAT, capacity, maxTextureSize, time, settings.runAnimation, backend === 'WebGPU' && !url.has('batch') ? renderer : undefined, gooseGround, { boil: !lean })
+// On a lean frame no trails and the rats drawn a little bigger (LEAN_RAT_SCALE): at the start, 200 rats round
+// him were 14 ms of 46, the trails 3.5 of them (Mi 9, WebGL 2, dpr 2, 2026-11-06), as asked.
+const rats = new Rats(vat, RAT, capacity, maxTextureSize, time, settings.runAnimation, backend === 'WebGPU' && !url.has('batch') ? renderer : undefined, gooseGround)
 // The rats' depth laid first, so each pixel is shaded for the nearest rat alone; `?prepass=0` shades them all, to measure against.
 // A phone's GPU hides what lies behind by itself: there the pre-pass only cost, 0.8 ms at a pixel ratio of 3 (iPhone 15 Pro Max, 2026-11-02).
 const prepassOn = url.has('prepass') ? url.get('prepass') !== '0' : !lean
@@ -459,7 +459,6 @@ function lookChanged() {
   shadowed.dirty = true
   const stop = look.stopMotion
   const shade = (channel: number) => (stop.shadeWobble ? stop.shadeAmount * beats.vary(channel) : 0)
-  rats.setBoil(stop.enabled && stop.boil ? stop.boilAmount : 0, stop.boilScale, beats.beat)
   const nudge = (channel: number) => (stop.strokeJitter ? stop.strokeAmount * beats.vary(channel) : 0)
 
   nightLights.set(look, light.on, beats.vary)
@@ -535,7 +534,7 @@ function lookChanged() {
   // With the cheap halo, the tilt's blur spreads them too, by its own glow.
   const blurGlow = look.bloom.enabled && look.bloom.cheap ? look.bloom.blurGlow : 0
   const dof = { ...look.dof, enabled: depthOn || (!lean && !!tilt?.look.enabled), glow: depthOn ? look.dof.glow : blurGlow }
-  post.set({ ao, outline: look.outline, hatch: look.hatch, palette: look.palette, grain: look.grain, vignette: look.vignette, screen: look.screen, dof, bloom: look.bloom })
+  post.set({ ao, hatch: look.hatch, grain: look.grain, vignette: look.vignette, screen: look.screen, dof, bloom: look.bloom })
 }
 
 /**

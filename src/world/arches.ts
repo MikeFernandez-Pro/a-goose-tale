@@ -14,15 +14,13 @@
 // road lays them along the road, up one leg, over the point and down the
 // other, and across it out from its middle line, or through it on its inner
 // and outer faces (`archSurface`), as big, turned, coloured and as deep in
-// relief as the doors folder has them (`ArchStone`), and as wet (`ArchWet`):
-// darker, more saturated and glossier where the water is, its joints filled,
-// damp rising from the ground and streaks run down; in a toon shell of its
+// relief as the doors folder has them (`ArchStone`); in a toon shell of its
 // own, its highlight, strokes and steps the doors folder's (`ArchShell`). Both
 // start much as the road and the floor are as the page opens (roadside.ts). The
 // file has no texture layout of its own, so the arch's is worked out as it
 // loads.
 import { BufferAttribute, Group, Mesh, Vector2, type BufferGeometry } from 'three/webgpu'
-import { attribute, cameraViewMatrix, float, hue, mix, modelWorldMatrix, mx_noise_float, normalWorld, positionLocal, renderGroup, saturation, smoothstep, texture, uniform, vec2, vec3, vec4 } from 'three/tsl'
+import { attribute, cameraViewMatrix, hue, modelWorldMatrix, normalWorld, renderGroup, saturation, texture, uniform, vec2, vec4 } from 'three/tsl'
 import { modelLoader, unpackNormals } from '../look/gltf'
 import { loadRoad, type RoadLook } from './ground'
 import type { Plain, Point } from './plain'
@@ -56,37 +54,9 @@ export function defaultArchLook(): ArchLook {
 
 /**
  * The road's slabs on the arch as the doors folder edits them, read live: their painting and tiles, as the road folder
- * has the road's (ground.ts); how far the tiles are slid along the stone and up it, m, none if not given; and how wet.
+ * has the road's (ground.ts); and how far the tiles are slid along the stone and up it, m, none if not given.
  */
-export type ArchStone = Pick<RoadLook, 'lightness' | 'saturation' | 'hue' | 'scale' | 'rotation' | 'relief'> & { offsetX?: number; offsetY?: number; wet: ArchWet }
-
-/**
- * How wet the arch's stone is, as the doors folder edits it, read live. `wetness` how wet where it is wettest, 0 dry;
- * where wet, the stone `darken` darker (0 not, 1 black), `saturate` more saturated, its highlight `shine` times the
- * shell's and its joints `fill`ed (0 its full relief, 1 flat); where dry, its highlight `dryShine` times the shell's.
- * Wet all over up to `rise` m off the ground, drying over `fade` m above, `top` as wet as that above (0 dry, 1 as wet);
- * and `streaks` of it run down the stone from there (0 none, 1 as wet), each about `streakWidth` m wide and
- * `streakLength` m long.
- */
-export interface ArchWet {
-  wetness: number
-  darken: number
-  saturate: number
-  shine: number
-  dryShine: number
-  fill: number
-  rise: number
-  fade: number
-  top: number
-  streaks: number
-  streakWidth: number
-  streakLength: number
-}
-
-/** As the doors folder was set on 2026-10-25: a little wet, wettest near the ground with wide streaks down, dull where dry. */
-export function defaultArchWet(): ArchWet {
-  return { wetness: 0.27, darken: 0, saturate: 0, shine: 1.84, dryShine: 0.32, fill: 0.13, rise: 1.45, fade: 0.59, top: 0.03, streaks: 0.2, streakWidth: 0.65, streakLength: 1.65 }
-}
+export type ArchStone = Pick<RoadLook, 'lightness' | 'saturation' | 'hue' | 'scale' | 'rotation' | 'relief'> & { offsetX?: number; offsetY?: number }
 
 /** The arches' own toon shell as the doors folder edits it, read live: its highlight and rim, its painted strokes and its toon steps. */
 export type ArchShell = ShellLook & { paint: PaintLook; toon: ToonLook }
@@ -270,17 +240,9 @@ export async function createArches(look: ArchLook, stone: ArchStone, groundAt: (
   layOut(geometry)
   // Its strokes counted on the stone at the size it is first set to.
   const slabs = await createStone(stone, STROKE_BODY / look.scale)
-  // How far each point is up off the ground, m, as the road walls lay theirs.
-  const position = geometry.getAttribute('position')
-  const up = new BufferAttribute(new Float32Array(position.count), 1)
-  geometry.setAttribute('stoneUp', up)
   const object = new Group()
   let laid: readonly Arch[] = []
-  const setStretch = () => {
-    slabs.setSize(look.scale)
-    for (let i = 0; i < position.count; i++) up.setX(i, position.getY(i) * look.scale + look.y)
-    up.needsUpdate = true
-  }
+  const setStretch = () => slabs.setSize(look.scale)
   setStretch()
   const place = () => {
     object.children.forEach((mesh, k) => {
@@ -325,8 +287,7 @@ export interface Stone {
  * The road's slabs, its colour and normal maps, laid on a piece of stone as the floor lays them along the road, by its
  * geometry's `stoneUv`, where on it in its units, and `stoneAlong` and `stoneOut`, the ways those grow in its frame: its
  * tiles stretched to `setSize`'s metres a unit, turned, coloured by a hue, saturation and lightness and leaning by a
- * relief, and as wet as `stone` has them, by how far up off the ground its `stoneUp` has each point, m. Its strokes
- * counted `extent` of its units apart.
+ * relief, as `stone` has them. Its strokes counted `extent` of its units apart.
  */
 export async function createStone(stone: ArchStone, extent: number): Promise<Stone> {
   const [roadColour, roadNormal] = await loadRoad()
@@ -339,27 +300,8 @@ export async function createStone(stone: ArchStone, extent: number): Promise<Sto
   const saturated = uniform(1).setGroup(renderGroup)
   const lightness = uniform(1).setGroup(renderGroup)
   const relief = uniform(1).setGroup(renderGroup)
-  // How wet, and where (`ArchWet`).
-  const wetness = uniform(0).setGroup(renderGroup)
-  const darken = uniform(0).setGroup(renderGroup)
-  const saturate = uniform(0).setGroup(renderGroup)
-  const shine = uniform(1).setGroup(renderGroup)
-  const dryShine = uniform(1).setGroup(renderGroup)
-  const fill = uniform(0).setGroup(renderGroup)
-  const rise = uniform(1).setGroup(renderGroup)
-  const fade = uniform(1).setGroup(renderGroup)
-  const top = uniform(0).setGroup(renderGroup)
-  const streaks = uniform(0).setGroup(renderGroup)
-  const streakWidth = uniform(0.1).setGroup(renderGroup)
-  const streakLength = uniform(1).setGroup(renderGroup)
-  const size = uniform(1).setGroup(renderGroup)
-  // Where it is wet, 0 to 1: up from the ground, less above, and streaks run down from there, long and thin, upright.
-  const metres = positionLocal.mul(size)
-  const offGround = attribute<'float'>('stoneUp', 'float')
-  const low = float(1).sub(smoothstep(rise, rise.add(fade), offGround))
-  const streak = smoothstep(0.15, 0.55, mx_noise_float(vec3(metres.x.div(streakWidth), metres.z.div(streakWidth), metres.y.div(streakLength))))
-  const height = mix(top, 1, low)
-  const wet = height.add(streak.mul(streaks).mul(float(1).sub(height))).clamp().mul(wetness)
+  /** Metres a unit of its own. */
+  let size = 1
   const laidAt = attribute<'vec2'>('stoneUv', 'vec2').add(slide).mul(stretch)
   const at = vec2(laidAt.x.mul(turn.x).sub(laidAt.y.mul(turn.y)), laidAt.x.mul(turn.y).add(laidAt.y.mul(turn.x)))
   const onGround = (name: string) => modelWorldMatrix.mul(vec4(attribute<'vec3'>(name, 'vec3'), 0)).xyz.normalize()
@@ -370,20 +312,15 @@ export async function createStone(stone: ArchStone, extent: number): Promise<Sto
   const painted = colourMap.sample(at).rgb
   // Its lean alone: its blue holds the road's height, not the normal's (ground.ts).
   const mapped = normalMap.sample(at).xyz.mul(2).sub(1)
-  const wetNormal = normalWorld.add(u.mul(mapped.x).add(v.mul(mapped.y)).mul(relief.mul(float(1).sub(fill.mul(wet))))).normalize()
-  const shell = new ShellToonMaterial({
-    painted: { extent, base: cameraViewMatrix.mul(vec4(wetNormal, 0)).xyz.normalize() },
-    specularScale: mix(dryShine, shine, wet),
-  })
-  shell.colorNode = saturation(hue(painted, turned), saturated.mul(saturate.mul(wet).add(1)))
-    .mul(lightness)
-    .mul(float(1).sub(darken.mul(wet)))
+  const leant = normalWorld.add(u.mul(mapped.x).add(v.mul(mapped.y)).mul(relief)).normalize()
+  const shell = new ShellToonMaterial({ painted: { extent, base: cameraViewMatrix.mul(vec4(leant, 0)).xyz.normalize() } })
+  shell.colorNode = saturation(hue(painted, turned), saturated).mul(lightness)
   let tile = stone.scale
   let offset = { x: 0, y: 0 }
   // Its tiles' size and slide in metres, in its own units.
   const setStretch = () => {
-    stretch.value = size.value / Math.max(0.05, tile)
-    slide.value.set(offset.x / size.value, offset.y / size.value)
+    stretch.value = size / Math.max(0.05, tile)
+    slide.value.set(offset.x / size, offset.y / size)
   }
   const setStone = (next: ArchStone) => {
     tile = next.scale
@@ -395,26 +332,13 @@ export async function createStone(stone: ArchStone, extent: number): Promise<Sto
     saturated.value = next.saturation
     lightness.value = next.lightness
     relief.value = next.relief
-    const { wet } = next
-    wetness.value = wet.wetness
-    darken.value = wet.darken
-    saturate.value = wet.saturate
-    shine.value = wet.shine
-    dryShine.value = wet.dryShine
-    fill.value = wet.fill
-    rise.value = wet.rise
-    fade.value = Math.max(0.01, wet.fade)
-    top.value = wet.top
-    streaks.value = wet.streaks
-    streakWidth.value = Math.max(0.01, wet.streakWidth)
-    streakLength.value = Math.max(0.01, wet.streakLength)
   }
   setStone(stone)
   return {
     shell,
     setStone,
     setSize(next) {
-      size.value = next
+      size = next
       setStretch()
     },
     setShell(next) {

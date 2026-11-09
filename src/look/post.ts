@@ -1,6 +1,6 @@
-// The frame after the scene: ambient occlusion, inked outlines, hatching in
-// the shade, a posterized palette, paper and grain, and a vignette, each on
-// its own switch and controls, in that order.
+// The frame after the scene: ambient occlusion, hatching in the shade, paper
+// and grain, and a vignette, each on its own switch and controls, in that
+// order.
 //
 // The ambient occlusion is three's ground-truth AO, multiplied into the
 // scene's colour under its fog, so the creases between bodies and the contact
@@ -11,28 +11,20 @@
 // so the AO goes under the fog with `f` known a pixel. Occluded darkens toward
 // a colour, black for shadow, else a tint in the creases.
 //
-// The outlines are a line where depth or the normal breaks between a pixel and
-// its four neighbours a few pixels off, read from the same depth and normals, and faded
-// by the fog like the AO. The hatching lays screen-space lines where the
-// frame is dark, crossed where it is darker, and not in the fog. The palette
-// quantizes the colour, in a gamma space so its steps look even, to a few
-// levels a channel. Paper multiplies a fibrous noise in; grain adds a fine
+// The hatching lays screen-space lines where the frame is dark, crossed where
+// it is darker, and not in the fog. Paper multiplies a fibrous noise in; grain adds a fine
 // noise over everything, new every frame or only on the stop motion's beat;
 // the vignette closes the corners toward the fog's colour; and the whole
 // frame, the ink laid over it too, is saturated or washed out last.
 //
 // The scene is drawn once (ADR-0050), and beside its colour writes the
-// normal and `f` a pixel, over a depth the AO, the outlines and the depth of
-// field read. It is drawn without multisampling, because the AO gathers depth
-// texels and WGSL has no gather over a multisampled depth; FXAA smooths its
-// edges after the shading and the ink, before the blur, the hatching and the
-// grain. `show` puts on screen what the AO takes from the frame, white where
-// it takes nothing.
+// normal and `f` a pixel, over a depth the AO and the depth of field read. It
+// is drawn without multisampling, because the AO gathers depth texels and
+// WGSL has no gather over a multisampled depth; FXAA smooths its edges after
+// the shading, before the blur, the hatching and the grain. `show` puts on
+// screen what the AO takes from the frame, white where it takes nothing.
 import { Color, NodeMaterial, QuadMesh, RenderPipeline, RenderTarget, Vector2, type Camera, type Node, type Scene, type WebGPURenderer } from 'three/webgpu'
 import {
-  abs,
-  cameraFar,
-  cameraNear,
   convertToTexture,
   rtt,
   emissive,
@@ -49,8 +41,6 @@ import {
   normalView,
   output,
   pass,
-  perspectiveDepthToViewZ,
-  pow,
   saturation,
   screenCoordinate,
   screenSize,
@@ -116,25 +106,6 @@ export const defaultAO = (): AOLook => ({
   samples: 16,
   resolution: 0.5,
 })
-
-/** What the outlines folder edits. */
-export interface OutlineLook {
-  enabled: boolean
-  color: number
-  /** How far off a pixel its neighbours are read, px: about the line's width. */
-  thickness: number
-  /** How much nearer or further a neighbour must be, as a share of the distance, to draw a line. */
-  depth: number
-  /** How far a neighbour's normal must turn, 0 to 1 as one minus the cosine, to draw a line. */
-  normal: number
-}
-
-/** What the palette folder edits. */
-export interface PaletteLook {
-  enabled: boolean
-  /** Steps a channel is quantized to, above black. */
-  levels: number
-}
 
 /** What the hatching folder edits. */
 export interface HatchLook {
@@ -225,9 +196,7 @@ export interface ScreenLook {
 
 export interface PostLook {
   ao: AOLook
-  outline: OutlineLook
   hatch: HatchLook
-  palette: PaletteLook
   grain: GrainLook
   vignette: VignetteLook
   /** None, and the frame as drawn. */
@@ -308,7 +277,7 @@ export interface FogNodes {
 }
 
 /**
- * Mark `material` as taking no occlusion and no outline: the torch's flame,
+ * Mark `material` as taking no occlusion: the torch's flame,
  * its embers and its smoke, which are light and not surfaces. The scene pass
  * carries the mark beside its colour, and the shading passes over it; and
  * they add nothing to the normals (see `leaveOutOfShading`).
@@ -338,7 +307,7 @@ export function leaveOutOfBloom(material: NodeMaterial): void {
  * Mark `material` as adding nothing to the normals and the fog amount the
  * shading reads: the eyes' trails, light laid over the ground. Drawn
  * additively, a trail would otherwise add its own normal to the one beneath,
- * and the AO and the outlines would read a surface that is not there.
+ * and the AO would read a surface that is not there.
  */
 export function leaveOutOfShading(material: NodeMaterial): void {
   material.mrtNode = mrt({ output, normal: vec4(0), glow: vec4(0) })
@@ -348,7 +317,7 @@ export function leaveOutOfShading(material: NodeMaterial): void {
  * The frame's effects over `scene` as `camera` sees it.
  */
 /**
- * `lean`, for a phone, which never draws the AO, the outlines or the bloom: the scene pass writes only its colour.
+ * `lean`, for a phone, which never draws the AO or the bloom: the scene pass writes only its colour.
  * Four full frames of half-floats a pixel is a lot for a phone's tile memory, and three of them were read by those alone.
  */
 export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camera, fog: FogNodes, tilt?: TiltShift, lean = false): Post {
@@ -382,34 +351,8 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
   const occlusion = mix(mix(aoTint, vec3(1), mix(float(1), aoPass.getTextureNode().r, aoStrength)), vec3(1), unshaded)
   const shadeOf = (c: Node<'vec4'>) => mix(vec4(fogColour.mul(fogged), 1), c, vec4(occlusion, 1))
 
-  // The outlines: the pixel against its four neighbours `thickness` px off, in distance and in normal.
-  const outlineOn = uniform(1)
-  const outlineColour = uniform(new Color(0x000000))
-  const thickness = uniform(1.5)
-  const depthThreshold = uniform(0.05)
-  const normalThreshold = uniform(0.6)
-  const distanceAt = (offset: Node<'vec2'>) =>
-    perspectiveDepthToViewZ(depthTexture.sample(screenUV.add(offset)).r, cameraNear, cameraFar).negate()
-  const normalAt = (offset: Node<'vec2'>) => normalTexture.sample(screenUV.add(offset)).xyz
-  const px = thickness.div(screenSize)
-  const here = distanceAt(vec2(0))
-  const facing = normalAt(vec2(0))
-  let depthBreak: Node<'float'> = float(0)
-  let normalBreak: Node<'float'> = float(0)
-  for (const [x, y] of [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
-  ]) {
-    const offset = px.mul(vec2(x, y))
-    depthBreak = max(depthBreak, abs(distanceAt(offset).sub(here)).div(here))
-    normalBreak = max(normalBreak, float(1).sub(normalAt(offset).dot(facing)))
-  }
-  const edge = max(step(depthThreshold, depthBreak), step(normalThreshold, normalBreak)).mul(fogged.oneMinus()).mul(unshaded.oneMinus()).mul(outlineOn)
-  const lined = mix(shadeOf(colour as unknown as Node<'vec4'>), vec4(outlineColour, 1), edge)
-  // The edges smoothed after the shading and the ink, before the blur, the hatching and the grain.
-  const smooth = fxaa(lined) as unknown as Node<'vec4'>
+  // The edges smoothed after the shading, before the blur, the hatching and the grain.
+  const smooth = fxaa(shadeOf(colour as unknown as Node<'vec4'>)) as unknown as Node<'vec4'>
 
   const coord = screenUV.mul(screenSize)
 
@@ -431,15 +374,6 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
     const line = (t: Node<'float'>) => step(float(1).sub(hatchWidth), fract(t.div(hatchSpacing)))
     const lines = max(line(along).mul(dark), line(across).mul(darker))
     return mix(c, vec4(hatchColour, 1), lines.mul(hatchStrength).mul(inFog.oneMinus()).mul(hatchOn))
-  }
-
-  // The palette: the colour quantized in a gamma space, where equal steps look equal.
-  const paletteOn = uniform(1)
-  const levels = uniform(8)
-  const posterize = (c: Node<'vec4'>) => {
-    const gamma = pow(c.rgb.max(0), 1 / 2.2)
-    const stepped = gamma.mul(levels).add(0.5).floor().div(levels)
-    return vec4(mix(c.rgb, pow(stepped, 2.2), paletteOn), 1)
   }
 
   // Paper and grain: a fibrous noise multiplied in, and a hash of the pixel and the seed added over everything.
@@ -477,8 +411,8 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
     return vec4(mix(mix(c.rgb, mix(fogColour, vignetteColour, vignetteOwn), dark), hurtColour, hurt), 1)
   }
 
-  // The bloom: the glow blurred down a chain of mips, three's, added over the palette so its halo keeps its
-  // gradient, and under the paper and the grain so it is printed with the rest.
+  // The bloom: the glow blurred down a chain of mips, three's, added over the hatching, and under the paper and the
+  // grain so it is printed with the rest.
   const fullGlow = lean ? colour : scenePass.getTextureNode('glow')
   const bloomPass = bloom(fullGlow, 1, 0.5, 0)
   const bloomed = (c: Node<'vec4'>) => vec4(c.rgb.add(bloomPass.rgb), 1)
@@ -562,12 +496,12 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
       return vec4(out, 1)
     })() as unknown as Node<'vec4'>
   const finish = (c: Node<'vec4'>, inFog: Node<'float'>, halo: 'none' | 'bloom' | 'cheap', onPaper = true) => {
-    const printed = posterize(hatch(c, inFog))
+    const printed = hatch(c, inFog)
     const lit = halo === 'bloom' ? bloomed(printed) : halo === 'cheap' ? haloed(printed) : printed
     return darkened(saturated(vignette(onPaper ? texture(lit) : lit)))
   }
 
-  // The depth of field: the lined frame blurred by its distance from the focus, read off the scene's depth; the
+  // The depth of field: the shaded frame blurred by its distance from the focus, read off the scene's depth; the
   // ink and the grain stay sharp over it. One pass, after the cheap one in Bruno Simon's folio-2025, where
   // three's draws eight: the frame gathered over a disc as wide as its point is out of focus, by three's
   // circle of confusion and as far as three's blur reached, twice the bokeh in pixels. TAPS taps on a
@@ -607,13 +541,13 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
   // first frames draw every output but the AO's view once, which halves the first change to each; what is
   // left of it is for whatever the first frames did not draw yet, the rats among them.
   const lightest = fxaa(colour) as unknown as Node<'vec4'>
-  // The blur over the lightest frame: with no AO and no outlines nothing here reads their passes, which run if anything does.
+  // The blur over the lightest frame: with no AO nothing here reads its pass, which runs if anything does.
   const softenedLight = softenedOf(convertToTexture(lightest))
   // The light and the soft outputs, with no AO, are a phone's and a PC's that the quality has stepped down past it: on no
   // paper and with no grain either, each worked out over every pixel (as asked, 2026-11-06). The paper's Perlin
   // was 0.2 to 0.36 ms of a phone frame's 4 ms on the PC at dpr 3 (RTX 5080).
   const outputs = {
-    // Neither the AO nor the outlines: nothing reads the normals, and nothing knows the fog.
+    // No AO: nothing reads the normals, and nothing knows the fog.
     light: finish(lightest, float(0), 'none', false),
     full: finish(smooth, fogged, 'none'),
     deep: finish(softened, fogged, 'none'),
@@ -686,8 +620,8 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
     },
     set(look) {
       halo = lean || !look.bloom.enabled ? '' : look.bloom.cheap ? ' cheap' : ' bloom'
-      const inked = !lean && (look.ao.enabled || look.outline.enabled)
-      const base = look.dof.enabled ? (inked ? 'deep' : 'soft') : inked ? 'full' : 'light'
+      const occluded = !lean && look.ao.enabled
+      const base = look.dof.enabled ? (occluded ? 'deep' : 'soft') : occluded ? 'full' : 'light'
       pipeline = pipelineFor(look.ao.show ? 'ao' : `${base}${halo}`)
       haloStrength.value = look.bloom.strength
       haloReach.value = look.bloom.radius * HALO_REACH
@@ -702,13 +636,6 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Camer
       aoPass.distanceFallOff.value = look.ao.distanceFallOff
       aoPass.samples.value = look.ao.samples
       aoPass.resolutionScale = look.ao.resolution
-      outlineOn.value = look.outline.enabled ? 1 : 0
-      outlineColour.value.set(look.outline.color)
-      thickness.value = look.outline.thickness
-      depthThreshold.value = look.outline.depth
-      normalThreshold.value = look.outline.normal
-      paletteOn.value = look.palette.enabled ? 1 : 0
-      levels.value = Math.max(1, Math.round(look.palette.levels))
       hatchOn.value = look.hatch.enabled ? 1 : 0
       hatchColour.value.set(look.hatch.color)
       hatchBelow.value = look.hatch.below

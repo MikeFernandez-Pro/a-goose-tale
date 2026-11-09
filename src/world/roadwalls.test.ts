@@ -117,8 +117,5 @@ describe("the old road's walls", () => {
       const cross = [ab[1]! * ac[2]! - ab[2]! * ac[1]!, ab[2]! * ac[0]! - ab[0]! * ac[2]!, ab[0]! * ac[1]! - ab[1]! * ac[0]!]
       expect(cross[0]! * normal.getX(i) + cross[1]! * normal.getY(i) + cross[2]! * normal.getZ(i)).toBeGreaterThan(0)
     }
-    // Up off the ground as the stone's own heights say.
-    const up = geometry.getAttribute('stoneUp')
-    for (let i = 0; i < position.count; i++) expect(position.getY(i)).toBeCloseTo(up.getX(i) + 2, 5)
   })
 })

@@ -4,7 +4,7 @@ import type { FeatherLook } from './characters/feathers'
 import type { GooseLook } from './characters/goose'
 import type { KeyTaken } from './game/goosescenes'
 import type { FlameLook } from './light/flame'
-import type { AOLook, BloomLook, DofLook, GrainLook, HatchLook, OutlineLook, PaletteLook, ScreenLook, VignetteLook } from './look/post'
+import type { AOLook, BloomLook, DofLook, GrainLook, HatchLook, ScreenLook, VignetteLook } from './look/post'
 import type { PaintLook, ShellLook } from './look/shell'
 import type { ToonLook } from './look/toon'
 import type { LevelsLook, Part, StaggerLook, TrailLook, Variant } from './swarm/rats'
@@ -101,10 +101,6 @@ export interface Look {
   floor: FloorLook & { shell: ShellLook; paint: PaintLook; toon: ToonLook }
   /** The ambient occlusion over the frame. */
   ao: AOLook
-  /** The inked outlines over the frame. */
-  outline: OutlineLook
-  /** The posterized palette the frame ends in. */
-  palette: PaletteLook
   /** Hatching in the frame's shade. */
   hatch: HatchLook
   /** Paper under the frame and grain over it. */
@@ -159,10 +155,6 @@ export interface StopMotionLook {
   unevenShare: number
   /** Whether each rat holds on a beat of its own phase, so the mass does not snap all at once. */
   stagger: boolean
-  /** The boil: the rats' surface re-touched every beat, by how much, m, over bumps how many to the metre. */
-  boil: boolean
-  boilAmount: number
-  boilScale: number
   /** Whether a held time lands on a baked pose of the run, never a blend of two. */
   snap: boolean
 }

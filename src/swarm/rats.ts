@@ -40,7 +40,7 @@ import {
 } from 'three/webgpu'
 import { createVATPlaybackTexture, setVATInstance, trackVATPoints, type VAT, type VATPlaybackTexture } from 'three-vat'
 import { vatNodes, type VATTimeUniform } from 'three-vat/tsl'
-import { attribute, batchIndirectIndex, cameraProjectionMatrix, cameraViewMatrix, color, float, mx_noise_vec3, positionWorld, select, uniform, varying, vec4 } from 'three/tsl'
+import { batchIndirectIndex, cameraProjectionMatrix, cameraViewMatrix, color, float, positionWorld, select, uniform, varying, vec4 } from 'three/tsl'
 import { Trails, type TrailLook } from './trails'
 import { ShellToonMaterial } from '../look/shell'
 import { leaveOutOfShading } from '../look/post'
@@ -340,10 +340,6 @@ export class Rats {
   /** The gait each rat's row was last written for. */
   private readonly gaits: Uint8Array
   private speed: number
-  /** The boil: every vertex moved by a noise of its rest position, re-seeded on the stop motion's beat, in the model's units. */
-  private readonly boil = { amount: uniform(0), scale: uniform(1), seed: uniform(0) }
-  /** Whether the boil is in the shader at all. */
-  private readonly boils: boolean
   /** Each variant's tint, and where its rats end on the zero-to-one a rat's index is spread over. */
   private readonly variants = Array.from({ length: VARIANTS }, () => ({ tint: uniform(new Color(0xffffff)), end: uniform(1) }))
   /** The eyes a rat has: none on a model with no eyes part. */
@@ -407,10 +403,7 @@ export class Rats {
     private readonly gpu?: WebGPURenderer,
     /** The plain's ground, each rat stood on it; none, and the ground is flat. */
     private readonly ground?: HeightGrid,
-    /** `boil` false: no boil in the shader, its noise worked out at every vertex of every rat. */
-    options: { boil?: boolean } = {},
   ) {
-    this.boils = options.boil ?? true
     const clip = (name: string) => {
       const found = vat.clips.find((c) => c.name === name)
       if (found === undefined) throw new Error(`a-goose-tale: ${creature.url} has no clip named ${name}`)
@@ -526,12 +519,9 @@ export class Rats {
     else this.buildBatch(size)
   }
 
-  /** The decode, and over it the boil: a clay surface re-touched every beat. */
-  private boiled(index: { carrier: BatchedMesh } | { logicalIndex: GpuCull['logicalIndex'] }): Node<'vec3'> {
-    const decode = vatNodes(this.vat, { time: this.time, playback: this.playback, ...index }).positionNode
-    if (!this.boils) return decode
-    const rest = attribute('position', 'vec3')
-    return decode.add(mx_noise_vec3(rest.mul(this.boil.scale).add(this.boil.seed)).mul(this.boil.amount))
+  /** The decode: each vertex where the rat's clip has it, at the rat's moment. */
+  private decoded(index: { carrier: BatchedMesh } | { logicalIndex: GpuCull['logicalIndex'] }): Node<'vec3'> {
+    return vatNodes(this.vat, { time: this.time, playback: this.playback, ...index }).positionNode
   }
 
   /**
@@ -541,7 +531,7 @@ export class Rats {
    * is in and each takes its own.
    */
   private buildIndirect(cull: GpuCull): void {
-    this.material.positionNode = cull.transform(this.boiled({ logicalIndex: cull.logicalIndex }))
+    this.material.positionNode = cull.transform(this.decoded({ logicalIndex: cull.logicalIndex }))
     this.material.needsUpdate = true
     // The twins' depth as the shaded draw's: the same position and, where a rat melts, the same mask.
     const shaded = this.material as unknown as { maskNode: Node | null }
@@ -684,7 +674,7 @@ export class Rats {
     const batch = new BatchedMesh(size, this.vertices, this.indexCount, this.material)
     const geometry = batch.addGeometry(this.vat.geometry)
     for (let i = 0; i < size; i++) batch.setVisibleAt(batch.addInstance(geometry), false)
-    this.material.positionNode = this.boiled({ carrier: batch })
+    this.material.positionNode = this.decoded({ carrier: batch })
     this.material.needsUpdate = true
     // Its bounds change every step and the swarm fills the view: culled rat by
     // rat, never as a whole. And by `draw`, not by three: on WebGPU, a batch
@@ -704,17 +694,6 @@ export class Rats {
     }
     this.object.add(batch)
     this.batch = batch
-  }
-
-  /**
-   * The boil for this beat: `metres` of movement at most, over bumps `cells`
-   * to the metre, from draw `seed`. Zero metres and the surface is still.
-   */
-  setBoil(metres: number, cells: number, seed: number): void {
-    const metresPerUnit = this.baseScale * this.size
-    this.boil.amount.value = metres / metresPerUnit
-    this.boil.scale.value = cells * metresPerUnit
-    this.boil.seed.value = seed * 17.17
   }
 
   /** How long one baked frame of Run lasts at the playback speed, s: the step the poses fall on. */

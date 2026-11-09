@@ -229,7 +229,7 @@ export async function createIslandGeese(places: IslandPlaces, goslingHeight: { h
       downGlow.value = strength
     },
     setRim(rim) {
-      for (const shell of shells) shell.set({ sheen: 0, specular: 0, shininess: 30, softness: 0, specularColor: 0xffffff, ...rim })
+      for (const shell of shells) shell.set({ ...rim, sheen: 0, specular: 0, shininess: 30, softness: 0, specularColor: 0xffffff })
     },
     update(dt, time) {
       const step = Number.isNaN(playedTo) ? 0 : Math.max(0, time - playedTo)

@@ -103,7 +103,7 @@ export async function createDrawing() {
   if (benchOn) renderer.domElement.addEventListener('webglcontextlost', () => benchTools?.logToServer({ kind: 'error', what: 'context lost', ms: Math.round(performance.now()) }))
   const backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'WebGPU' : 'WebGL 2'
   /**
-   * A phone's frame, which never has the AO, the outlines, the bloom or the tilt's blur: the scene pass writes less (post.ts).
+   * A phone's frame, which never has the AO, the bloom or the tilt's blur: the scene pass writes less (post.ts).
    * It keeps the tilt's camera and its grade, which the look stands on. `?lean=0` to measure against it, `?lean` to try it elsewhere.
    */
   const lean = url.get('lean') !== '0' && (phone || url.has('lean'))

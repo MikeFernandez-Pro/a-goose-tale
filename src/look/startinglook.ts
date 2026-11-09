@@ -117,7 +117,7 @@ export function startingLook() {
       softness: 0.17,
       specularColor: 0x1c401c,
       rim: true,
-      // Faint, wide and very soft, pale green: set from the panel on 2026-10-05, it slides over the boil rather than flashing.
+      // Faint, wide and very soft, pale green: set from the panel on 2026-10-05, it slides over the rats rather than flashing.
       rimStrength: 0.17,
       rimWidth: 0.24,
       rimSoftness: 0.34,
@@ -133,12 +133,8 @@ export function startingLook() {
     floor: structuredClone(FLOOR_LOOKS.stylized_grass_01),
     // Ambient occlusion on, at half resolution, a deep green in the creases, reaching far and falling off hard: set from the panel on 2026-10-05.
     ao: { ...defaultAO(), color: 0x174f3e, radius: 1.73, thickness: 4, distanceExponent: 3.95, distanceFallOff: 2 },
-    // Outlines off, set up pale and thin for when they are tried: from the panel on 2026-10-05.
-    outline: { enabled: false, color: 0xe5fff4, thickness: 0.5, depth: 0.05, normal: 0.6 },
     // Hatching, faint ink in the deepest shade only, nine pixels apart at the grout's slant, crossed: set from the panel on 2026-10-05.
     hatch: { enabled: true, color: 0x06110c, below: 0.02, cross: true, spacing: 9, angle: 45, width: 0.35, strength: 0.2 },
-    // The palette off, at nineteen levels for when it is tried.
-    palette: { enabled: false, levels: 19 },
     // Paper in full, fine fibres; a faint grain that holds still: the strength set from the panel on 2026-10-10.
     grain: { grain: true, grainStrength: 0.08, grainSize: 1, grainOnBeat: false, grainSpeed: 0, paper: true, paperStrength: 1, paperScale: 2.5 },
     // A light vignette from near the centre: set from the panel on 2026-10-05.
@@ -168,10 +164,7 @@ export function startingLook() {
       uneven: false,
       unevenShare: 0,
       stagger: false,
-      // The boil, half a centimetre over bumps six to the metre; poses blended, not snapped: set from the panel on 2026-10-05.
-      boil: true,
-      boilAmount: 0.005,
-      boilScale: 6,
+      // Poses blended, not snapped: set from the panel on 2026-10-05.
       snap: false,
     },
     // A tabletop's focus on the light, soft five metres past it: set from the panel on 2026-10-05.
@@ -245,7 +238,7 @@ export function measuringSwitches(look: Look, backend: string, lean: boolean): v
     Object.assign(look.rats, { rim: true, rimStrength: askedRim[0] || 1.4, rimWidth: askedRim[1] || 0.12, rimSoftness: 0.12, rimColor: 0xb48cff })
   }
   if (post0) {
-    look.outline.enabled = look.hatch.enabled = look.palette.enabled = look.vignette.enabled = false
+    look.hatch.enabled = look.vignette.enabled = false
     look.grain.grain = look.grain.paper = false
   }
 }

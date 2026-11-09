@@ -181,7 +181,7 @@ export async function createGoslings(
       downGlow.value = glow
     },
     setRim(look) {
-      toon.set({ sheen: 0, specular: 0, shininess: 30, softness: 0, specularColor: 0xffffff, ...look })
+      toon.set({ ...look, sheen: 0, specular: 0, shininess: 30, softness: 0, specularColor: 0xffffff })
     },
     calm: false,
     scared: false,

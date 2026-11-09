@@ -18,7 +18,7 @@ import { createPlainGhosts, createGhosts, mountGhostControls } from '../characte
 import { type GraveGround, createGraves, mountGraveControls, scatterGravePumpkins } from './graves'
 import { offWay, defaultDeadTreeShape, defaultBarkLook, defaultGrassLook, defaultLeafLook, createDeadTrees, type DeadTree, type DeadTreeShape, deadTrees, treeVariantOf, trunkRadius } from './deadtrees'
 import { createGraveCandles, mountCandleControls } from './gravecandles'
-import { defaultArchLook, type ArchStone, defaultArchWet, type ArchShell, createArches, archesOf, archStones } from './arches'
+import { defaultArchLook, type ArchStone, type ArchShell, createArches, archesOf, archStones } from './arches'
 import { defaultRoadWallLook, ROAD_WALL_STYLES, type RoadWallLook, createRoadWalls, type StoneBlock, roadWallStones, roadWallsOf, roadWallLines } from './roadwalls'
 import type { ShineLook } from '../look/shell'
 import { defaultTreeWindLook } from './treesway'
@@ -169,7 +169,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   const STONE_LIGHTNESS = 0.68
   const matted = { specular: 0, rim: true, rimStrength: 0.32, rimWidth: 0.23, rimSoftness: 0.075, rimColor: 0x9097fe }
   const { saturation: stoneSaturation, hue: stoneHue, rotation: stoneRotation, relief: stoneRelief } = roadLook
-  const archStone: ArchStone = { lightness: STONE_LIGHTNESS, saturation: stoneSaturation, hue: stoneHue, scale: 1.1, rotation: stoneRotation, relief: stoneRelief, wet: defaultArchWet() }
+  const archStone: ArchStone = { lightness: STONE_LIGHTNESS, saturation: stoneSaturation, hue: stoneHue, scale: 1.1, rotation: stoneRotation, relief: stoneRelief }
   const archShell: ArchShell = structuredClone({ ...look.floor.shell, rim: true, rimStrength: 3, rimWidth: 0.31, rimSoftness: 0.075, paint: look.floor.paint, toon: look.floor.toon })
   if (gooseTheme?.doors) Object.assign(archShell, gooseTheme.doors)
   Object.assign(archShell, matted)

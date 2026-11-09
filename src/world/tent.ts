@@ -2,7 +2,7 @@
 // 2026-10-29: one mesh of three flat colours, y-up, its foot on the
 // origin, about 0.93 x 0.77 x 1 m), its colours merged into one draw on a
 // palette (palettemesh.ts), in the scene pieces' shell (the well's, the
-// cage's: toon steps, brush strokes) under a highlight and rim of its own.
+// cage's), with no brush strokes, under a highlight and rim of its own.
 // It stands on the island's crown, off its middle as the tent folder moves it,
 // its foot on the ground there (pond.ts's `groundOf`), turned and sized by the
 // folder too.
@@ -18,8 +18,6 @@ const MODEL = './models/tent.glb'
 /** How tall the file's tent stands, m, as modelled, and how far its widest reaches from its middle across the ground. */
 const MODEL_HEIGHT = 0.771
 const MODEL_REACH = 0.5
-/** The strokes' size over a scene piece, m, as goosescenes.ts lays them. */
-const STROKE_BODY = 0.9
 /** How far out of its door a bird going out of it steps, m, past its widest. */
 const DOOR_OUT = 0.3
 
@@ -84,7 +82,7 @@ export async function createTent(look: TentLook = defaultTentLook()): Promise<Te
     look.colours[name] ??= color.getHex()
   }
   // Both sides drawn, so its faces show from behind too.
-  const material = new ShellToonMaterial({ side: DoubleSide, painted: { extent: (STROKE_BODY * MODEL_HEIGHT) / look.size } })
+  const material = new ShellToonMaterial({ side: DoubleSide })
   const palette = createPalette(names, material)
   palette.merge(file, meshes)
   const object = new Group().add(file)
@@ -92,7 +90,7 @@ export async function createTent(look: TentLook = defaultTentLook()): Promise<Te
     for (const [name, colour] of Object.entries(look.colours)) palette.set(name, colour)
   }
   recolour()
-  /** The shell it shares, last handed over: its sheen, strokes and toon steps kept under its own highlight and rim. */
+  /** The shell it shares, last handed over: its sheen kept under its own highlight and rim. */
   let shared: (ShellLook & { paint: PaintLook; toon: ToonLook }) | undefined
   const shineChanged = () => {
     if (shared) material.set({ ...shared, ...look.shine })
