@@ -2,7 +2,7 @@
 // either side of the old road, behind its walls where by one, out of the
 // lights, off the scenes' pieces and the arches, in groves thinning into the
 // dark; low enough to stand a little nearer the road than the trees, and never
-// on a tree's trunk. Leaf cards from justASimpleTree's bush, four seeds of it,
+// on a tree's trunk or a grave. Leaf cards from justASimpleTree's bush, four seeds of it,
 // drawn a stretch at a time, coloured as the dead trees' leaves are, by a leaves
 // folder of their own (createLeafMaterial); each with a copy of
 // itself inside it, a little smaller and turned, filling the gaps between its
@@ -32,6 +32,12 @@ export function defaultBushLeafLook(): LeafLook {
 
 /** How close to a dead tree's trunk a bush may stand, m. */
 const OFF_TRUNK = 1.2
+/** How far a bush's middle stands off a grave's footprint at the least, m: about its leaves' half width, so no stone stands up out of it. */
+export const OFF_GRAVE = 0.7
+
+/** Whether a bush at (x, z) stands off every one of `graves`, each its middle and how far round its footprint reaches, m. */
+export const offGraves = (graves: readonly (Point & { radius: number })[]) => (x: number, z: number) =>
+  graves.every((g) => Math.hypot(g.x - x, g.z - z) >= g.radius + OFF_GRAVE)
 
 /** The bushes along `road`, as `shape` scatters them, `variants` kinds of bush, none on a trunk of `trees`; the rest as `deadTrees` takes it. */
 export function bushes(

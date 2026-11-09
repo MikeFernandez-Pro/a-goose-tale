@@ -1,6 +1,6 @@
 // The game's bushes: scattered as the dead trees are, nearer the road, never on a trunk.
 import { describe, expect, it } from 'vitest'
-import { bushes, defaultBushShape } from './bushes'
+import { bushes, defaultBushShape, OFF_GRAVE, offGraves } from './bushes'
 import { behindWalls, deadTrees, offWay } from './deadtrees'
 import { laid, ROUTE } from './plain'
 import { defaultRoadShape, roadLine } from './road'
@@ -31,6 +31,13 @@ describe("the game's bushes", () => {
       expect(b.height).toBeLessThanOrEqual(shape.tallest)
     }
     expect(new Set(laidBushes.map((b) => b.variant)).size).toBe(4)
+  })
+
+  it('stand on no grave, their footprint and a bush half wide round it', () => {
+    const graves = laidBushes.filter((_, k) => k % 5 === 0).map((b, k) => ({ x: b.x + 0.3, z: b.z - 0.2, radius: 0.3 + (k % 3) * 0.2 }))
+    const off = bushes(plain, road, 4, trees, shape, walls, [], offGraves(graves))
+    expect(off.length).toBeGreaterThan(laidBushes.length * 0.7)
+    for (const b of off) for (const g of graves) expect(distance(b, g)).toBeGreaterThanOrEqual(g.radius + OFF_GRAVE)
   })
 
   it('stand where trunks were once the trees are gone', () => {

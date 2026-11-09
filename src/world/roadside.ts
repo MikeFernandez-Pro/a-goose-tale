@@ -22,7 +22,7 @@ import { defaultArchLook, type ArchStone, type ArchShell, createArches, archesOf
 import { defaultRoadWallLook, ROAD_WALL_STYLES, type RoadWallLook, createRoadWalls, type StoneBlock, roadWallStones, roadWallsOf, roadWallLines } from './roadwalls'
 import type { ShineLook } from '../look/shell'
 import { defaultTreeWindLook } from './treesway'
-import { defaultBushShape, defaultBushLeafLook, createBushes, bushes } from './bushes'
+import { defaultBushShape, defaultBushLeafLook, createBushes, bushes, offGraves } from './bushes'
 import { defaultNoiseSeeThrough, noiseSeeThrough, seeThroughZone } from '../look/seethrough'
 import { uniform, renderGroup, positionWorld } from 'three/tsl'
 import { type Wall, nearestWalls } from '../swarm/walls'
@@ -137,10 +137,13 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
             setStones()
             layGravePumpkins()
             layGraveCandles()
+            layBushes()
           })
           if (graveCandles) mountCandleControls(graveCandles, gui, layGraveCandles)
         }),
     )
+  /** The graves as they stand, each its middle and how far round it its footprint reaches, m; none with no graveyard. */
+  const graveStones = () => (graves?.footprints() ?? []).map(({ at, outline }) => ({ ...at, radius: Math.max(...outline.map((p) => Math.hypot(p.x, p.z))) }))
   /** How far round a graveyard pumpkin he keeps clear when they are scattered, m. */
   const GRAVE_PUMPKIN_RADIUS = 0.4
   /**
@@ -149,7 +152,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
    */
   function layGravePumpkins() {
     if (!graveyard || !graveGround) return
-    const stones = (graves?.footprints() ?? []).map(({ at, outline }) => ({ ...at, radius: Math.max(...outline.map((p) => Math.hypot(p.x, p.z))) }))
+    const stones = graveStones()
     const back = { x: -graveyard.entrance.facing.x, z: -graveyard.entrance.facing.z }
     gooseScenes.layLoosePumpkins(scatterGravePumpkins(graveGround, gravesRoad, back, stones, gooseScenes.pumpkinKinds, GRAVE_PUMPKIN_RADIUS))
   }
@@ -418,13 +421,16 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   }
   /** The bushes scattered by the road and the pond as last laid, laid again with the island's when only those change. */
   let scattered: DeadTree[] = []
-  /** The bushes as the bushes folder has them, scattered as the trees are, off their trunks; and the island's own. */
+  /** The bushes as the bushes folder has them, scattered as the trees are, off their trunks and the graves; and the island's own. */
   function layBushes() {
     bushesMesh.object.visible = bushLook.show
     roadside.islandBushes = bushLook.show ? islandBushes(bushesMesh.variants) : []
     if (!bushLook.show) return bushesMesh.lay([])
-    const byRoad = bushes(goosePlay.plain, roadLaid.points, bushesMesh.variants, treesLaid, bushShape, wallsLaid, archesLaid, treeGround).filter((bush) => !onRoadLead(bush, bushShape.clear))
-    const byPond = bushes(goosePlay.plain, pondWoodsLine(), bushesMesh.variants, treesLaid, pondWoodsShape(bushShape), [], archesLaid, pondWoodsGround(byRoad, bushShape.spacing))
+    const offStones = offGraves(graveStones())
+    const roadGround = (x: number, z: number) => treeGround(x, z) && offStones(x, z)
+    const byRoad = bushes(goosePlay.plain, roadLaid.points, bushesMesh.variants, treesLaid, bushShape, wallsLaid, archesLaid, roadGround).filter((bush) => !onRoadLead(bush, bushShape.clear))
+    const pondWoods = pondWoodsGround(byRoad, bushShape.spacing)
+    const byPond = bushes(goosePlay.plain, pondWoodsLine(), bushesMesh.variants, treesLaid, pondWoodsShape(bushShape), [], archesLaid, (x, z) => pondWoods(x, z) && offStones(x, z))
     scattered = [...byRoad, ...byPond]
     bushesMesh.lay([...scattered, ...roadside.islandBushes])
   }
