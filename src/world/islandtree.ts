@@ -97,7 +97,8 @@ export function defaultIslandTreeLook(): IslandTreeLook {
     turn: 0,
     size: 5,
     wood: 0xffffff,
-    leaves: { ...defaultLeafLook(), shadowTo: 0.45, lightFrom: 0.8, shading: 0.55 },
+    // Its leaves three pinks of their own, as set from the panel on 2026-11-09.
+    leaves: { ...defaultLeafLook(), shadow: 0xcf4f8d, mid: 0xec69a9, light: 0xff80bd, variation: 1, shadowTo: 0.45, lightFrom: 0.8, shading: 0.55 },
     wind: { ...defaultTreeWindLook(), strength: 0.22 },
     fall: { amount: 277, lifetime: 14, speed: 0.42, size: 0.17 },
     bark: defaultBarkLook(),
@@ -310,11 +311,9 @@ export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeL
   const laid = cards.boundingBox!.max.y
   const { min, max } = cards.boundingBox!
   const crownReach = Math.max(-min.x, max.x, -min.z, max.z)
-  const leafFile = leafMesh.material as Material & { userData: { celRamp: [number, string][] } }
   const woodFile = woodMesh.material as Material & { userData: { celRamp: [number, string][] } }
-  // The ramps' three colours, shadow, mid and light.
+  // The wood's colour the mid of its ramp's three, shadow, mid and light; the leaves keep the look's own.
   const ramp = (material: { userData: { celRamp: [number, string][] } }) => material.userData.celRamp.map(([, colour]) => new Color(colour).getHex())
-  ;[look.leaves.shadow, look.leaves.mid, look.leaves.light] = ramp(leafFile) as [number, number, number]
   look.wood = ramp(woodFile)[1]!
 
   const wind = createTreeWind(laid, MODEL_TRUNK, crownReach)

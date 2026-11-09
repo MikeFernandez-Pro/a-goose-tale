@@ -369,9 +369,9 @@ export interface LeafLook {
   variation: number
 }
 
-/** The leaves to start, as set from the panel on 2026-11-09: three reds, half the shade the mid, a fifth of it light, little of it baked. */
+/** The leaves to start, as set from the panel on 2026-11-09: three bright reds, half the shade the mid, a fifth of it light, little of it baked. */
 export function defaultLeafLook(): LeafLook {
-  return { show: true, textured: true, cutout: 0.5, shadow: 0x872c2c, mid: 0xd04343, light: 0xfb5b5b, shadowTo: 0.49, lightFrom: 0.81, shading: 0.12, variation: 1 }
+  return { show: true, textured: true, cutout: 0.5, shadow: 0xb83d3d, mid: 0xe65151, light: 0xff4242, shadowTo: 0.49, lightFrom: 0.81, shading: 0.12, variation: 1 }
 }
 
 /** How light a colour is, by the eye's weights. */
