@@ -555,7 +555,6 @@ function addRoad(gui: GUI, { shape, shapeChanged, look, changed, arches }: NonNu
     folder.add(look, 'patches', 0, 1, 0.01).name('patches take/leave'),
     folder.add(look, 'lightness', 0, 3, 0.01).name('lightness (dark/light)'),
     folder.add(look, 'saturation', 0, 3, 0.01).name('saturation'),
-    folder.add(look, 'hue', -180, 180, 1).name('hue (degrees)'),
     folder.add(look, 'scale', 0.2, 10, 0.05).name('tile size m'),
     folder.add(look, 'rotation', -180, 180, 1).name('turn from the road (degrees)'),
     folder.add(look, 'relief', 0, 3, 0.01).name('relief (0 = flat)'),
@@ -580,7 +579,6 @@ function addStone(folder: GUI, stone: ArchStone, stoneChanged: () => void, turn?
   const slabs = folder.addFolder('stone')
   slabs.add(stone, 'lightness', 0, 3, 0.01).name('lightness (dark/light)')
   slabs.add(stone, 'saturation', 0, 3, 0.01).name('saturation')
-  slabs.add(stone, 'hue', -180, 180, 1).name('hue (degrees)')
   if (turn !== undefined) {
     slabs.add(stone, 'scale', 0.05, 10, 0.05).name('tile size m')
     slabs.add(stone, 'rotation', -180, 180, 1).name(turn)
@@ -654,7 +652,6 @@ function addGrass(folder: GUI, grass: GrassLook, changed: () => void): void {
   grassy.add(grass, 'wobbleSize', 0.05, 5, 0.01).name('wobble size m')
   grassy.add(grass, 'lightness', 0, 3, 0.01).name('lightness (1 = as the floor)')
   grassy.add(grass, 'sharpness', 0.5, 64, 0.1).name('top/side blend sharpness')
-  grassy.add(grass, 'relief', 0, 1, 0.01).name('bark relief through it')
   grassy.onChange(changed)
 }
 
@@ -1086,7 +1083,6 @@ function addPond(gui: GUI, { look, changed, water, waterChanged, bed, bedChanged
   under.add(bed, 'wobble', 0, 0.5, 0.005).name('fade line wavers m')
   under.add(bed, 'wobbleSize', 0.05, 5, 0.01).name('waver size m')
   under.add(bed, 'beach', 0, 10, 0.05).name('beach reaches m past the shore (0 = none)')
-  under.add(bed, 'beachWobble', 0, 3, 0.01).name('beach line wavers m')
   under.add(bed, 'breakup', 0, 8, 0.05).name('break up (0 = plain fade)')
   under.add(bed, 'scale', 0.2, 10, 0.05).name('tile size m')
   under.add(bed, 'rotation', -180, 180, 1).name('rotation (degrees)')
@@ -1288,11 +1284,11 @@ function addLook(gui: GUI, settings: Settings, look: Look, changed: PanelEvents,
   for (const folder of [lamp, sun, fill, leaves, fog, rats, levels, ground, ...frame, ...lens, goose, flame]) folder.onChange(changed.look)
 }
 
-/** The look of the rats as the rats folder and the levels of detail folder edit it: their colours, variants, eyes, shell, strokes, steps and levels. */
+/** The look of the rats as the rats folder and the levels of detail folder edit it: their colours, tints, eyes, shell, strokes, steps and levels. */
 type RatsLook = Look['rats']
 
 /**
- * The rats folder: each part's colour and the tint, the variants, the eyes and their trails, the shell, the painted
+ * The rats folder: each part's colour and the tints, the eyes and their trails, the shell, the painted
  * normals, the toon steps and the far crowd's staggered steps. The folder, for the page to add its own to and to wire.
  */
 function addRatsFolder(gui: GUI, look: RatsLook, trailLook: TrailLook): GUI {
@@ -1300,14 +1296,8 @@ function addRatsFolder(gui: GUI, look: RatsLook, trailLook: TrailLook): GUI {
   // The eyes have a folder of their own in here, with their trails.
   for (const part of look.parts) if (part.name !== 'eyes') rats.addColor(part, 'color').name(part.name)
   rats.addColor(look, 'color').name(look.parts.length ? 'tint' : 'colour')
-  // The variants tint the parts, so a model of one colour has none to show.
-  if (look.parts.length > 0) {
-    const variants = rats.addFolder('variants')
-    look.variants.forEach((variant, i) => {
-      variants.addColor(variant, 'tint').name(`${i + 1} tint`)
-      variants.add(variant, 'share', 0, 1, 0.01).name(`${i + 1} share`)
-    })
-  }
+  // The tint over every part but the eyes, so a model of one colour has none to show.
+  if (look.parts.length > 0) rats.addColor(look, 'tint').name('tint but the eyes')
   // The eyes: a colour picked from the presets or by hand, their glow, and the trails they leave, which take the eyes'
   // colour unless told otherwise.
   const eyes = rats.addFolder('eyes')
@@ -1326,8 +1316,6 @@ function addRatsFolder(gui: GUI, look: RatsLook, trailLook: TrailLook): GUI {
   trails.add(trailLook, 'wave', 0, 4, 0.05).name('sway (x width)')
   trails.add(trailLook, 'strength', 0, 8, 0.05).name('brightness')
   trails.add(trailLook, 'fade', 0.25, 12, 0.05).name('fade to the tail')
-  trails.add(trailLook, 'wiggle', 0, 0.2, 0.005).name('wiggle m (smooth only)')
-  trails.add(trailLook, 'wiggleSpeed', 0, 10, 0.1).name('wiggle waves /s')
   // The trails' own colour shows only while they do not take the eyes'.
   const ownColour = trails.addColor(trailLook, 'color').name('own colour').show(!trailLook.eyeColour)
   trails.add(trailLook, 'eyeColour').name('eyes colour').onChange((on: boolean) => ownColour.show(!on))

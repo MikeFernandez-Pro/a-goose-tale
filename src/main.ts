@@ -474,15 +474,15 @@ function lookChanged() {
   rats.material.setPaint(look.rats.paint)
   rats.material.setBeat(shade(5), nudge(6), nudge(7))
   look.rats.parts.forEach((part, i) => rats.setPartColor(i, part.color))
-  rats.setVariants(look.rats.variants)
+  rats.setTint(look.rats.tint)
   rats.setGlow('eyes', look.rats.glow)
   rats.setLevels(look.rats.levels)
   // The far crowd's staggered steps: the swarm's tuning steps by them (the CPU step's alone), the rats tint by them.
   tuning.stagger = look.rats.stagger.n
   tuning.staggerFrom = look.rats.stagger.from
   rats.setStagger(look.rats.stagger)
-  // The trails: on the beat a held frame's streak; smooth, a streak laid again every frame, and wiggling.
-  rats.setTrails({ ...look.trails, enabled: look.trails.enabled && !lean, wiggle: stop.enabled ? 0 : look.trails.wiggle })
+  // The trails: on the beat a held frame's streak; smooth, a streak laid again every frame.
+  rats.setTrails({ ...look.trails, enabled: look.trails.enabled && !lean })
   ground.set(look.floor)
   deadTreesMesh.setGrass(deadTreeGrass, look.floor)
   islandTree.setGrass(look.floor)
@@ -782,7 +782,7 @@ const hints = createGooseHints({ goosePlay, goslings, gooseSounds, opening, endi
 let fallsSeen = 0
 const felt = createGooseFelt({ goosePlay, feel, gooseSounds, hisAt, standAt, goose, feathers, embers, flame, post, goslings, nightLights, torchHeard: heard.torchHeard, input, camera, view, beats, opening, ending, darkLook, darkHeld: DARK_HELD })
 
-const loadingPage = createLoading({ scene, post, rats, islandGeese, ghosts, goslings, lights, fires, flame, embers, smoke, sun, lamp, shadowed, swarm, gpuQueue, lean, benchTools, backend, allBuilt, gooseSounds })
+const loadingPage = createLoading({ scene, post, rats, islandGeese, ghosts, goslings, lights, fires, gooseScenes, flame, embers, smoke, sun, lamp, shadowed, swarm, gpuQueue, lean, benchTools, backend, allBuilt, gooseSounds })
 
 /** The game paused or going on, the panel's pause button saying which. */
 function setPaused(on: boolean) {

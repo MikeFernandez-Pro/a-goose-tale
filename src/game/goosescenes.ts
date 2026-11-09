@@ -414,6 +414,8 @@ function layShown(object: Object3D, shown: Readonly<Shown>) {
 
 export interface GooseScenes {
   object: Group
+  /** What is hidden till its moment, the key's glint: for the loading to draw unseen, to build its pipeline. */
+  readonly unseen: readonly Object3D[]
   /** Each scene as `now` has it, its bucket moved over `dt` of play, s; the cage's key carried on his bone that `bone` finds by its name, if he carries it. */
   update(now: GoosePlay<PlaySwarm>, dt: number, bone?: (name: string) => Object3D | undefined): void
   /** The shells of the dead tree, the fire pits and the cage's pieces, toon steps and painted strokes: the goose's look. */
@@ -1092,11 +1094,13 @@ export async function createGooseScenes(
       const { skull } = scene
       const corpse = placed(cageSet.corpse, skull.x, skull.z, 'corpse')
       const key = placed(cageSet.key, scene.key.x, scene.key.z, 'key')
-      // Always drawn, at no size till the key glints, so its pipeline is built at the loading with the rest.
+      // Hidden till the key glints, so it costs no draw the rest of the game; drawn unseen by the loading (`unseen`), so
+      // its pipeline is built with the rest.
       const glint = new Sprite(glintMaterial)
       glint.name = 'key glint'
       glint.renderOrder = 10
       glint.scale.setScalar(0)
+      glint.visible = false
       object.add(glint)
       return { kind: 'cage', group, turned: set.getObjectByName('cage')!, campfire, door: set.getObjectByName('door')!, key, glint, locked: set.getObjectByName('locked')!, lock: set.getObjectByName(MODEL_SET.lock)!, drop: null, set, cart, corpse }
     }
@@ -1210,6 +1214,7 @@ export async function createGooseScenes(
   }
   const scenes: GooseScenes = {
     object,
+    unseen: parts.flatMap((part) => (part.kind === 'cage' ? [part.glint] : [])),
     campfire() {
       const copy = cageSet.campfire.clone()
       copy.scale.setScalar(SET_SCALE)
@@ -1528,6 +1533,7 @@ export async function createGooseScenes(
           // And a glint off it as it lands, swelling at once and fading as it turns.
           const glinted = wing && landed >= 0 ? Math.min(1, landed / Math.max(keyTaken.glintLasts, 1e-3)) : 1
           const glow = glinted < 1 ? (1 - glinted) ** 2 : 0
+          part.glint.visible = glow > 0
           part.glint.position.copy(part.key.position)
           part.glint.scale.setScalar(keyTaken.glint * Math.min(1, glinted * 8) * glow)
           glintStrength.value = glow

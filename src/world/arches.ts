@@ -20,7 +20,7 @@
 // file has no texture layout of its own, so the arch's is worked out as it
 // loads.
 import { BufferAttribute, Group, Mesh, Vector2, type BufferGeometry } from 'three/webgpu'
-import { attribute, cameraViewMatrix, hue, modelWorldMatrix, normalWorld, renderGroup, saturation, texture, uniform, vec2, vec4 } from 'three/tsl'
+import { attribute, cameraViewMatrix, modelWorldMatrix, normalWorld, renderGroup, saturation, texture, uniform, vec2, vec4 } from 'three/tsl'
 import { modelLoader, unpackNormals } from '../look/gltf'
 import { loadRoad, type RoadLook } from './ground'
 import type { Plain, Point } from './plain'
@@ -56,7 +56,7 @@ export function defaultArchLook(): ArchLook {
  * The road's slabs on the arch as the doors folder edits them, read live: their painting and tiles, as the road folder
  * has the road's (ground.ts); and how far the tiles are slid along the stone and up it, m, none if not given.
  */
-export type ArchStone = Pick<RoadLook, 'lightness' | 'saturation' | 'hue' | 'scale' | 'rotation' | 'relief'> & { offsetX?: number; offsetY?: number }
+export type ArchStone = Pick<RoadLook, 'lightness' | 'saturation' | 'scale' | 'rotation' | 'relief'> & { offsetX?: number; offsetY?: number }
 
 /** The arches' own toon shell as the doors folder edits it, read live: its rim, matt, its painted strokes and its toon steps. */
 export type ArchShell = RimLook & { paint: PaintLook; toon: ToonLook }
@@ -286,8 +286,8 @@ export interface Stone {
 /**
  * The road's slabs, its colour and normal maps, laid on a piece of stone as the floor lays them along the road, by its
  * geometry's `stoneUv`, where on it in its units, and `stoneAlong` and `stoneOut`, the ways those grow in its frame: its
- * tiles stretched to `setSize`'s metres a unit, turned, coloured by a hue, saturation and lightness and leaning by a
- * relief, as `stone` has them. Its strokes counted `extent` of its units apart.
+ * tiles stretched to `setSize`'s metres a unit, turned, coloured by a saturation and lightness and leaning by a relief,
+ * as `stone` has them. Its strokes counted `extent` of its units apart.
  */
 export async function createStone(stone: ArchStone, extent: number): Promise<Stone> {
   const [roadColour, roadNormal] = await loadRoad()
@@ -296,7 +296,6 @@ export async function createStone(stone: ArchStone, extent: number): Promise<Sto
   const stretch = uniform(1).setGroup(renderGroup)
   const slide = uniform(new Vector2()).setGroup(renderGroup)
   const turn = uniform(new Vector2(1, 0)).setGroup(renderGroup)
-  const turned = uniform(0).setGroup(renderGroup)
   const saturated = uniform(1).setGroup(renderGroup)
   const lightness = uniform(1).setGroup(renderGroup)
   const relief = uniform(1).setGroup(renderGroup)
@@ -314,7 +313,7 @@ export async function createStone(stone: ArchStone, extent: number): Promise<Sto
   const mapped = normalMap.sample(at).xyz.mul(2).sub(1)
   const leant = normalWorld.add(u.mul(mapped.x).add(v.mul(mapped.y)).mul(relief)).normalize()
   const shell = new ShellToonMaterial({ painted: { extent, base: cameraViewMatrix.mul(vec4(leant, 0)).xyz.normalize() } })
-  shell.colorNode = saturation(hue(painted, turned), saturated).mul(lightness)
+  shell.colorNode = saturation(painted, saturated).mul(lightness)
   let tile = stone.scale
   let offset = { x: 0, y: 0 }
   // Its tiles' size and slide in metres, in its own units.
@@ -328,7 +327,6 @@ export async function createStone(stone: ArchStone, extent: number): Promise<Sto
     setStretch()
     const angle = (next.rotation * Math.PI) / 180
     turn.value.set(Math.cos(angle), Math.sin(angle))
-    turned.value = (next.hue * Math.PI) / 180
     saturated.value = next.saturation
     lightness.value = next.lightness
     relief.value = next.relief

@@ -8,6 +8,7 @@ import type { Ghosts } from '../characters/ghosts'
 import type { Goslings } from '../characters/goslings'
 import type { Lights } from '../light/lights'
 import type { PlainFires } from '../light/plainfires'
+import type { GooseScenes } from '../game/goosescenes'
 import type { Flame } from '../light/flame'
 import type { Embers } from '../light/embers'
 import type { Smoke } from '../light/smoke'
@@ -23,7 +24,7 @@ import { benchOn, filming } from '../game/address'
 export const STEP_FRAME = 1
 
 /** The loading, on what the page has made. */
-export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings, lights, fires, flame, embers, smoke, sun, lamp, shadowed, swarm, gpuQueue, lean, benchTools, backend, allBuilt, gooseSounds }: {
+export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings, lights, fires, gooseScenes, flame, embers, smoke, sun, lamp, shadowed, swarm, gpuQueue, lean, benchTools, backend, allBuilt, gooseSounds }: {
   scene: Scene
   post: Post
   rats: Rats
@@ -32,6 +33,7 @@ export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings
   goslings: Goslings
   lights: Lights
   fires: PlainFires
+  gooseScenes: GooseScenes
   flame: Flame
   embers: Embers
   smoke: Smoke
@@ -65,7 +67,7 @@ export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings
   /**
    * Show what is hidden until its moment, and draw what stands out of sight;
    * the function returned puts it all back. Hidden until their moment, the rats,
-   * the rain's streaks, the flames of the lights not yet lit, the torch's flame,
+   * the rain's streaks, the flames of the lights not yet lit, the strike's bolt and burst, the key's glint, the torch's flame,
    * embers and smoke while it starts out, would build their pipelines only then,
    * and stall the strike, the rain's coming or the torch's first lighting (108 ms
    * on the game, 2026-10-27); and what stands out of the cameras' sight at
@@ -93,9 +95,11 @@ export function createLoading({ scene, post, rats, islandGeese, ghosts, goslings
     for (const { fire } of sceneFires) fire.object.visible = true
     const pitShown = pitFires.map(({ fire }) => fire.object.visible)
     for (const { fire } of pitFires) fire.object.visible = true
-    const torchParts = [flame.object, embers.object, smoke.object, ...crownFires.map(({ fire }) => fire.object), ...trunkFires.map(({ fire }) => fire.object), ...(footFire ? [footFire.object] : [])]
+    const torchParts: Object3D[] = [flame.object, embers.object, smoke.object, ...crownFires.map(({ fire }) => fire.object), ...trunkFires.map(({ fire }) => fire.object), ...(footFire ? [footFire.object] : [])]
     // The burning branch, hidden in the crown till it snaps, its flame and its embers.
     if (burningBranch && branchFire && branchEmbers) torchParts.push(burningBranch.object, branchFire.object, branchEmbers.object)
+    // The strike's bolt and burst, hidden till it strikes; the key's glint, till he takes the key up.
+    torchParts.push(...(fires.strike?.parts ?? []), ...gooseScenes.unseen)
     const torchShown = torchParts.map((part) => part.visible)
     for (const part of torchParts) part.visible = true
     const culled: Object3D[] = []

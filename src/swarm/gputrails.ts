@@ -20,7 +20,7 @@ import { forgetBuffers, turnBy, type GpuCull } from './gpucull'
 
 /**
  * Vectors a ribbon's history takes: the eye's place and height and the first
- * place at the cut; the cut's place and the ribbon's number; the seven older
+ * place at the cut; the cut's place; the seven older
  * places, two to a vector; the places' ages, four to a vector; and when it
  * last took a place, with the lay it was last laid in.
  */
@@ -138,7 +138,7 @@ export class GpuTrails {
       const cutX = mix(pick(xs0, xs1, before), pick(xs0, xs1, first), t)
       const cutZ = mix(pick(zs0, zs1, before), pick(zs0, zs1, first), t)
       at(0).assign(vec4(eye, first))
-      at(1).assign(vec4(cutX, cutZ, float(r), 0))
+      at(1).assign(vec4(cutX, cutZ, 0, 0))
       at(2).assign(a1)
       at(3).assign(b1)
       at(4).assign(c1)

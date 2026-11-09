@@ -341,7 +341,8 @@ export async function createGoose(options: GooseOptions = {}): Promise<Goose> {
   // How tall it is as modelled, up its file's own up.
   const modelHeight = CHARACTER.zUp ? box.max.z - box.min.z : box.max.y - box.min.y
 
-  const material = new ShellToonMaterial({ parts: names.length, painted: { extent: modelHeight } })
+  // The one shell a bite flashes (goosefelt.ts).
+  const material = new ShellToonMaterial({ parts: names.length, painted: { extent: modelHeight }, flash: true })
   const merged = new SkinnedMesh(geometry, material)
   merged.bind(body.skeleton, body.bindMatrix)
   merged.castShadow = merged.receiveShadow = true

@@ -170,8 +170,8 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   // set from the panel on 2026-10-27; the walls' the same.
   const STONE_LIGHTNESS = 0.68
   const matted: RimLook = { rim: true, rimStrength: 0.32, rimWidth: 0.23, rimSoftness: 0.075, rimColor: 0x9097fe }
-  const { saturation: stoneSaturation, hue: stoneHue, rotation: stoneRotation, relief: stoneRelief } = roadLook
-  const archStone: ArchStone = { lightness: STONE_LIGHTNESS, saturation: stoneSaturation, hue: stoneHue, scale: 1.1, rotation: stoneRotation, relief: stoneRelief }
+  const { saturation: stoneSaturation, rotation: stoneRotation, relief: stoneRelief } = roadLook
+  const archStone: ArchStone = { lightness: STONE_LIGHTNESS, saturation: stoneSaturation, scale: 1.1, rotation: stoneRotation, relief: stoneRelief }
   const archShell: ArchShell = structuredClone({ rim: true, rimStrength: 3, rimWidth: 0.31, rimSoftness: 0.075, rimColor: look.floor.shell.rimColor, paint: look.floor.paint, toon: look.floor.toon })
   if (gooseTheme?.doors) Object.assign(archShell, gooseTheme.doors)
   Object.assign(archShell, matted)

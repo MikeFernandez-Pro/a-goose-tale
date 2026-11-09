@@ -35,8 +35,8 @@
 // What changes from folio-2025: its strikes fall at random over the map, each
 // building its materials as it comes and timed by tweens; here the strikes
 // are the play's two, scripted (weather.ts). Each has its bolt and sparks built
-// once, drawn from the start and shown only from its time, so nothing compiles
-// at the moment of the strike; and they are timed off the play's own clock,
+// once, drawn unseen by the loading (`parts`) and shown only from its time, so
+// nothing compiles at the moment of the strike; and they are timed off the play's own clock,
 // so the play started over strikes again and a paused play holds them. The
 // sparks before a strike rise for the time the script gives before it is due.
 // The bolt comes down beside the struck tree, on the side the goose is, not
@@ -57,6 +57,7 @@ import {
   InstancedBufferAttribute,
   Mesh,
   MeshBasicNodeMaterial,
+  type Object3D,
   PlaneGeometry,
   SpriteNodeMaterial,
   Spherical,
@@ -133,6 +134,8 @@ export interface Lightning {
   readonly object: Group
   /** How it looks, read live. */
   readonly look: LightningLook
+  /** Each strike's bolt and burst, hidden till it strikes: for the loading to draw unseen, to build their pipelines. */
+  readonly parts: readonly Object3D[]
   /** How long a strike lasts, as it looks now, s: its bolt, its sparks and its flash, whichever is longest. */
   length(): number
   /**
@@ -265,7 +268,9 @@ export function createLightning(count: number, { rising: rises = true }: { risin
       mesh.renderOrder = 2
       group.add(mesh)
     }
-    return { group, due, struck, landed: false, sparksOut }
+    // The bolt and the burst hidden except while they show, so they cost no draw the rest of the game.
+    bolt.visible = sparksOut.visible = false
+    return { group, due, struck, landed: false, line: bolt, sparksOut }
   })
 
   const object = new Group()
@@ -300,6 +305,7 @@ export function createLightning(count: number, { rising: rises = true }: { risin
   return {
     object,
     look,
+    parts: bolts.flatMap(({ line, sparksOut }) => [line, sparksOut]),
     length: () => Math.max(look.bolt.seconds, look.sparks.seconds, FLASH),
     update(t, strikes, near, groundAt) {
       lay()
@@ -309,6 +315,10 @@ export function createLightning(count: number, { rising: rises = true }: { risin
         if (bolt === undefined) return
         bolt.due.value = Number.isNaN(strike.due) ? NEVER : strike.due
         bolt.struck.value = Number.isNaN(strike.time) ? NEVER : strike.time
+        // Its bolt and burst shown from the strike for as long as each lasts.
+        const since = t - strike.time
+        bolt.line.visible = since >= 0 && since < look.bolt.seconds
+        bolt.sparksOut.visible = since >= 0 && since < look.sparks.seconds
         // Beside its tree, on the goose's side, until it lands; then where it landed.
         const landed = !Number.isNaN(strike.time)
         if (landed && bolt.landed) return

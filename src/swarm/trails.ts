@@ -13,8 +13,7 @@
 // no place is looked up. Each frame the seen eyes' ribbons are packed from
 // the first instance and sent up, with where the trail's age cuts the path:
 // an eye out of sight costs nothing, and its ribbon starts over at the eye
-// when it is seen again. Smooth, a wiggle runs down every ribbon, each in its
-// own phase: a trail that stands still between beats would read as a stick.
+// when it is seen again.
 //
 // On WebGPU the history is kept on the GPU instead (gputrails.ts): the
 // ribbons are read from it and drawn indirectly, and none of the history
@@ -42,7 +41,7 @@ type ColourUniform = ReturnType<typeof colourUniform>
 
 /** Places a ribbon remembers, the eye's own first. */
 export const POINTS = 8
-/** The rows a gap between two places is laid in, and the rows a ribbon has: the loop cuts that let its sway and its wiggle bend. */
+/** The rows a gap between two places is laid in, and the rows a ribbon has: the loop cuts that let its sway bend. */
 export const CUTS = 3
 export const ROWS = (POINTS - 1) * CUTS + 1
 /** The indices a ribbon's strip is drawn with: two triangles a gap between rows. */
@@ -51,11 +50,6 @@ export const STRIP_INDICES = (ROWS - 1) * 6
 export const JUMP = 1
 /** An eye that moved less than this since its last place, m, takes no new one. */
 export const STILL = 0.005
-/** The wiggle's two waves: how many lie along a ribbon, how fast each runs down it against the folder's speed, and the second's share. */
-const WAVES = 1.25
-const SECOND_WAVES = 2.1
-const SECOND_SPEED = 0.63
-const SECOND_SHARE = 0.5
 const TAU = Math.PI * 2
 
 /**
@@ -124,10 +118,6 @@ export interface TrailLook {
   taper: number
   /** How fast it fades toward the tail: 1 evenly, more sooner. */
   fade: number
-  /** How far it wiggles from side to side at its tail, m, a wave running down it; nothing at the eye. 0 is none. */
-  wiggle: number
-  /** How many times a second the wiggle's wave runs down it. */
-  wiggleSpeed: number
   /** Its colour, when not the eyes' own. */
   color: number
   eyeColour: boolean
@@ -169,8 +159,8 @@ function strip(): { position: InterleavedBufferAttribute; weights: InterleavedBu
 
 /**
  * A drawn ribbon, as its vertex stage reads it: the eye's place and height
- * and the first place at the cut; the cut's place and the ribbon's own
- * number; its older places, the second to the eighth, two to a vector.
+ * and the first place at the cut; the cut's place; its older places, the
+ * second to the eighth, two to a vector.
  */
 export interface Ribbon {
   head: Node<'vec4'>
@@ -207,10 +197,6 @@ export class Trails {
   private readonly width = uniform(0.04)
   private readonly taper = uniform(1)
   private readonly wave = uniform(0.3)
-  private readonly wiggle = uniform(0)
-  private readonly wiggleSpeed = uniform(3)
-  /** The page's clock, s, which the wiggle runs on. */
-  private readonly time = uniform(0)
   /** The eyes' colour as last told, for when the trails take it. */
   private eyeHex = 0xffffff
   private geometry: BufferGeometry = new InstancedBufferGeometry()
@@ -222,9 +208,8 @@ export class Trails {
   private now = 0
   /**
    * The frame's ribbons, one a seen eye, packed from the first instance: the
-   * eye's place and height and the first place at the cut; the cut's place
-   * and the ribbon's own number; its older places, the second to the eighth,
-   * two to a slot.
+   * eye's place and height and the first place at the cut; the cut's place;
+   * its older places, the second to the eighth, two to a slot.
    */
   private head = perRibbon(0, 4)
   private cut = perRibbon(0, 4)
@@ -233,7 +218,7 @@ export class Trails {
   private shown = 0
   private readonly cutting: Cut = { first: 0, x: 0, z: 0 }
   private ribbons = 0
-  private look: TrailLook = { enabled: false, seconds: 0.3, width: 0.04, strength: 1.5, wave: 0.3, taper: 1, fade: 2, wiggle: 0, wiggleSpeed: 3, color: 0xffffff, eyeColour: true }
+  private look: TrailLook = { enabled: false, seconds: 0.3, width: 0.04, strength: 1.5, wave: 0.3, taper: 1, fade: 2, color: 0xffffff, eyeColour: true }
 
   /** `ribbon`, where the ribbons are read from: by default the attributes the page packs each frame. */
   constructor(colour: ColourUniform, ribbon: () => Ribbon = packed) {
@@ -263,14 +248,7 @@ export class Trails {
       // Full width at the eye, a point at the tail; the sway a wave along the length that is nothing at either end.
       const half = this.width.mul(max(oneMinus(along), 1e-6).pow(this.taper)).mul(0.5)
       const sway = this.width.mul(this.wave).mul(sin(along.mul(TAU))).mul(oneMinus(along))
-      // The wiggle's two waves running down the ribbon from the eye, nothing at the eye; each ribbon in its
-      // own phase, by its own number rather than its place in the frame, a golden angle from the last.
-      const number = cut.z
-      const phase = vec2(number.mul(2.39996 / TAU), number.mul(1.3247 / 2)).fract().mul(TAU)
-      const first = sin(along.mul(WAVES).sub(this.wiggleSpeed.mul(this.time)).mul(TAU).add(phase.x))
-      const second = sin(along.mul(SECOND_WAVES).sub(this.wiggleSpeed.mul(SECOND_SPEED).mul(this.time)).mul(TAU).add(phase.y))
-      const wiggle = this.wiggle.mul(along).mul(first.add(second.mul(SECOND_SHARE))).div(1 + SECOND_SHARE)
-      const off = sway.add(wiggle).add(across.mul(half))
+      const off = sway.add(across.mul(half))
       return vec3(x.add(normal.x.mul(off)), head.y, z.add(normal.y.mul(off)))
     })()
     // Brightest at the eye, gone at the point.
@@ -323,8 +301,6 @@ export class Trails {
     this.width.value = look.width
     this.taper.value = look.taper
     this.wave.value = look.wave
-    this.wiggle.value = look.wiggle
-    this.wiggleSpeed.value = look.wiggleSpeed
     this.colour.value.set(look.eyeColour ? this.eyeHex : look.color)
     this.mesh.visible = look.enabled
   }
@@ -338,7 +314,6 @@ export class Trails {
   /** A frame's ribbons are placed as of `now` seconds, none drawn yet. */
   begin(now: number): void {
     this.now = now
-    this.time.value = now
     this.shown = 0
   }
 
@@ -388,7 +363,7 @@ export class Trails {
     this.draw(r, y)
   }
 
-  /** Ribbon `r` into the frame's next instance: its eye at height `y`, its cut, its older places and its number. */
+  /** Ribbon `r` into the frame's next instance: its eye at height `y`, its cut and its older places. */
   private draw(r: number, y: number): void {
     const s = this.shown++
     const h = r * POINTS * 2
@@ -402,7 +377,6 @@ export class Trails {
     const cutPlace = this.cut.array as Float32Array
     cutPlace[s * 4] = cut.x
     cutPlace[s * 4 + 1] = cut.z
-    cutPlace[s * 4 + 2] = r
     // The older places by hand: a view or a copy a slot cost more than the copying, a few thousand ribbons a frame.
     const [pa, pb, pc, pd] = this.past.map((slot) => slot.array as Float32Array)
     const p = h + 2

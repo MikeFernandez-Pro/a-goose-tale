@@ -18,7 +18,7 @@
 // glow: its colour added as emission, under no light and no shadow, so a
 // rat's eyes are points of light in the dark whichever way it faces. A tint
 // of the model's own, where given, lies over every part but the glowing one:
-// the rats' variants, one rat brown and the next grey, their eyes the same.
+// the rats' fur and skin in one dusty colour, their eyes left as they are.
 //
 // Painted normals, where asked for: a brush's strokes (strokes.ts), bump-mapped
 // over the surface by its rest-pose position so they stick to the body, tilt
@@ -124,7 +124,7 @@ const shellUniforms = () => ({
   rimWidth: uniform(0.3),
   rimSoftness: uniform(0),
   rimColor: uniform(new Color(0xffffff)),
-  /** Between the stop motion's beats: where the toon steps fall, shifted; and the strokes, nudged. */
+  /** Between the stop motion's beats: where the toon steps fall, shifted; and the strokes, nudged. Read only by a shell made to take beats. */
   shadeShift: uniform(0),
   strokeOffset: uniform(new Vector2()),
 })
@@ -141,8 +141,11 @@ const asVec3 = (node: Node) => node as unknown as Vec3Node
 /** Lambert's diffuse of `color`, typed as the vec3 it is. */
 const lambert = (color: Node) => asVec3(BRDF_Lambert({ diffuseColor: color }))
 
-/** The toon step for a light falling as square as `dotNL` on the surface: `gradient` read there, moved by `shift`. */
-const toonStep = (gradient: DataTexture, dotNL: Node<'float'>, shift: Node<'float'>) => texture(gradient, vec2(dotNL.mul(0.5).add(0.5).add(shift), 0)).r
+/** The toon step for a light falling as square as `dotNL` on the surface: `gradient` read there, moved by `shift` where given. */
+const toonStep = (gradient: DataTexture, dotNL: Node<'float'>, shift?: Node<'float'>) => {
+  const at = dotNL.mul(0.5).add(0.5)
+  return texture(gradient, vec2(shift === undefined ? at : at.add(shift), 0)).r
+}
 
 /** What scales a shell's rim, drawing by drawing: its strength and its width, each times the look's. */
 export interface RimScale {
@@ -154,6 +157,8 @@ export interface RimScale {
 interface ShellTerms {
   highlight: boolean
   rim: boolean
+  /** Whether its toon steps move on the stop motion's beats: only on a shell made to take them. */
+  beats: boolean
 }
 
 class ShellLightingModel extends LightingModel {
@@ -176,7 +181,7 @@ class ShellLightingModel extends LightingModel {
     const rimWidth = this.rimScale === undefined ? this.shell.rimWidth : this.shell.rimWidth.mul(this.rimScale.width)
     const lightDirection = asVec3(direction)
     const dotNL = this.thin ? leafFacing({ lightDirection: direction, lightNode }) : normalView.dot(lightDirection)
-    const irradiance = asVec3(color).mul(toonStep(this.gradient, dotNL, this.shell.shadeShift))
+    const irradiance = asVec3(color).mul(toonStep(this.gradient, dotNL, this.terms.beats ? this.shell.shadeShift : undefined))
     const directDiffuse = asVec3(reflectedLight.directDiffuse)
     const directSpecular = asVec3(reflectedLight.directSpecular)
 
@@ -226,7 +231,10 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   readonly parts: ShellUniforms['specularColor'][]
   /** The glowing part's index, -1 none, and how bright it glows: its colour times this, added as emission. */
   readonly glow = { part: uniform(-1), strength: uniform(0) }
-  /** A flash over the whole body, its colour times this, added as emission, lit or in the dark: a bite on him (goosefelt.ts biteFrame). */
+  /**
+   * A flash over the whole body, its colour times this, added as emission, lit or in the dark: a bite on him (goosefelt.ts
+   * biteFrame). In the shader only of a shell made to flash, with parts.
+   */
   readonly flash = { color: uniform(new Color(0xffffff)), strength: uniform(0) }
   /** Its toon steps, at the default to start. */
   readonly gradient: DataTexture
@@ -236,6 +244,10 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   private readonly specularScale: Node<'float'> | undefined
   /** Whether it is leaves, as made: a lamp's light through the card from either side (leaflight.ts). */
   private readonly thin: boolean
+  /** Whether it takes the stop motion's beats, as made, or as the shell it shares: its toon steps shifted and its strokes nudged by `setBeat`. */
+  private readonly beats: boolean
+  /** Its painted normal, as made, and up, which the rounding bends it toward; none on a shell made without them. */
+  private readonly bend: { bumped: Node<'vec3'>; up: Node<'vec3'> } | undefined
   /** The painted normals' uniforms; unused on a shell made without them. */
   readonly paint = { strength: uniform(0), density: uniform(6), rounding: uniform(0), strokeOffset: uniform(new Vector2()), extent: uniform(1) }
   /** The strokes' texture node, its texture the one at the folder's stroke size. */
@@ -246,6 +258,8 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
    */
   withHighlight = false
   withRim = false
+  /** Whether its painted normal is bent toward up: only while the rounding is more than 0, as the highlight and the rim are drawn. */
+  withRounding = false
   /** The shells of one look, this one among them: each built again as `set` turns a term on or off on any. */
   private readonly sharers: ShellToonMaterial[]
 
@@ -256,9 +270,11 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     rimScale,
     specularScale,
     thin = false,
+    flash = false,
+    beats = false,
     sharing,
     ...parameters
-  }: ConstructorParameters<typeof MeshToonNodeMaterial>[0] & { parts?: number; tint?: Node; painted?: Painted; rimScale?: RimScale; specularScale?: Node<'float'>; thin?: boolean; sharing?: ShellToonMaterial } = {}) {
+  }: ConstructorParameters<typeof MeshToonNodeMaterial>[0] & { parts?: number; tint?: Node; painted?: Painted; rimScale?: RimScale; specularScale?: Node<'float'>; thin?: boolean; flash?: boolean; beats?: boolean; sharing?: ShellToonMaterial } = {}) {
     const gradient = sharing?.gradient ?? createToonGradient()
     super({ ...parameters, gradientMap: gradient })
     this.gradient = gradient
@@ -271,24 +287,28 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     this.sharers.push(this)
     this.withHighlight = sharing?.withHighlight ?? false
     this.withRim = sharing?.withRim ?? false
+    this.withRounding = sharing?.withRounding ?? false
     this.rimScale = rimScale
     this.specularScale = specularScale
     this.thin = thin
+    // A shell sharing one that takes the beats reads the same shift and nudge, so takes them too.
+    this.beats = beats || (sharing?.beats ?? false)
     if (painted !== undefined) {
       // Strokes laid over the body by its rest-pose position, slanted so no
       // face sees them edge on, bumped over the base normal by three's bump
-      // node; then bent toward up by the rounding.
+      // node; then bent toward up by the rounding, where it has any.
       const rest = attribute('position', 'vec3')
       const slant = rest.x.mul(0.5)
       // Its extent a uniform and no number in the shader, so shells of other sizes share one: on a phone a shader's first build is half a second.
       this.paint.extent.value = painted.extent
-      const over = vec2(rest.z.add(slant), rest.y.add(slant)).mul(this.paint.density).div(this.paint.extent).add(this.paint.strokeOffset)
+      const laid = vec2(rest.z.add(slant), rest.y.add(slant)).mul(this.paint.density).div(this.paint.extent)
+      const over = this.beats ? laid.add(this.paint.strokeOffset) : laid
       // A vec3, as @types/three 0.187 types the bump node with no type of its own.
       const strokes = (sharing?.strokes as ReturnType<typeof texture> | undefined) ?? texture(strokesAt(1), over)
       this.strokes = strokes
       const bumped = bumpMap(strokes, this.paint.strength, asVec3(painted.base ?? normalView)) as unknown as Node<'vec3'>
-      const up = cameraViewMatrix.mul(vec4(0, 1, 0, 0)).xyz
-      this.normalNode = mix(bumped, up, this.paint.rounding).normalize()
+      this.bend = { bumped, up: cameraViewMatrix.mul(vec4(0, 1, 0, 0)).xyz }
+      this.normalNode = this.paintedNormal()
     }
     this.parts = Array.from({ length: parts }, () => uniform(new Color(0xffffff)))
     if (parts > 0) {
@@ -302,8 +322,17 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
       this.colorNode = tinted.mul(materialColor)
       // The glow: the glowing part's colour, by the strength, where this vertex is that part.
       // Typed on the standard node material but not on the toon one; three's node material reads it on both.
-      ;(this as unknown as { emissiveNode: Node | null }).emissiveNode = asVec3(colour).mul(this.glow.strength).mul(glowing).add(this.flash.color.mul(this.flash.strength))
+      // And the flash over the whole body, on a shell made to flash.
+      const glow = asVec3(colour).mul(this.glow.strength).mul(glowing)
+      ;(this as unknown as { emissiveNode: Node | null }).emissiveNode = flash ? glow.add(this.flash.color.mul(this.flash.strength)) : glow
     }
+  }
+
+  /** Its painted normal: the strokes' bump, bent toward up by the rounding only while `withRounding` says so. */
+  private paintedNormal(): Node<'vec3'> | null {
+    if (this.bend === undefined) return null
+    // The bump node's normal is normalized already: with no bend, it is drawn as it is.
+    return this.withRounding ? mix(this.bend.bumped, this.bend.up, this.paint.rounding).normalize() : this.bend.bumped
   }
 
   /**
@@ -317,7 +346,7 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   }
 
   override setupLightingModel(): ShellLightingModel {
-    const terms = { highlight: this.withHighlight, rim: this.withRim }
+    const terms = { highlight: this.withHighlight, rim: this.withRim, beats: this.beats }
     return new ShellLightingModel(this.shell, this.gradient, terms, this.rimScale, this.specularScale, this.thin)
   }
 
@@ -329,7 +358,8 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   /**
    * This beat's variation: the toon steps moved by `shade` along the gradient
    * (0 to 1 is its whole width), and the strokes nudged by `dx`, `dy` in
-   * tiles of strokes. Zeros between beats or with the stop motion off.
+   * tiles of strokes. Zeros between beats or with the stop motion off. Seen
+   * only on a shell made to take beats, or sharing one that does.
    */
   setBeat(shade: number, dx: number, dy: number): void {
     this.shell.shadeShift.value = shade
@@ -348,6 +378,13 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     this.paint.density.value = look.density
     this.paint.rounding.value = look.rounding
     if (this.strokes !== undefined) this.strokes.value = strokesAt(look.size)
+    const rounding = look.rounding > 0
+    for (const shell of this.sharers) {
+      if (shell.withRounding === rounding) continue
+      shell.withRounding = rounding
+      shell.normalNode = shell.paintedNormal() ?? shell.normalNode
+      shell.needsUpdate = true
+    }
   }
 
   /** Take the rats folder's values; the shader reads them from the next frame. */

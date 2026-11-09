@@ -7,7 +7,7 @@ import type { FlameLook } from './light/flame'
 import type { AOLook, BloomLook, DofLook, GrainLook, HatchLook, ScreenLook, VignetteLook } from './look/post'
 import type { PaintLook, RimLook, ShellLook } from './look/shell'
 import type { ToonLook } from './look/toon'
-import type { LevelsLook, Part, StaggerLook, TrailLook, Variant } from './swarm/rats'
+import type { LevelsLook, Part, StaggerLook, TrailLook } from './swarm/rats'
 import type { FloorLook } from './world/ground'
 
 /** What the panel edits. The page reads it, and is told when a group of it changes. */
@@ -92,11 +92,10 @@ export interface Look {
   fog: { enabled: boolean; color: number; horizon?: number; band?: number; near: number; far: number; density: number; wisp: number; scale: number; drift: number; lit?: number; litColor?: number; litSpread?: number }
   /**
    * The rats' colours: one for each part the model has, in the model's own to
-   * start, and a tint over them all; the variants, each a tint over its share
-   * of the rats, the eyes left out; their shell's rim, matt; and their toon
-   * steps.
+   * start, and a tint over them all; a second tint over every rat, the eyes
+   * left out; their shell's rim, matt; and their toon steps.
    */
-  rats: { color: number; parts: Part[]; variants: Variant[]; glow: number; toon: ToonLook; paint: PaintLook; levels: LevelsLook; stagger: StaggerLook } & RimLook
+  rats: { color: number; parts: Part[]; tint: number; glow: number; toon: ToonLook; paint: PaintLook; levels: LevelsLook; stagger: StaggerLook } & RimLook
   /** The flagstone floor: how light, how saturated, how big a tile is in metres, how deep its relief; its shell; its painted normals; its toon steps. */
   floor: FloorLook & { shell: ShellLook; paint: PaintLook; toon: ToonLook }
   /** The ambient occlusion over the frame. */

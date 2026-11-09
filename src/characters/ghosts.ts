@@ -271,8 +271,6 @@ export function createGhosts(
   walk?: Walk,
   /** Where given, each ghost's lamp a fake lamp of these (fakelamps.ts), not a point light. */
   lamps?: FakeLamps,
-  /** How many times each cloth square is cut a side where it is drawn, 1 drawing the cloth's points as they are. */
-  refine = 1,
 ): Ghosts {
   const look = defaultLook()
   if (new URLSearchParams(location.search).has('ghostdebug')) look.showBodies = look.showWorn = true
@@ -549,79 +547,41 @@ export function createGhosts(
     here.addAssign(laid.element(vertexParams.element(instanceIndex).w.add(uint(SHIFTS))).xyz)
   })().compute(N) as ComputeNode
 
-  // The drawn sheets, each cloth square cut `refine` times a side: every drawn point laid on the Catmull-Rom patch
-  // through the sixteen cloth points round its square, its normal the patch's own, so a fold is drawn round rather
-  // than in the cloth's straight segments. The cloth itself is stepped as laid; 1 draws its points as they are.
-  const R = Math.max(1, Math.round(refine))
-  const F = (SIDE - 1) * R + 1
-  const FV = F * F
-  // Each drawn point's square, (its ghost's first cloth point, its column, its row), and where in it, (0 to 1, 0 to 1).
-  const cells = new Float32Array(count * FV * 3)
-  const patches = new Float32Array(count * FV * 2)
-  const rest = new Float32Array(count * FV * 2)
+  // The drawn sheets, a vertex on every cloth point, in the cloth's own order. Each knows its point and the points
+  // either side of it, across (its column's) and along (its row's); on the sheet's edge it stands in for the one past it.
+  const clothIds = new Float32Array(N)
+  const sides = new Float32Array(N * 4)
+  const rest = new Float32Array(N * 2)
   const index: number[] = []
-  for (let g = 0; g < count; g++)
-    for (let fj = 0; fj < F; fj++)
-      for (let fi = 0; fi < F; fi++) {
-        const n = g * FV + fj * F + fi
-        const i = Math.min(Math.floor(fi / R), SIDE - 2)
-        const j = Math.min(Math.floor(fj / R), SIDE - 2)
-        cells.set([g * V, i, j], n * 3)
-        patches.set([fi / R - i, fj / R - j], n * 2)
-        const [x, z] = disc((fi / (F - 1)) * 2 - 1, (fj / (F - 1)) * 2 - 1)
-        rest.set([x * RADIUS, z * RADIUS], n * 2)
-        if (fi + 1 < F && fj + 1 < F) index.push(n, n + F, n + 1, n + 1, n + F, n + F + 1)
+  for (let g = 0; g < count; g++) {
+    rest.set(restXZ, g * V * 2)
+    for (let j = 0; j < SIDE; j++)
+      for (let i = 0; i < SIDE; i++) {
+        const n = g * V + at(i, j)
+        clothIds[n] = n
+        const [i0, i1, j0, j1] = [Math.max(i - 1, 0), Math.min(i + 1, SIDE - 1), Math.max(j - 1, 0), Math.min(j + 1, SIDE - 1)]
+        sides.set([g * V + at(i0, j), g * V + at(i1, j), g * V + at(i, j0), g * V + at(i, j1)], n * 4)
+        if (i + 1 < SIDE && j + 1 < SIDE) index.push(n, n + SIDE, n + 1, n + 1, n + SIDE, n + SIDE + 1)
       }
+  }
   const geometry = new BufferGeometry()
-  geometry.setAttribute('position', new Float32BufferAttribute(new Float32Array(count * FV * 3), 3))
-  geometry.setAttribute('cell', new Float32BufferAttribute(cells, 3))
-  geometry.setAttribute('inCell', new Float32BufferAttribute(patches, 2))
+  geometry.setAttribute('position', new Float32BufferAttribute(new Float32Array(N * 3), 3))
+  geometry.setAttribute('cloth', new Float32BufferAttribute(clothIds, 1))
+  geometry.setAttribute('sides', new Float32BufferAttribute(sides, 4))
   geometry.setAttribute('rest', new Float32BufferAttribute(rest, 2))
   geometry.setIndex(index)
 
   const paint = sheetPaint(look)
   const showWorn = uniform(0)
   const sheet = new MeshLambertNodeMaterial({ side: DoubleSide, transparent: true })
-  const cell = attribute('cell', 'vec3')
-  const patch = attribute('inCell', 'vec2')
-  /** The cloth point `a` across and `b` along from the square's corner, clamped to the sheet. */
-  const idAt = (a: number, b: number) =>
-    uint(cell.x.add(cell.z.add(b).clamp(0, SIDE - 1).mul(SIDE)).add(cell.y.add(a).clamp(0, SIDE - 1)))
-  const points = [-1, 0, 1, 2].map((a) => [-1, 0, 1, 2].map((b) => position.element(idAt(a, b))))
-  /** Catmull-Rom's four weights at `t`, and their slopes. */
-  const weights = (t: typeof patch.x) => {
-    const t2 = t.mul(t)
-    const t3 = t2.mul(t)
-    return [
-      t3.negate().add(t2.mul(2)).sub(t).mul(0.5),
-      t3.mul(3).sub(t2.mul(5)).add(2).mul(0.5),
-      t3.mul(-3).add(t2.mul(4)).add(t).mul(0.5),
-      t3.sub(t2).mul(0.5),
-    ]
-  }
-  const slopes = (t: typeof patch.x) => {
-    const t2 = t.mul(t)
-    return [
-      t2.mul(-3).add(t.mul(4)).sub(1).mul(0.5),
-      t2.mul(9).sub(t.mul(10)).mul(0.5),
-      t2.mul(-9).add(t.mul(8)).add(1).mul(0.5),
-      t2.mul(3).sub(t.mul(2)).mul(0.5),
-    ]
-  }
-  /** The patch's sixteen points summed, weighed by `wu` across and `wv` along. */
-  const patchSum = (wu: ReturnType<typeof weights>, wv: ReturnType<typeof weights>) => {
-    let total: Node<'vec3'> = vec3(0, 0, 0)
-    for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) total = total.add(points[a]![b]!.mul(wu[a]!.mul(wv[b]!)))
-    return total
-  }
-  const wu = weights(patch.x)
-  const wv = weights(patch.y)
-  sheet.positionNode = patchSum(wu, wv)
-  // Across the patch and along it: the normal as the cloth's own neighbours gave it, (along) x (across).
-  const along = patchSum(slopes(patch.x), wv)
-  const across = patchSum(wu, slopes(patch.y))
-  sheet.normalNode = transformNormalToView(across.cross(along).normalize()).toVarying().mul(faceDirection)
-  const worn = vertexParams.element(idAt(0, 0)).x.toFloat().toVarying()
+  const drawn = uint(attribute('cloth', 'float'))
+  const side = attribute('sides', 'vec4')
+  sheet.positionNode = position.element(drawn)
+  // Across the sheet and along it, from the neighbours either side: the normal as the cloth's own points give it.
+  const across = position.element(uint(side.y)).sub(position.element(uint(side.x)))
+  const along = position.element(uint(side.w)).sub(position.element(uint(side.z)))
+  sheet.normalNode = transformNormalToView(along.cross(across).normalize()).toVarying().mul(faceDirection)
+  const worn = vertexParams.element(drawn).x.toFloat().toVarying()
   const restAt = attribute('rest', 'vec2')
   sheet.opacityNode = paintSheet(sheet, paint, restAt, mix(paint.colour, vec3(1, 0.2, 0.1), worn.mul(showWorn)))
   sheet.alphaTest = 0.05

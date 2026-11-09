@@ -144,7 +144,7 @@ export const RAT: Creature = {
   // Untinted: its own three colours.
   color: 0xffffff,
   // White fur on a pale pink-grey skin (belly, paws, ears and tail), for the
-  // variants' tints to colour, the skin a shade apart from the fur whatever
+  // rats' tint to colour, the skin a shade apart from the fur whatever
   // the tint; the eyes the trails' own colour, so a dot and its streak are one mark. Lemon 0xf3ff47 (panel, 2026-10-05)
   // read as floor glitter in the mass; the lamp's amber (2026-10-07) as one more orange beside the flame; a cold
   // green, then blood red for Halloween; the amber again since 2026-10-11, as the goose's screenshots have it.
@@ -159,15 +159,6 @@ const cycle = (clip: Clip) => clip.frames / clip.fps
 
 const UP = new Vector3(0, 1, 0)
 const RIGHT = new Vector3(1, 0, 0)
-
-/** How many variants the rats come in. */
-const VARIANTS = 4
-
-/** A variant: the tint its rats wear over every part but the eyes, and its share of the swarm, against the others'. */
-export interface Variant {
-  tint: number
-  share: number
-}
 
 /** A part of a model: its name, and the colour it was modelled in, as hex. */
 export interface Part {
@@ -340,8 +331,8 @@ export class Rats {
   /** The gait each rat's row was last written for. */
   private readonly gaits: Uint8Array
   private speed: number
-  /** Each variant's tint, and where its rats end on the zero-to-one a rat's index is spread over. */
-  private readonly variants = Array.from({ length: VARIANTS }, () => ({ tint: uniform(new Color(0xffffff)), end: uniform(1) }))
+  /** The tint every rat wears over every part but the eyes. */
+  private readonly tint = uniform(new Color(0xffffff))
   /** The eyes a rat has: none on a model with no eyes part. */
   private readonly eyes: number
   /**
@@ -430,10 +421,9 @@ export class Rats {
     // tint. A model with no parts named keeps its vertex colours as baked.
     const parts = partition(vat.geometry, creature.parts)
     this.parts = parts
-    // Each rat's variant, by its index times the golden ratio, so the shares
-    // hold however many are shown and neighbours in spawn order differ. A
-    // rat's index never changes, so neither does its colour. Picked once a
-    // vertex, not once a pixel: the tint reaches the fragment as a varying.
+    // Every rat in the one tint, or in its level's or its stagger group's
+    // where those are shown: picked once a vertex, not once a pixel, the tint
+    // reaching the fragment as a varying.
     // On the GPU's carrier the drawn slot is not the rat: the cull says which rat it is.
     this.indexCount = vat.geometry.getIndex()?.count ?? 0
     this.cull = gpu === undefined ? undefined : new GpuCull(capacity, this.indexCount, CULL_MARGIN, ground, LEVELS.length)
@@ -442,9 +432,7 @@ export class Rats {
       LEVELS.slice(0, -1).forEach((level, l) => (this.cull!.lod.limits[l]!.value = level.from))
     }
     const ratIndex = float(this.cull?.logicalIndex ?? batchIndirectIndex)
-    const spread = ratIndex.mul(0.6180339887).fract()
-    let tint: Node = this.variants[VARIANTS - 1].tint
-    for (let i = VARIANTS - 2; i >= 0; i--) tint = select(spread.lessThan(this.variants[i].end), this.variants[i].tint, tint)
+    let tint: Node = this.tint
     if (this.cull !== undefined) {
       const level = this.cull.level
       let shown: Node = color(LEVEL_TINTS[LEVEL_TINTS.length - 1]!)
@@ -481,6 +469,7 @@ export class Rats {
       vertexColors: parts.length === 0 && vat.geometry.hasAttribute('color'),
       painted: { extent: length },
       rimScale,
+      beats: true,
     })
     parts.forEach((part, i) => this.material.parts[i].value.set(part.color))
     this.eyePart = parts.findIndex((part) => part.name === 'eyes')
@@ -721,17 +710,9 @@ export class Rats {
     if (this.parts[i]?.name === 'eyes') this.trails.setEyeColour(hex)
   }
 
-  /** Tint each variant's rats, in the shares given; shares all zero, and each has an equal one. */
-  setVariants(variants: readonly Variant[]): void {
-    const total = variants.reduce((sum, v) => sum + Math.max(0, v.share), 0)
-    let end = 0
-    this.variants.forEach((uniforms, i) => {
-      const v = variants[i]
-      uniforms.tint.value.set(v?.tint ?? 0xffffff)
-      end += total > 0 ? Math.max(0, v?.share ?? 0) / total : 1 / VARIANTS
-      // The last ends past one, so no rat falls beyond it to rounding.
-      uniforms.end.value = i === VARIANTS - 1 ? 2 : end
-    })
+  /** Tint every rat `hex` over every part but the eyes, from the next frame. */
+  setTint(hex: number): void {
+    this.tint.value.set(hex)
   }
 
   /**

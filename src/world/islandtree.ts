@@ -318,7 +318,7 @@ export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeL
 
   const wind = createTreeWind(laid, MODEL_TRUNK, crownReach)
   const grass = createFootGrass()
-  const barkLaid = createBark(grass)
+  const barkLaid = createBark()
   barkLaid.set(look.bark)
   const bark = new ShellToonMaterial({ color: look.wood, side: DoubleSide, painted: { extent: (STROKE_BODY * laid) / look.size, base: barkLaid.normal } })
   // Still, its wood and leaves stand as laid, no wind worked out a vertex: a phone's, where it cost the ending 10 ms.

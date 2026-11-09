@@ -342,13 +342,11 @@ export interface GrassLook {
   lightness: number
   /** How sharply it turns from laid down from above to laid onto the sides: 1 soft, more sharper. */
   sharpness: number
-  /** How much of the bark's relief shows through it: 0 none, 1 all. */
-  relief: number
 }
 
 /** The grass to start, as set from the panel on 2026-10-28: half a metre of it, fading over the next, its line wobbling a little and finely, laid sharply from above or from a side, the bark's relief all through it. */
 export function defaultGrassLook(): GrassLook {
-  return { show: true, height: 0.53, fade: 0.43, wobble: 0.08, wobbleSize: 0.17, lightness: 1, sharpness: 16, relief: 1 }
+  return { show: true, height: 0.53, fade: 0.43, wobble: 0.08, wobbleSize: 0.17, lightness: 1, sharpness: 16 }
 }
 
 /** What the dead trees' leaves folder edits, after justASimpleTree's leaves section. */
@@ -748,8 +746,6 @@ export function thinTips(geometry: BufferGeometry): void {
 export interface FootGrass {
   colour: Node<'vec3'>
   amount: Node<'float'>
-  /** How much of the wood's relief shows through it, 0 none, 1 all, for a wood with relief to read. */
-  relief: Node<'float'>
   /** Take a grass folder's values and the floor's look it takes its grass from: a new floor is swapped in, nothing recompiled. */
   set(look: GrassLook, floor: FloorLook): void
 }
@@ -766,7 +762,6 @@ export function createFootGrass(): FootGrass {
   const grassWobble = uniform(0).setGroup(renderGroup)
   const grassWobbleSize = uniform(1).setGroup(renderGroup)
   const grassSharpness = uniform(4).setGroup(renderGroup)
-  const grassRelief = uniform(0).setGroup(renderGroup)
   const floorLightness = uniform(1).setGroup(renderGroup)
   const floorSaturated = uniform(1).setGroup(renderGroup)
   const floorTurned = uniform(0).setGroup(renderGroup)
@@ -787,14 +782,12 @@ export function createFootGrass(): FootGrass {
   return {
     colour,
     amount,
-    relief: grassRelief,
     set(look, floor) {
       grassHeight.value = look.height
       grassFade.value = Math.max(0.01, look.fade)
       grassWobble.value = look.wobble
       grassWobbleSize.value = Math.max(0.01, look.wobbleSize)
       grassSharpness.value = Math.max(0.1, look.sharpness)
-      grassRelief.value = look.relief
       floorLightness.value = floor.lightness * look.lightness
       floorSaturated.value = floor.saturation
       floorTurned.value = (floor.hue * Math.PI) / 180
@@ -818,14 +811,14 @@ export function createFootGrass(): FootGrass {
 
 /** A tree's bark, for its wood's material, as the bark folder has it: laid by the wood's uvs, a metre of the tree as laid a unit. */
 export interface Bark {
-  /** The set's relief on the wood, a view normal, faded out under `foot`'s grass as much as it lets it through. */
+  /** The set's relief on the wood, a view normal, all through the grass at its foot. */
   normal: Node<'vec3'>
   /** Take the bark folder's values: a new set is loaded and swapped in, nothing recompiled. */
   set(look: BarkLook): void
 }
 
-/** The bark's relief, under the grass `foot`, on the plain wood colour, the material's own. */
-export function createBark(foot: FootGrass): Bark {
+/** The bark's relief on the plain wood colour, the material's own. */
+export function createBark(): Bark {
   // The bark's values, a uniform of the render's group each, since the trees are still meshes.
   const textured = uniform(0).setGroup(renderGroup)
   const tile = uniform(1).setGroup(renderGroup)
@@ -850,7 +843,7 @@ export function createBark(foot: FootGrass): Bark {
   const alongV = q1perp.mul(st0.y).add(q0perp.mul(st1.y))
   const across = max(alongU.dot(alongU), alongV.dot(alongV)).max(1e-12).inverseSqrt()
   const m = normalTexel.xyz.mul(2).sub(1)
-  const lean = relief.mul(textured).mul(across).mul(mix(float(1), foot.relief, foot.amount))
+  const lean = relief.mul(textured).mul(across)
   const normal = alongU.mul(m.x.mul(lean)).add(alongV.mul(m.y.mul(lean))).add(face.mul(m.z)).normalize()
   const lay = setLayer<BarkName>('./textures/bark', { normals: [normalTexel], textured })
   return {
@@ -934,7 +927,7 @@ export async function createDeadTrees(wood: number, groundAt: (x: number, z: num
   const wind = createTreeWind(TREES.laid, TREES.trunk, TREES.crown, windMap)
 
   const foot = createFootGrass()
-  const barkLaid = createBark(foot)
+  const barkLaid = createBark()
   const newBark = () => {
     const material = new ShellToonMaterial({ color: wood, side: DoubleSide, painted: { extent: STROKE_BODY, base: barkLaid.normal } })
     material.colorNode = mix(materialColor, foot.colour, foot.amount)

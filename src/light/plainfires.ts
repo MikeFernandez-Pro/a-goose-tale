@@ -297,7 +297,7 @@ export function createPlainFires({ scene, goosePlay, burningTreeLight, look, goo
   }
   return {
     fireLook, fireLooks, pitFireLook, crownFireLook, trunkFireLook, footFireLook,
-    branchLook, burningBranch, branchEmbers, branchFire,
+    branchLook, burningBranch, branchEmbers, branchFire, strike,
     plainFlames, plainFlame, sceneFires, pitFires, crownFires, trunkFires, footFire,
     sceneFireFoot,
     burningTreeFrame, branchFrame, branchFlared,

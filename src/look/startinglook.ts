@@ -99,16 +99,8 @@ export function startingLook() {
     rats: {
       color: RAT.color,
       parts: [],
-      // Four kinds of rat, each a tint over the white fur and pale skin: the
-      // fur's own near black and a warm dark grey make up most of the swarm,
-      // with a few cool dark greys and a rare pale one among them. Set from
-      // the panel on 2026-10-07.
-      variants: [
-        { tint: 0x282426, share: 0.25 },
-        { tint: 0x313335, share: 0.05 },
-        { tint: 0x3a3135, share: 0.23 },
-        { tint: 0x7e7777, share: 0.02 },
-      ],
+      // A tint over the white fur and pale skin, the eyes left out: none here, the game's set below.
+      tint: 0xffffff,
       // The eyes glow twice their colour, points of light in the dark.
       glow: 2,
       rim: true,
@@ -169,8 +161,8 @@ export function startingLook() {
     // The goose at the light, half a metre high, in its own colours, shaded as the rats start.
     goose: defaultGoose(),
     flame: defaultFlame(),
-    // The eyes' trails as the panel left them on 2026-10-07: short, a centimetre wide, needle-tapered, swaying hard, bright amber; no wiggle yet.
-    trails: { enabled: true, seconds: 0.11, width: 0.01, strength: 4, wave: 2, taper: 1.9, fade: 6, wiggle: 0, wiggleSpeed: 1.6, color: 0xffbe0a, eyeColour: false },
+    // The eyes' trails as the panel left them on 2026-10-07: short, a centimetre wide, needle-tapered, swaying hard, bright amber.
+    trails: { enabled: true, seconds: 0.11, width: 0.01, strength: 4, wave: 2, taper: 1.9, fade: 6, color: 0xffbe0a, eyeColour: false },
   }
 
   // The game plays smooth: no stop motion. Its lamp hangs over him, not in the flame at his beak, so his light is
@@ -185,7 +177,7 @@ export function startingLook() {
   Object.assign(look.fill, { sky: 0x67a8fe, ground: 0x633618, intensity: 0.75 })
   Object.assign(look.fog, { color: 0x0e6a7c, band: 15, near: 0, far: 15.75, density: 1, wisp: 0, scale: 0.5, drift: 0, lit: 0, litColor: 0xcc682e, litSpread: 0.8 })
   Object.assign(look.rats, { glow: 1.4, rim: true, rimStrength: 0.82, rimWidth: 0.24, rimSoftness: 0.34, rimColor: 0x58937f })
-  Object.assign(look.trails, { enabled: true, seconds: 0.11, width: 0.01, taper: 1.9, wave: 2, strength: 4, fade: 6, wiggle: 0, wiggleSpeed: 1.6, eyeColour: true })
+  Object.assign(look.trails, { enabled: true, seconds: 0.11, width: 0.01, taper: 1.9, wave: 2, strength: 4, fade: 6, eyeColour: true })
   const gooseTheme = gooseThemeOf(url.get('theme') ?? GOOSE_THEME)
   if (gooseTheme) layInto(look, gooseTheme.look)
   // The game's rats matt since 2026-10-26, whatever the theme: no highlight. Their rim, the theme's, back in violet since 2026-11-09.
@@ -196,7 +188,7 @@ export function startingLook() {
   Object.assign(look.lamp, { color: 0xf09a60, intensity: 7, reach: 4.7, falloff: 0, lag: 0.08, inFlame: false })
   Object.assign(look.sun, { color: 0xa094ff, intensity: 2.5, x: -23.5, y: 27, z: 25, shadows: true, softness: 1.5, darkness: 0.64, shadowColor: 0x241d3a })
   Object.assign(look.fill, { sky: 0x754b8b, ground: 0x221a28, intensity: 0.8 })
-  look.rats.variants = [{ tint: 0x5c4d5a, share: 1 }]
+  look.rats.tint = 0x5c4d5a
   // The torch's smoke faint, whatever the theme, since 2026-11-01; a pale lilac since 2026-11-09.
   Object.assign(look.flame.smoke, { color: 0xf3d6ff, opacity: 0.1 })
   // The fog paler toward the horizon (2026-10-25), whatever the theme: a soft gradient down the frame, the top of which

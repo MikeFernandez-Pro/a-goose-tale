@@ -106,10 +106,9 @@ export interface RoadLook {
   /** How much a slab's height keeps it, its edges going first; and how much the noise's patches take or leave of it. */
   breakup: number
   patches: number
-  /** The stones' own painting, as the floor's, but laid along the road: their tiles turned by `rotation` from its way. */
+  /** The stones' own painting, as the floor's but in the hue they are painted, laid along the road: their tiles turned by `rotation` from its way. */
   lightness: number
   saturation: number
-  hue: number
   scale: number
   rotation: number
   relief: number
@@ -117,7 +116,7 @@ export interface RoadLook {
 
 /** The road as first laid, 2026-10-24, set again on 2026-10-25: a path's width of grey-blue slabs laid crosswise, deep in relief, dimmed and muted to sit in the dirt, half again as big as painted. */
 export function defaultRoadLook(): RoadLook {
-  return { width: 1.05, edge: 0.5, wobble: 0.35, patchSize: 1.6, breakup: 2.2, patches: 0.3, lightness: 0.55, saturation: 0.55, hue: 0, scale: 2.4, rotation: 90, relief: 3 }
+  return { width: 1.05, edge: 0.5, wobble: 0.35, patchSize: 1.6, breakup: 2.2, patches: 0.3, lightness: 0.55, saturation: 0.55, scale: 2.4, rotation: 90, relief: 3 }
 }
 
 /** How many wells the floor lays its ground under. */
@@ -192,10 +191,9 @@ export interface BedLook {
   wobbleSize: number
   /**
    * The beach: how far out past the shore the bed reaches onto the floor, m, fading into it on the way, 0 none, the
-   * bed then only down the bank; and how far the noise moves its edge in and out, m.
+   * bed then only down the bank; its edge plain, as far out all round.
    */
   beach: number
-  beachWobble: number
   /** How far up from the pond's island's waterline its sand reaches, m, fading into the grass on its top; 0 none. */
   islandBeach: number
   /**
@@ -233,7 +231,6 @@ export function defaultBedLook(): BedLook {
     wobble: 0.215,
     wobbleSize: 3.45,
     beach: 2,
-    beachWobble: 0,
     islandBeach: 0.8,
     breakup: 3.1,
     scale: 2.5,
@@ -349,7 +346,6 @@ export async function floor(
   const bedWobbleSize = uniform(1).setGroup(renderGroup)
   const bedBreakup = uniform(0).setGroup(renderGroup)
   const beach = uniform(0).setGroup(renderGroup)
-  const beachWobble = uniform(0).setGroup(renderGroup)
   const islandBeach = uniform(0).setGroup(renderGroup)
   // The shore's distances, and in green the island's, half floats, filtered, so the beach's edge is smooth between
   // texels; far past any shore and off any island until the pond lays its own. Where on the floor they lie: the
@@ -380,16 +376,15 @@ export async function floor(
   const depth = max(positionWorld.y.negate(), 0)
   const waver = perlin(vec3(positionWorld.xz.div(bedWobbleSize), 0))
   const downBank = smoothstep(bedFrom, bedTo, depth.add(waver.mul(bedWobble))).mul(smoothstep(0, BED_STARTS, depth))
-  // And out past the shore, onto the floor, by how far it is from the shore, its edge wavering by the same noise:
-  // all bed inside the shore, so the beach runs on down the bank. None where there is no beach.
+  // And out past the shore, onto the floor, by how far it is from the shore, its edge plain: all bed inside the
+  // shore, so the beach runs on down the bank. None where there is no beach.
   const shoreAt = shoreBox.zw.mul(positionWorld.xz.sub(shoreBox.xy))
   const shoreTexel = texture(shoreMap, shoreAt)
-  const pastShore = shoreTexel.r.add(waver.mul(beachWobble))
-  const pondBeach = smoothstep(beach, 0, pastShore).mul(step(0.001, beach))
+  const pondBeach = smoothstep(beach, 0, shoreTexel.r).mul(step(0.001, beach))
   // On the island, its own sand up from its waterline into the grass on its top instead: all bed inside the pond's
   // shore but there.
   const onIsland = shoreTexel.g
-  const islandSand = smoothstep(islandBeach, 0, onIsland.add(waver.mul(beachWobble))).mul(step(0.001, islandBeach))
+  const islandSand = smoothstep(islandBeach, 0, onIsland).mul(step(0.001, islandBeach))
   const onBeach = mix(pondBeach, islandSand, step(0, onIsland))
   const fade = max(downBank, onBeach)
   // Broken up by the floor's painting: where the sand is lighter than the grass it shows sooner, most in the middle of the fade.
@@ -443,7 +438,6 @@ export async function floor(
   const roadPatches = uniform(0).setGroup(renderGroup)
   const roadLightness = uniform(1).setGroup(renderGroup)
   const roadSaturated = uniform(1).setGroup(renderGroup)
-  const roadTurned = uniform(0).setGroup(renderGroup)
   const roadScale = uniform(1).setGroup(renderGroup)
   const roadRelief = uniform(1).setGroup(renderGroup)
   const roadTurn = uniform(new Vector2(1, 0)).setGroup(renderGroup)
@@ -496,12 +490,13 @@ export async function floor(
   const seen = seenOf({ lean, up })
   // The shell paints its strokes over the map's normal, as the camera sees it; a stroke's density counts per metre.
   const painted = strokes && !cut.has('strokes')
-  const material = new ShellToonMaterial(painted ? { painted: { extent: 1, base: seen } } : {})
+  // It takes the stop motion's beats, as the rats do; its zones, sharing it, with it.
+  const material = new ShellToonMaterial(painted ? { painted: { extent: 1, base: seen }, beats: true } : { beats: true })
   if (!painted) material.normalNode = seen
   const plainColour = saturation(turnHue(colourTexel.rgb, turned), saturated).mul(lightness)
   const wellColour = wellColourTexel && saturation(turnHue(wellColourTexel.rgb, wellTurned), wellSaturated).mul(wellLightness)
   const groundColour = wellColour ? mix(plainColour, wellColour, inWell) : plainColour
-  const roadColour = roadColourTexel && saturation(turnHue(roadColourTexel.rgb, roadTurned), roadSaturated).mul(roadLightness)
+  const roadColour = roadColourTexel && saturation(roadColourTexel.rgb, roadSaturated).mul(roadLightness)
   const pavedColour = roadColour ? mix(groundColour, roadColour, inRoad) : groundColour
   // Under the water the ground takes less of the light, by the Beer-Lambert law: what is left of each colour after
   // the way down to it and back up, twice its depth under the surface, the red going first. Its colour is what the
@@ -550,8 +545,8 @@ export async function floor(
     const margin = radius + cell * Math.SQRT2
     // Wholly on the pond's island, its own sand up from its waterline; anywhere else the pond's beach, all bed inside its shore.
     const onIsland = island[row * SHORE_FIELD + column]! - margin
-    if (onIsland >= 0) return onIsland < islandBeach.value + Math.abs(beachWobble.value)
-    return data[row * SHORE_FIELD + column]! - margin < beach.value + Math.abs(beachWobble.value)
+    if (onIsland >= 0) return onIsland < islandBeach.value
+    return data[row * SHORE_FIELD + column]! - margin < beach.value
   }
   /** The floor's triangles parted anew, and those of what else is `part`ed, the shore or the wells having moved: only a phone's, with no panel moving their looks. */
   const layZones = () => {
@@ -635,7 +630,6 @@ export async function floor(
       roadPatches.value = look.patches
       roadLightness.value = look.lightness
       roadSaturated.value = look.saturation
-      roadTurned.value = (look.hue * Math.PI) / 180
       roadScale.value = Math.max(0.05, look.scale)
       roadRelief.value = look.relief
       const roadAngle = (look.rotation * Math.PI) / 180
@@ -692,7 +686,6 @@ export async function floor(
       bedWobbleSize.value = Math.max(0.01, look.wobbleSize)
       bedBreakup.value = look.breakup
       beach.value = Math.max(0, look.beach)
-      beachWobble.value = look.beachWobble
       islandBeach.value = Math.max(0, look.islandBeach)
       bedScale.value = Math.max(0.05, look.scale)
       bedRelief.value = look.relief
