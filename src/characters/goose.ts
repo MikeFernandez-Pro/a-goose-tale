@@ -232,7 +232,7 @@ export const defaultGoose = (): GooseLook => ({
   rimSoftness: 0.1,
   rimColor: 0xedbefe,
   paint: { strength: 1.3, density: 2.5, size: 1.75, rounding: 0 },
-  toon: { steps: 3, three: [0.03, 0.38, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
+  toon: { steps: 3, three: [0.03, 0.38, 1] },
 })
 
 export interface Goose {

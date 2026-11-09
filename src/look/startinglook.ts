@@ -24,7 +24,7 @@ const stylizedFloor = (texture: FloorName, own: Partial<Look['floor']> = {}): Lo
   rotation: 0,
   shell: { specular: 0, shininess: 53, softness: 0, specularColor: 0xffffff, rim: false, rimStrength: 0.25, rimWidth: 0, rimSoftness: 0, rimColor: 0xe7febe },
   paint: { strength: 4, density: 0.7, size: 3.35, rounding: 0.01 },
-  toon: { steps: 3, three: [0.3, 0.51, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
+  toon: { steps: 3, three: [0.3, 0.51, 1] },
   ...own,
 })
 /**
@@ -117,7 +117,7 @@ export function startingLook() {
       rimWidth: 0.24,
       rimSoftness: 0.34,
       rimColor: 0xbefecd,
-      toon: { steps: 3, three: [0, 0.38, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
+      toon: { steps: 3, three: [0, 0.38, 1] },
       paint: { strength: 1.3, density: 2.5, size: 1.75, rounding: 0 },
       // Drawn simpler the fewer pixels long a rat stands, on WebGPU (ADR-0057); `?lod=0` starts with every rat whole.
       levels: { on: url.get('lod') !== '0', show: false, split: 'none', blur: 1, levels: LEVELS.map((level) => ({ ...level })) },

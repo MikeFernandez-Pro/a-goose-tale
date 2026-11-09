@@ -1168,10 +1168,7 @@ function addPull(gui: GUI, crowd: CrowdTuning): void {
 const byIndex = (values: number[]) => values as unknown as Record<string, number>
 
 /** What each toon step is, darkest first. */
-const STEP_NAMES = {
-  3: ['shade', 'half-light', 'full light'],
-  5: ['deep shade', 'shade', 'half-light', 'light', 'full light'],
-}
+const STEP_NAMES = ['shade', 'half-light', 'full light']
 
 /** The look folders. */
 /** The look's folders. */
@@ -1582,14 +1579,12 @@ function addPaint(folder: GUI, paint: PaintLook, densityName: string): void {
   sub.add(paint, 'rounding', 0, 1, 0.01).name('bend toward up')
 }
 
-/** A shell's toon steps, as a `toon` folder under `folder`: none, three or five, and each step's brightness. */
+/** A shell's toon steps, as a `toon` folder under `folder`: none or three, and each step's brightness. */
 function addToon(folder: GUI, toon: ToonLook): void {
   const sub = folder.addFolder('toon')
-  sub.add(toon, 'steps', [0, 3, 5]).name('steps (0 = smooth)')
+  sub.add(toon, 'steps', [0, 3]).name('steps (0 = smooth)')
   const three = sub.addFolder('3 steps')
-  toon.three.forEach((_, i) => three.add(byIndex(toon.three), String(i), 0, 1, 0.01).name(STEP_NAMES[3][i]))
-  const five = sub.addFolder('5 steps')
-  toon.five.forEach((_, i) => five.add(byIndex(toon.five), String(i), 0, 1, 0.01).name(STEP_NAMES[5][i]))
+  toon.three.forEach((_, i) => three.add(byIndex(toon.three), String(i), 0, 1, 0.01).name(STEP_NAMES[i]))
 }
 
 /** What one frame measured, for the readouts. */
