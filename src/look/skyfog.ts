@@ -9,8 +9,11 @@ const FOG_LIGHTS = 8
 /** The colour the night goes in a strike's flash. */
 const FLASH_COLOR = new Color(0xdfe4ff)
 
-/** The sky and the fog on `scene`, as `camera` sees them. */
-export function createSkyFog(scene: Scene, camera: PerspectiveCamera) {
+/**
+ * The sky and the fog on `scene`, as `camera` sees them. The fog only `withFog`: without it no material draws it, its
+ * noise and its lit loop paid on every pixel for an amount of 0, and the fog folder's switch does nothing until a reload.
+ */
+export function createSkyFog(scene: Scene, camera: PerspectiveCamera, withFog: boolean) {
   /** The night's colour behind the scene, the fog's. */
   const sky = new Color()
   scene.background = sky
@@ -83,7 +86,7 @@ export function createSkyFog(scene: Scene, camera: PerspectiveCamera) {
   const lookInverse = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(() => camera.projectionMatrixInverse)
   const lookWorld = uniform(new Matrix4()).setGroup(renderGroup).onRenderUpdate(() => camera.matrixWorld)
   const skyOnScreen = skyAt(lookWorld.mul(vec4(getViewPosition(screenUV, float(0.5), lookInverse), 0)).xyz.normalize())
-  scene.fogNode = fog(skyHere.add((fogLitColor as unknown as Node<'vec3'>).mul(fogGlow)) as unknown as typeof fogColor, fogAmount)
+  if (withFog) scene.fogNode = fog(skyHere.add((fogLitColor as unknown as Node<'vec3'>).mul(fogGlow)) as unknown as typeof fogColor, fogAmount)
   /** Where the fog goes solid, m from the light, as the panel has it: the ring the swarm brings rats round past, fog or no fog. */
   let fogEdge = 1
   /** The lights by the fog's lights' order: the torch, then the lit lights nearest him. */
@@ -103,7 +106,7 @@ export function createSkyFog(scene: Scene, camera: PerspectiveCamera) {
   }
   return {
     /** The fog's amount, and the sky through a pixel, for the passes over the frame. */
-    amount: fogAmount,
+    amount: withFog ? fogAmount : float(0),
     onScreen: skyOnScreen,
     /** The ring's centre on the ground, and the time its wisps blow by. */
     centre: fogCentre,

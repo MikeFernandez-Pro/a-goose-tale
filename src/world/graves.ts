@@ -25,12 +25,12 @@ import {
   Vector3,
   type Object3D,
 } from 'three/webgpu'
-import { dFdx, dFdy, hue, materialColor, max, mix, normalView, positionView, renderGroup, saturation, texture, uniform, uv, vec2 } from 'three/tsl'
+import { dFdx, dFdy, materialColor, max, normalView, positionView, renderGroup, texture, uniform, uv, vec2 } from 'three/tsl'
 import { modelLoader } from '../look/gltf'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import { ShellToonMaterial, type ShellLook, type ShineLook, type PaintLook } from '../look/shell'
-import { NO_COLOUR, NO_NORMALS, setLayer } from '../look/texturesets'
+import { NO_NORMALS, setLayer } from '../look/texturesets'
 import { random } from '../swarm/swarm'
 import { createInscriptions, inscribable, inscribe, mountInscriptionControls, type Inscriptions } from './inscriptions'
 import type { ToonLook } from '../look/toon'
@@ -69,15 +69,8 @@ export interface GraveLook {
   seed: number
   /** Their own highlight and rim, over the scene pieces' shell. */
   shine: ShineLook
-  /** The stone set laid over them, or `none`, the plain colour. */
+  /** The stone set whose relief is laid over the plain colour, or `none`, no relief. */
   texture: StoneName
-  /** Brightness, as a multiplier: 1 the map's own. */
-  lightness: number
-  /** How much of the plain stone colour shows in place of the map's, 0 none, 1 all of it, the map's relief kept. */
-  plain: number
-  /** Colour strength: 1 the map's own, 0 grey; and how far round the colour wheel its colours turn, degrees. */
-  saturation: number
-  hue: number
   /** How wide one tile is on a stone, m; how far the tiles are turned, degrees; how deep the relief, 1 as painted. */
   scale: number
   rotation: number
@@ -96,10 +89,6 @@ const defaultGraveStoneLook = (): GraveLook => ({
   seed: 12,
   shine: { specular: 0, shininess: 30, softness: 0.17, specularColor: 0xc0d8f0, rim: true, rimStrength: 0.45, rimWidth: 0.35, rimSoftness: 0.1, rimColor: 0xc6c2ff },
   texture: 'desert_rocks_01',
-  lightness: 1,
-  plain: 1,
-  saturation: 1.27,
-  hue: 0,
   scale: 3.1,
   rotation: 90,
   relief: 1.15,
@@ -365,10 +354,6 @@ export async function createGraves(where: GraveGround, groundAt: (x: number, z: 
 
   // The set's values, a uniform of the render's group each, since the graves are a still mesh.
   const textured = uniform(0).setGroup(renderGroup)
-  const lightness = uniform(1).setGroup(renderGroup)
-  const plain = uniform(0).setGroup(renderGroup)
-  const saturated = uniform(1).setGroup(renderGroup)
-  const turned = uniform(0).setGroup(renderGroup)
   const tile = uniform(1).setGroup(renderGroup)
   const relief = uniform(1).setGroup(renderGroup)
   /** The tiles' turn's cosine and sine. */
@@ -376,7 +361,6 @@ export async function createGraves(where: GraveGround, groundAt: (x: number, z: 
   // Where on the tile: the stone's metres, as its uvs are laid, turned, scaled to the tile.
   const laidUv = uv()
   const at = vec2(laidUv.x.mul(turn.x).sub(laidUv.y.mul(turn.y)), laidUv.x.mul(turn.y).add(laidUv.y.mul(turn.x))).div(tile)
-  const colourTexel = texture(NO_COLOUR, at)
   const normalTexel = texture(NO_NORMALS, at)
   // The map's lean laid on the face along the ways its tile's u and v run across the screen, as three lays a normal
   // map with no tangents (perturbNormal2Arb), as the bark's is; the relief its depth, none with no set.
@@ -397,22 +381,18 @@ export async function createGraves(where: GraveGround, groundAt: (x: number, z: 
   // The words cut in each, under the brush strokes.
   const inscriptions = createInscriptions()
   const material = new ShellToonMaterial({ color: new Color(look.colour), painted: { extent: STROKE_BODY, base: inscriptions.normal(viewNormal) } })
-  // The plain stone colour, or the set's, lit, darkened and turned, or the stone colour again over it as much as the
-  // folder has it, the set's relief still on it.
-  material.colorNode = inscriptions.colour(mix(materialColor, saturation(hue(colourTexel.rgb, turned), saturated).mul(lightness), textured.mul(plain.oneMinus())))
+  // The plain stone colour, the set's relief on it.
+  material.colorNode = inscriptions.colour(materialColor)
   const object = new Mesh(new BufferGeometry(), material)
   object.castShadow = object.receiveShadow = true
-  const lay = setLayer<StoneName>('./textures/stone', { normals: [normalTexel], textured, plain })
+  const lay = setLayer<StoneName>('./textures/stone', { normals: [normalTexel], textured })
   const recolour = () => {
     material.color.set(look.colour)
-    lightness.value = look.lightness
-    saturated.value = look.saturation
-    turned.value = (look.hue * Math.PI) / 180
     tile.value = Math.max(0.05, look.scale)
     relief.value = look.relief
     const angle = (look.rotation * Math.PI) / 180
     turn.value.set(Math.cos(angle), Math.sin(angle))
-    // Another set: its maps swapped into the same nodes once loaded, its colour only once some of it shows.
+    // Another set: its map swapped into the same nodes once loaded.
     lay(look.texture)
   }
   const place = new Matrix4()
@@ -501,9 +481,6 @@ export function mountGraveControls(graves: Graves, gui: GUI, laid: () => void): 
   stone.add(look, 'relief', 0, 6, 0.05).name('relief').onChange(recolour)
   stone.add(look, 'scale', 0.1, 4, 0.05).name('tile m').onChange(recolour)
   stone.add(look, 'rotation', 0, 180, 1).name('tile turn deg').onChange(recolour)
-  stone.add(look, 'lightness', 0, 4, 0.01).name('lightness').onChange(recolour)
-  stone.add(look, 'saturation', 0, 2, 0.01).name('saturation').onChange(recolour)
-  stone.add(look, 'hue', -180, 180, 1).name('hue deg').onChange(recolour)
   mountInscriptionControls(graves.inscriptions, folder)
   const shine = folder.addFolder('highlight and rim')
   const { shine: own } = look

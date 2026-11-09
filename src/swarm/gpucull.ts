@@ -31,6 +31,7 @@ import {
   Vector3,
   Vector4,
   type BufferAttribute,
+  type ComputeNode,
   type Frustum,
   type Node,
   type WebGPURenderer,
@@ -360,6 +361,8 @@ export class GpuCull {
   /** Cull against `frustum`, before the frame's passes: every pass draws the survivors. Then, now and then, read back how many survived. */
   cull(renderer: WebGPURenderer, frustum: Frustum): void {
     frustum.planes.forEach((plane, k) => this.planes[k]!.value.set(plane.normal.x, plane.normal.y, plane.normal.z, plane.constant))
+    // The cull over the rats stood, not the whole capacity: past them a thread read three states and the ground for nothing.
+    ;(this.passes[1] as ComputeNode).count = Math.max(1, this.blend.count.value)
     renderer.compute(this.passes as unknown as Parameters<WebGPURenderer['compute']>[0])
     this.readBack(renderer)
   }

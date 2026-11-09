@@ -798,9 +798,9 @@ async function loadCageSet(gradient: Texture): Promise<{ set: Group; cart: Group
   const car = named(MODEL_SET.cart)
   const metres = car.getWorldScale(scale).x * SET_SCALE
   const plankAt = (names.indexOf(MODEL_CART_WOOD) + 0.5) / names.length
-  const wood = createCartWood(metres, texture(palette.material.map!, uv()).rgb, uv().x.sub(plankAt).abs().lessThan(0.25 / names.length))
+  const wood = createCartWood(metres, uv().x.sub(plankAt).abs().lessThan(0.25 / names.length))
   const cartShell = new ShellToonMaterial({ side: DoubleSide, painted: { extent: STROKE_BODY / metres, base: wood.normal } })
-  cartShell.colorNode = wood.color
+  cartShell.colorNode = texture(palette.material.map!, uv()).rgb
   shells.cart.push(cartShell)
   palette.merge(car, meshesOf(car), cartShell)
   // The door's pieces off the cage, at the cage's place, under the hinge; its padlock and the key in it with them.
@@ -952,7 +952,7 @@ export async function createGooseScenes(
   const cageSet = await loadCageSet(gradient)
   // The cart's planks, as the cart wood folder edits them; set from the panel on 2026-10-28.
   // Again on 2026-10-29: the cart's own colour gone, only the planks' relief on it, deep, and bigger planks.
-  const cartWood = { ...defaultCartWood(), wood: 1, scale: 2.05, relief: 2.96 }
+  const cartWood = { ...defaultCartWood(), scale: 2.05, relief: 2.96 }
   const cartWoodChanged = () => cageSet.wood?.set(cartWood)
   cartWoodChanged()
   // The burning tree's crown, the dead trees drawing it.

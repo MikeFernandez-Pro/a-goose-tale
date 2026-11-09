@@ -654,9 +654,6 @@ function addDeadTrees(gui: GUI, { look, shape, changed, woodChanged, yChanged, t
 function addBark(folder: GUI, bark: BarkLook, changed: () => void): void {
   const textured = folder.addFolder('bark texture')
   textured.add(bark, 'texture', [...BARKS]).name('texture')
-  textured.add(bark, 'lightness', 0, 8, 0.01).name('lightness (dark/light)')
-  textured.add(bark, 'saturation', 0, 3, 0.01)
-  textured.add(bark, 'hue', -180, 180, 1).name('hue (degrees)')
   textured.add(bark, 'scale', 0.1, 10, 0.05).name('tile size m')
   textured.add(bark, 'rotation', -180, 180, 1).name('rotation (degrees)')
   textured.add(bark, 'relief', 0, 3, 0.01).name('relief (0 = flat)')
@@ -867,9 +864,6 @@ function addCage(gui: GUI, { hold, key, fire, look, colours, shine, wood }: NonN
     // The cart's planks, as the dead trees' bark texture folder lays out theirs.
     const planks = folder.addFolder('cart wood texture')
     planks.add(wood.look, 'texture', [...CART_WOODS]).name('texture')
-    planks.add(wood.look, 'lightness', 0, 8, 0.01).name('lightness (dark/light)')
-    planks.add(wood.look, 'saturation', 0, 3, 0.01)
-    planks.add(wood.look, 'hue', -180, 180, 1).name('hue (degrees)')
     planks.add(wood.look, 'scale', 0.05, 10, 0.05).name('tile size m')
     planks.add(wood.look, 'rotation', -180, 180, 1).name('rotation (degrees)')
     planks.add(wood.look, 'relief', 0, 3, 0.01).name('relief (0 = flat)')

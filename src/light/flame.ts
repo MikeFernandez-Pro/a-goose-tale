@@ -230,6 +230,10 @@ function createShells(capacity: number) {
       }
       for (const mesh of meshes) mesh.count = count
     },
+    /** Draw the first `count` rows only, the room kept. */
+    drawn(count: number) {
+      for (const mesh of meshes) mesh.count = count
+    },
     /** The rows written this frame. */
     written() {
       map.needsUpdate = true
@@ -256,8 +260,8 @@ export interface Flame {
   tip(out: Vector3): Vector3
 }
 
-/** Flame `slot` of `shells`: its drawing written into its row; placed there by whoever owns the shells. */
-function flameIn(shells: Shells, slot: number, placed: (body: Group) => void): Flame {
+/** A flame of `shells`: its drawing written into its row, the one `slot` has it in now; placed there by whoever owns the shells. */
+function flameIn(shells: Shells, slot: () => number, placed: (body: Group) => void): Flame {
   /** The flame, a unit wide and tall, leaning back from the walk; its size set on its scale. */
   const body = new Group()
   const object = new Group()
@@ -270,7 +274,7 @@ function flameIn(shells: Shells, slot: number, placed: (body: Group) => void): F
 
   let look = defaultFlame()
   const burns = { height: 1, width: 1, flicker: 1, opacity: 1 }
-  const row = (texel: number) => (slot * TEXELS + texel) * 4
+  const row = (texel: number) => (slot() * TEXELS + texel) * 4
 
   /** Each shell's colour, times its glow, and its opacity, times how it burns. */
   function paintShells() {
@@ -367,7 +371,7 @@ function writePlace(data: Float32Array, slot: number, matrix: Matrix4 | undefine
 export function createFlame(): Flame {
   const shells = createShells(1)
   shells.hold(1)
-  const flame = flameIn(shells, 0, (body) => writePlace(shells.data, 0, body.matrix))
+  const flame = flameIn(shells, () => 0, (body) => writePlace(shells.data, 0, body.matrix))
   flame.object.add(...shells.meshes)
   return flame
 }
@@ -387,6 +391,8 @@ export function createFlames(capacity = 64): Flames {
   const object = new Group()
   object.add(...shells.meshes)
   const flames: Flame[] = []
+  /** Each flame's row: the shown ones first, so the shells draw them alone; a hidden one's vertices ran in full, placed nowhere. */
+  const rows: number[] = []
   const shown = (o: Object3D | null) => {
     for (; o; o = o.parent) if (!o.visible) return false
     return true
@@ -394,13 +400,33 @@ export function createFlames(capacity = 64): Flames {
   return {
     object,
     add() {
-      const flame = flameIn(shells, flames.length, () => {})
+      const k = flames.length
+      rows.push(k)
+      const flame = flameIn(shells, () => rows[k]!, () => {})
       flames.push(flame)
       shells.hold(flames.length)
       return flame
     },
     update() {
-      flames.forEach((flame, slot) => writePlace(shells.data, slot, shown(flame.object) ? flame.object.children[0]!.matrixWorld : undefined))
+      const showing = flames.map((flame) => shown(flame.object))
+      let drawn = 0
+      const wanted = showing.map((on) => (on ? drawn++ : -1))
+      let after = drawn
+      for (let k = 0; k < wanted.length; k++) if (wanted[k] === -1) wanted[k] = after++
+      // Rows moved only when which flames show changes: each row copied whole, its drawing with it.
+      if (wanted.some((row, k) => row !== rows[k])) {
+        const data = shells.data
+        const was = data.slice()
+        const size = TEXELS * 4
+        wanted.forEach((row, k) => {
+          data.set(was.subarray(rows[k]! * size, (rows[k]! + 1) * size), row * size)
+          rows[k] = row
+        })
+      }
+      flames.forEach((flame, k) => {
+        if (showing[k]) writePlace(shells.data, rows[k]!, flame.object.children[0]!.matrixWorld)
+      })
+      shells.drawn(drawn)
       shells.written()
     },
   }

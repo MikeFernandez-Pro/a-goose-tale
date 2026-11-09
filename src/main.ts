@@ -111,7 +111,7 @@ const beats = createBeats(look.stopMotion)
 const { renderer, backend, lean, moon, maxDpr, timestamps, benchTools, gpuQueue, allBuilt } = await createDrawing()
 const camera = new PerspectiveCamera(CAMERA_FOV, innerWidth / innerHeight, 0.1, 100)
 const scene = new Scene()
-const skyFog = createSkyFog(scene, camera)
+const skyFog = createSkyFog(scene, camera, look.fog.enabled)
 fitToPage(camera, renderer)
 
 const nightLights = createNightLights(scene, moon)

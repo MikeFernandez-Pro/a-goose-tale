@@ -10,10 +10,10 @@
 // back face, never between the wall and the road nor in the wall. The same
 // road, the same walls, the same trees.
 //
-// Their bark is the plain wood colour, or one of the bark sets the bark folder
-// picks, laid as the floor is (ground.ts): a tile `scale` m wide, turned, its
-// colour lightened, saturated and its hue turned, its normal map's relief
-// deepened, through uniforms, so a slider recompiles nothing. They are laid by
+// Their bark is the plain wood colour, with the relief of one of the bark sets
+// the bark folder picks on it, laid as the floor is (ground.ts): a tile `scale`
+// m wide, turned, its normal map's relief deepened, through uniforms, so a
+// slider recompiles nothing. They are laid by
 // the file's uvs: each island's v up its branch, as a bark set's grain runs,
 // a metre of the file a uv unit, so every island takes the bark at one size.
 // At its foot the bark gives way to the floor's own grass (GrassLook), in the
@@ -310,16 +310,8 @@ export type BarkName = (typeof BARKS)[number]
 
 /** What the dead trees' bark folder edits, as the floor folder edits the floor's (ground.ts). */
 export interface BarkLook {
-  /** Which set is laid, or `none`, the plain wood colour. */
+  /** Which set's relief is laid on the plain wood colour, or `none`, no relief. */
   texture: BarkName
-  /** Brightness, as a multiplier: 1 the map's own. */
-  lightness: number
-  /** How much of the plain wood colour shows in place of the map's, 0 none, 1 all of it, the map's relief kept. */
-  wood: number
-  /** Colour strength: 1 the map's own, 0 grey. */
-  saturation: number
-  /** How far round the colour wheel its colours turn, degrees. */
-  hue: number
   /** How wide one tile is on the tree, m. */
   scale: number
   /** How far the tiles are turned, degrees: 0 as painted, its up along the branch. */
@@ -330,7 +322,7 @@ export interface BarkLook {
 
 /** bark_05, as set from the panel on 2026-10-26: its relief deep on the plain wood colour, its tiles wide and turned. */
 export function defaultBarkLook(): BarkLook {
-  return { texture: 'bark_05', lightness: 3, wood: 1, saturation: 0, hue: 0, scale: 4.6, rotation: 22, relief: 3 }
+  return { texture: 'bark_05', scale: 4.6, rotation: 22, relief: 3 }
 }
 
 /**
@@ -826,25 +818,16 @@ export function createFootGrass(): FootGrass {
 
 /** A tree's bark, for its wood's material, as the bark folder has it: laid by the wood's uvs, a metre of the tree as laid a unit. */
 export interface Bark {
-  /** The material's own colour, or the set's, as much of each as the look has. */
-  colour: Node<'vec3'>
   /** The set's relief on the wood, a view normal, faded out under `foot`'s grass as much as it lets it through. */
   normal: Node<'vec3'>
   /** Take the bark folder's values: a new set is loaded and swapped in, nothing recompiled. */
   set(look: BarkLook): void
 }
 
-/**
- * The bark, under the grass `foot`: the plain wood colour, or the set's as the floor's is lit, darkened and turned, or the
- * wood colour again over it as much as the bark folder has it, the set's relief still on it.
- */
+/** The bark's relief, under the grass `foot`, on the plain wood colour, the material's own. */
 export function createBark(foot: FootGrass): Bark {
   // The bark's values, a uniform of the render's group each, since the trees are still meshes.
   const textured = uniform(0).setGroup(renderGroup)
-  const lightness = uniform(1).setGroup(renderGroup)
-  const plain = uniform(0).setGroup(renderGroup)
-  const saturated = uniform(1).setGroup(renderGroup)
-  const turned = uniform(0).setGroup(renderGroup)
   const tile = uniform(1).setGroup(renderGroup)
   const relief = uniform(1).setGroup(renderGroup)
   /** The tiles' turn's cosine and sine. */
@@ -853,7 +836,6 @@ export function createBark(foot: FootGrass): Bark {
   // Where on the tile: the file's uv, a metre of the tree as laid a unit, turned, scaled to the tile.
   const laidUv = uv()
   const at = vec2(laidUv.x.mul(turn.x).sub(laidUv.y.mul(turn.y)), laidUv.x.mul(turn.y).add(laidUv.y.mul(turn.x))).div(tile)
-  const colourTexel = texture(NO_COLOUR, at)
   const normalTexel = texture(NO_NORMALS, at)
   // The map's lean laid on the face along the ways its tile's u and v run across the screen, as three lays a normal
   // map with no tangents (perturbNormal2Arb); the relief its depth, none with no set.
@@ -870,15 +852,10 @@ export function createBark(foot: FootGrass): Bark {
   const m = normalTexel.xyz.mul(2).sub(1)
   const lean = relief.mul(textured).mul(across).mul(mix(float(1), foot.relief, foot.amount))
   const normal = alongU.mul(m.x.mul(lean)).add(alongV.mul(m.y.mul(lean))).add(face.mul(m.z)).normalize()
-  const colour = mix(materialColor, saturation(hue(colourTexel.rgb, turned), saturated).mul(lightness), textured.mul(plain.oneMinus()))
-  const lay = setLayer<BarkName>('./textures/bark', { normals: [normalTexel], textured, plain })
+  const lay = setLayer<BarkName>('./textures/bark', { normals: [normalTexel], textured })
   return {
-    colour,
     normal,
     set(look) {
-      lightness.value = look.lightness
-      saturated.value = look.saturation
-      turned.value = (look.hue * Math.PI) / 180
       tile.value = Math.max(0.05, look.scale)
       relief.value = look.relief
       const angle = (look.rotation * Math.PI) / 180
@@ -960,7 +937,7 @@ export async function createDeadTrees(wood: number, groundAt: (x: number, z: num
   const barkLaid = createBark(foot)
   const newBark = () => {
     const material = new ShellToonMaterial({ color: wood, side: DoubleSide, painted: { extent: STROKE_BODY, base: barkLaid.normal } })
-    material.colorNode = mix(barkLaid.colour, foot.colour, foot.amount)
+    material.colorNode = mix(materialColor, foot.colour, foot.amount)
     material.positionNode = wind.wood
     return material
   }

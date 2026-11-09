@@ -31,13 +31,11 @@ export function loadMap(url: string, colour: boolean): Promise<Texture> {
   return map
 }
 
-/** The nodes a set is laid on: its map's texture nodes, and the uniforms its relief and the plain colour are mixed by. */
+/** The nodes a set is laid on: its map's texture nodes, and the uniform its relief is laid by. */
 export interface SetNodes {
   normals: readonly { value: Texture }[]
   /** 1 with a set laid, 0 with none. */
   textured: { value: number }
-  /** How much of the plain colour shows: all of it, the sets having no colour of their own. */
-  plain: { value: number }
 }
 
 /**
@@ -46,7 +44,6 @@ export interface SetNodes {
  */
 export function setLayer<N extends string>(folder: string, nodes: SetNodes, load: typeof loadMap = loadMap): (name: N) => void {
   let asked: N | undefined
-  nodes.plain.value = 1
   return (name) => {
     if (name === asked) return
     asked = name

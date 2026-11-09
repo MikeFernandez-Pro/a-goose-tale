@@ -12,20 +12,19 @@ function layer() {
     map.name = url
     return Promise.resolve<Texture>(map)
   }
-  const nodes: SetNodes = { normals: [{ value: NO_NORMALS }], textured: { value: 0 }, plain: { value: 0 } }
+  const nodes: SetNodes = { normals: [{ value: NO_NORMALS }], textured: { value: 0 } }
   return { lay: setLayer<'none' | 'bark_05'>('./textures/bark', nodes, load), nodes, fetched }
 }
 const settled = () => new Promise((done) => setTimeout(done))
 
 describe('a texture set', () => {
-  it('fetches its normal map alone, and shows the plain colour', async () => {
+  it('fetches its normal map alone, and lays its relief', async () => {
     const { lay, nodes, fetched } = layer()
     lay('bark_05')
     await settled()
     expect(fetched).toEqual(['./textures/bark/bark_05/normal.webp'])
     expect(nodes.normals[0]!.value.name).toBe('./textures/bark/bark_05/normal.webp')
     expect(nodes.textured.value).toBe(1)
-    expect(nodes.plain.value).toBe(1)
   })
 
   it('fetches it once, however often it is laid', async () => {

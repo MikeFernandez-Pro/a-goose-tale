@@ -153,10 +153,18 @@ export interface RimScale {
   width: Node<'float'>
 }
 
+/** Which of the sheen, the highlight and the rim a shader draws: none at 0, its maths paid on every pixel for nothing. */
+interface ShellTerms {
+  sheen: boolean
+  highlight: boolean
+  rim: boolean
+}
+
 class ShellLightingModel extends LightingModel {
   constructor(
     private readonly shell: ShellUniforms,
     private readonly gradient: DataTexture,
+    private readonly terms: ShellTerms,
     private readonly rimScale?: RimScale,
     private readonly specularScale?: Node<'float'>,
     private readonly thin = false,
@@ -179,20 +187,24 @@ class ShellLightingModel extends LightingModel {
     // Three's toon diffuse: the colour, in steps.
     directDiffuse.addAssign(irradiance.mul(lambert(diffuseColor.rgb)))
     // The sheen: the light itself, in the same steps, as if the shell were that much white.
-    directDiffuse.addAssign(irradiance.mul(lambert(vec3(sheen))))
+    if (this.terms.sheen) directDiffuse.addAssign(irradiance.mul(lambert(vec3(sheen))))
 
-    // The highlight: Blinn-Phong's lobe, cut at its half into a cel spot, on the lit side only.
-    const halfway = lightDirection.add(positionViewDirection).normalize()
-    const lobe = normalView.dot(halfway).clamp().pow(shininess)
-    const spot = smoothstep(float(0.5).sub(softness), float(0.5).add(softness), lobe)
     const lit = step(0, dotNL)
-    directSpecular.addAssign(irradiance.mul(spot).mul(lit).mul(specularColor).mul(specular).mul(1 / Math.PI))
+    if (this.terms.highlight) {
+      // The highlight: Blinn-Phong's lobe, cut at its half into a cel spot, on the lit side only.
+      const halfway = lightDirection.add(positionViewDirection).normalize()
+      const lobe = normalView.dot(halfway).clamp().pow(shininess)
+      const spot = smoothstep(float(0.5).sub(softness), float(0.5).add(softness), lobe)
+      directSpecular.addAssign(irradiance.mul(spot).mul(lit).mul(specularColor).mul(specular).mul(1 / Math.PI))
+    }
 
-    // The rim: where the shell turns away from the camera, on the lit side, the light's colour in a hard band.
-    const facing = normalView.dot(positionViewDirection).clamp()
-    const soft = rimSoftness.max(0.0005)
-    const rim = float(1).sub(smoothstep(rimWidth.sub(soft), rimWidth.add(soft), facing)).mul(lit)
-    directDiffuse.addAssign(asVec3(color).mul(rim).mul(rimColor).mul(rimStrength))
+    if (this.terms.rim) {
+      // The rim: where the shell turns away from the camera, on the lit side, the light's colour in a hard band.
+      const facing = normalView.dot(positionViewDirection).clamp()
+      const soft = rimSoftness.max(0.0005)
+      const rim = float(1).sub(smoothstep(rimWidth.sub(soft), rimWidth.add(soft), facing)).mul(lit)
+      directDiffuse.addAssign(asVec3(color).mul(rim).mul(rimColor).mul(rimStrength))
+    }
   }
 
   override indirect(builder: NodeBuilder): void {
@@ -202,7 +214,7 @@ class ShellLightingModel extends LightingModel {
     const indirectDiffuse = asVec3(context.reflectedLight.indirectDiffuse)
     // The fill, on the colour and on the sheen alike.
     indirectDiffuse.addAssign(irradiance.mul(lambert(diffuseColor.rgb)))
-    indirectDiffuse.addAssign(irradiance.mul(lambert(vec3(this.shell.sheen))))
+    if (this.terms.sheen) indirectDiffuse.addAssign(irradiance.mul(lambert(vec3(this.shell.sheen))))
     indirectDiffuse.mulAssign(asVec3(context.ambientOcclusion))
   }
 }
@@ -235,6 +247,15 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   readonly paint = { strength: uniform(0), density: uniform(6), rounding: uniform(0), strokeOffset: uniform(new Vector2()), extent: uniform(1) }
   /** The strokes' texture node, its texture the one at the folder's stroke size. */
   private readonly strokes: { value: Texture } | undefined
+  /**
+   * Whether its shader draws the sheen, the highlight and the rim: each only while its strength is more than 0, a
+   * change across 0 building the shader again. Own properties, so three's key for the shader tells them apart.
+   */
+  withSheen = false
+  withHighlight = false
+  withRim = false
+  /** The shells of one look, this one among them: each built again as `set` turns a term on or off on any. */
+  private readonly sharers: ShellToonMaterial[]
 
   constructor({
     parts = 0,
@@ -254,6 +275,11 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
       this.shell = sharing.shell
       this.paint = sharing.paint
     }
+    this.sharers = sharing?.sharers ?? []
+    this.sharers.push(this)
+    this.withSheen = sharing?.withSheen ?? false
+    this.withHighlight = sharing?.withHighlight ?? false
+    this.withRim = sharing?.withRim ?? false
     this.rimScale = rimScale
     this.specularScale = specularScale
     this.thin = thin
@@ -300,7 +326,8 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   }
 
   override setupLightingModel(): ShellLightingModel {
-    return new ShellLightingModel(this.shell, this.gradient, this.rimScale, this.specularScale, this.thin)
+    const terms = { sheen: this.withSheen, highlight: this.withHighlight, rim: this.withRim }
+    return new ShellLightingModel(this.shell, this.gradient, terms, this.rimScale, this.specularScale, this.thin)
   }
 
   /** Take a toon folder's steps; the shader reads them from the next frame. */
@@ -343,5 +370,14 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     this.shell.rimWidth.value = look.rimWidth
     this.shell.rimSoftness.value = look.rimSoftness
     this.shell.rimColor.value.set(look.rimColor)
+    const sheen = this.shell.sheen.value > 0
+    const highlight = this.shell.specular.value > 0
+    const rim = this.shell.rimStrength.value > 0
+    for (const shell of this.sharers) {
+      if (shell.withSheen === sheen && shell.withHighlight === highlight && shell.withRim === rim) continue
+      shell.withSheen = sheen
+      shell.withHighlight = highlight
+      shell.withRim = rim
+      shell.needsUpdate = true    }
   }
 }

@@ -193,7 +193,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   roadWalls.setShell(wallShell)
   // The dead trees either side of the road (deadtrees.ts), behind its walls where by one, as the dead trees folder edits
   // them: scattered again on every change to it, the road, the arches or the walls; in the scenes' shell, their wood the
-  // colour chosen on 2026-10-26, or a bark set the bark folder picks, laid as the floor is; swaying in the wind as
+  // colour chosen on 2026-10-26, under the relief of a bark set the bark folder picks, laid as the floor is; swaying in the wind as
   // justASimpleTree's trees do.
   const deadTreeShape = defaultDeadTreeShape()
   const deadTreeLook = { show: true, wood: 0xe4aff3, saturation: 0.64, y: -0.31, trunk: 0.09, rings: 6 }

@@ -16,7 +16,7 @@
 // (fallingleaves.ts): one mesh, no storage and no compute pass. They cast
 // no shadow, as those don't.
 import { BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, Sphere, Uint16BufferAttribute, Vector2, Vector3, type BufferAttribute, type Material, type Node, type Texture } from 'three/webgpu'
-import { attribute, float, floor, fract, Fn, mix, mx_noise_vec3, normalLocal, renderGroup, rotate, saturation, sin, smoothstep, step, texture, time, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
+import { attribute, float, floor, fract, Fn, materialColor, mix, mx_noise_vec3, normalLocal, renderGroup, rotate, saturation, sin, smoothstep, texture, time, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
 import { createBark, createFootGrass, createLeafMaterial, createStretches, defaultBarkLook, defaultGrassLook, defaultLeafLook, loadLeafMap, thinTips, woodSimplifier, type BarkLook, type GrassLook, type LeafLook, type Stretches } from './deadtrees'
 import type { FloorLook } from './ground'
 import { modelLoader } from '../look/gltf'
@@ -155,15 +155,15 @@ interface TreeFall {
 function createTreeFall(leaf: Texture): TreeFall {
   const count = MOST_FALLING
   const corners = new Float32Array(count * 4 * 2)
-  const draws = new Float32Array(count * 4 * 4)
+  const draws = new Float32Array(count * 4 * 3)
   const index = new Uint16Array(count * 6)
   const next = random(29)
   for (let k = 0; k < count; k++) {
-    // How far through its life it starts, its own seed, its shade of the colours, and where it comes in the amount shown.
-    const draw = [next(), next(), next(), k / count]
+    // How far through its life it starts, its own seed, and its shade of the colours.
+    const draw = [next(), next(), next()]
     for (let c = 0; c < 4; c++) {
       corners.set([c === 1 || c === 2 ? 1 : 0, c === 2 || c === 3 ? 1 : 0], (k * 4 + c) * 2)
-      draws.set(draw, (k * 4 + c) * 4)
+      draws.set(draw, (k * 4 + c) * 3)
     }
     // Wound so the front faces up as it lies: a double-sided back face flips its normal, and a leaf seen from above would go dark.
     index.set([k * 4, k * 4 + 1, k * 4 + 2, k * 4 + 2, k * 4 + 3, k * 4], k * 6)
@@ -173,13 +173,12 @@ function createTreeFall(leaf: Texture): TreeFall {
   geometry.setAttribute('normal', new Float32BufferAttribute(new Float32Array(count * 4 * 3), 3))
   geometry.setAttribute('corner', new Float32BufferAttribute(corners, 2))
   geometry.setAttribute('landing', new Float32BufferAttribute(new Float32Array(count * 4 * 4), 4))
-  geometry.setAttribute('draw', new Float32BufferAttribute(draws, 4))
+  geometry.setAttribute('draw', new Float32BufferAttribute(draws, 3))
   geometry.setIndex(new Uint16BufferAttribute(index, 1))
 
   /** The leaves' clock, s, on with the play's. */
   const clock = uniform(0).setGroup(renderGroup)
   const lifetime = uniform(14).setGroup(renderGroup)
-  const shown = uniform(0.5).setGroup(renderGroup)
   const size = uniform(0.17).setGroup(renderGroup)
   const gustSpeed = uniform(0.83).setGroup(renderGroup)
   const gustSize = uniform(0.05).setGroup(renderGroup)
@@ -191,7 +190,7 @@ function createTreeFall(leaf: Texture): TreeFall {
   const from = attribute<'vec3'>('position')
   const landing = attribute<'vec4'>('landing')
   const corner = attribute<'vec2'>('corner')
-  const draw = attribute<'vec4'>('draw')
+  const draw = attribute<'vec3'>('draw')
   const material = new LeafLambertMaterial({ side: DoubleSide, alphaTest: 0.5 })
   material.positionNode = Fn(() => {
     const life = fract(clock.div(lifetime).add(draw.x))
@@ -204,9 +203,9 @@ function createTreeFall(leaf: Texture): TreeFall {
     // Landed, it creeps on downwind for the rest of its life.
     const lain = life.sub(landing.w).max(0).mul(lifetime)
     const at = onPath.add(strays).add(vec3(creep.x, 0, creep.y).mul(lain)).add(vec3(0, LIES_AT, 0))
-    // Grows in as it leaves the tree, shrinks away at the end; past the amount shown, none of it.
+    // Grows in as it leaves the tree, shrinks away at the end.
     const grown = life.div(0.03).min(float(1).sub(life).div(0.15)).clamp(0, 1)
-    const scale = size.mul(grown).mul(seed.mul(0.6).add(0.7)).mul(step(draw.w, shown))
+    const scale = size.mul(grown).mul(seed.mul(0.6).add(0.7))
     // A flat leaf, face up, rocking about that as it falls and turning slowly; level by the time it lands, and still after.
     const phase = at.y.mul(4).add(seed.mul(Math.PI * 2))
     const rock = vec3(sin(phase), 0, sin(phase.mul(0.7).add(1.3))).mul(float(ROCK).mul(float(1).sub(level)))
@@ -248,7 +247,8 @@ function createTreeFall(leaf: Texture): TreeFall {
     },
     set({ leaves, wind, fall }, downwind) {
       lifetime.value = Math.max(0.1, fall.lifetime)
-      shown.value = fall.amount / MOST_FALLING
+      // The amount shown the first leaves, the rest not drawn: hidden by a scale of 0, each ran its noise for nothing.
+      geometry.setDrawRange(0, Math.min(MOST_FALLING, Math.max(0, Math.floor(fall.amount) + 1)) * 6)
       size.value = fall.size
       gustSpeed.value = wind.speed
       gustSize.value = 1 / Math.max(1, wind.gustSize)
@@ -324,7 +324,7 @@ export async function createIslandTree(look: IslandTreeLook = defaultIslandTreeL
   const bark = new ShellToonMaterial({ color: look.wood, side: DoubleSide, painted: { extent: (STROKE_BODY * laid) / look.size, base: barkLaid.normal } })
   // Still, its wood and leaves stand as laid, no wind worked out a vertex: a phone's, where it cost the ending 10 ms.
   if (!still) bark.positionNode = wind.wood
-  bark.colorNode = mix(barkLaid.colour, grass.colour, grass.amount)
+  bark.colorNode = mix(materialColor, grass.colour, grass.amount)
   // The dead trees' leaf texture, white leaves on black, read as they read it.
   const leafMap = await loadLeafMap()
   const leafy = createLeafMaterial(texture(leafMap, uv()).r)
