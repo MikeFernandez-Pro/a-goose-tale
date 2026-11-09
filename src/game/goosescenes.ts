@@ -120,7 +120,7 @@ const WELL_COLOURS: Record<string, number> = {
 const WELL_GLOWS: Record<string, number> = { 'Material.011': 4 }
 /** The cage's materials that may glow, and how bright to start: Material.005, its key's (and a cube's), since 2026-10-29. */
 const CAGE_GLOWS: Record<string, number> = { 'Material.005': 1.4 }
-/** The cage's set's colours, by material, as set from the panel on 2026-10-29: Material.005, the key's, orange. */
+/** The cage's set's colours, by material, as set from the panel on 2026-10-29: Material.005, the key's, orange; Material.013 a lighter grey since 2026-11-09. */
 const CAGE_COLOURS: Record<string, number> = {
   'Material.005': 0xdf893a,
   'Material.006': 0x2c2c2c,
@@ -130,7 +130,7 @@ const CAGE_COLOURS: Record<string, number> = {
   'Material.011': 0xe7daab,
   'Material.008': 0x877164,
   'Material.012': 0x2f2f2f,
-  'Material.013': 0x7a747b,
+  'Material.013': 0x9b9797,
   Skeleton: 0xe7e7e7,
 }
 /** The cart's and the corpse's own highlight and rim, as set from the panel on 2026-10-29: the cart with no highlight
