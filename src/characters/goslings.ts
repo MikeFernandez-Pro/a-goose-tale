@@ -31,7 +31,7 @@ import { blendAct, type Act, type ActBlend } from '../game/endingscript'
 import type { GoosePlay } from '../game/gooseplay'
 import type { PlaySwarm } from '../swarm/play'
 import { standingIn, swimmingIn, type PondLook } from '../world/pond'
-import { ShellToonMaterial, type ShellLook } from '../look/shell'
+import { NO_HIGHLIGHT, ShellToonMaterial, type ShellLook } from '../look/shell'
 
 /** The gosling's file, and its clips: standing, running, afloat, swimming and hopping. */
 const MODEL = './models/geese.glb'
@@ -120,7 +120,7 @@ export async function createGoslings(
   for (const child of [...gltf.scene.children]) if (child.name !== ARMATURE) gltf.scene.remove(child)
   const object = new Group()
   // One toon material for the whole bird, its parts in the model's own colours as its vertices' colours, its down in
-  // the goose's white, glowing as he does; the goose's shell, for his rim (`setRim`), with no sheen and no highlight.
+  // the goose's white, glowing as he does; the goose's shell, for his rim (`setRim`), with no highlight.
   const down = uniform(new Color(0xffffff))
   const downGlow = uniform(0)
   const toon = new ShellToonMaterial()
@@ -181,7 +181,7 @@ export async function createGoslings(
       downGlow.value = glow
     },
     setRim(look) {
-      toon.set({ ...look, sheen: 0, specular: 0, shininess: 30, softness: 0, specularColor: 0xffffff })
+      toon.set({ ...look, ...NO_HIGHLIGHT })
     },
     calm: false,
     scared: false,

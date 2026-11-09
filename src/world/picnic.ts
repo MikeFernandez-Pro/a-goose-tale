@@ -3,13 +3,13 @@
 // public/licence.txt), its materials baked into one mesh on one atlas, cut out
 // by the atlas's alpha, y-up, its tray's top on the origin, about 0.22 x 0.13 x
 // 0.19 m. The file is unlit; here it stands in the scene pieces' shell (the
-// tent's) under a highlight and rim of its own, so the night falls on it too.
+// tent's), matt, under a rim of its own, so the night falls on it too.
 // It lies in front of the island's oak as the game's camera sees it, its tray
 // tipped to the slope of the ground under it, as the picnic folder moves it.
 import { DoubleSide, Group, Quaternion, Vector3, type Mesh, type MeshBasicMaterial, type Texture } from 'three/webgpu'
 import { texture } from 'three/tsl'
 import { modelLoader } from '../look/gltf'
-import { ShellToonMaterial, type ShellLook, type ShineLook } from '../look/shell'
+import { ShellToonMaterial, type RimLook, type ShellLook } from '../look/shell'
 import { groundOf, islandMiddle, type PondLook } from './pond'
 
 const MODEL = './models/picnic.glb'
@@ -30,8 +30,8 @@ export interface PicnicLook {
   turn: number
   /** How wide its tray is, m. */
   size: number
-  /** Its own highlight and rim, over the scene pieces' shell. */
-  shine: ShineLook
+  /** Its own rim, over the scene pieces' shell; matt, no highlight. */
+  shine: RimLook
 }
 
 /** The picnic to start, as set from the panel on 2026-11-02: in front of the island's oak as the camera sees it, on the island's near left; matt, a soft warm rim. */
@@ -43,7 +43,7 @@ export function defaultPicnicLook(): PicnicLook {
     y: 0,
     turn: 40,
     size: 1.62,
-    shine: { specular: 0, shininess: 30, softness: 0.17, specularColor: 0xffe2c0, rim: true, rimStrength: 0.25, rimWidth: 0.35, rimSoftness: 0.1, rimColor: 0xffc890 },
+    shine: { rim: true, rimStrength: 0.25, rimWidth: 0.35, rimSoftness: 0.1, rimColor: 0xffc890 },
   }
 }
 
@@ -68,9 +68,9 @@ export interface Picnic {
   set(pond: PondLook): void
   /** How far it reaches from where it lies across the ground at its widest, m, as big as it now is. */
   reach(): number
-  /** The scene pieces' shell, as the look folder sets it, under its own highlight and rim. */
+  /** The scene pieces' shell, as the look folder sets it, under its own rim, and no highlight. */
   setShell(look: ShellLook): void
-  /** Its own highlight and rim again, as the folder has them. */
+  /** Its own rim again, as the folder has it. */
   shineChanged(): void
 }
 
@@ -92,10 +92,10 @@ export async function createPicnic(look: PicnicLook = defaultPicnicLook()): Prom
     mesh.castShadow = mesh.receiveShadow = true
   }
   const object = new Group().add(file)
-  /** The shell it shares, last handed over, kept under its own highlight and rim. */
+  /** The shell it shares, last handed over, kept under its own rim, its highlight left off. */
   let shared: ShellLook | undefined
   const shineChanged = () => {
-    if (shared) material.set({ ...shared, ...look.shine })
+    if (shared) material.set({ ...shared, ...look.shine, specular: 0 })
   }
   const lean = new Quaternion()
   const turned = new Quaternion()

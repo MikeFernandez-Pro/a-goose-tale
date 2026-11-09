@@ -15,7 +15,7 @@
 // other, and across it out from its middle line, or through it on its inner
 // and outer faces (`archSurface`), as big, turned, coloured and as deep in
 // relief as the doors folder has them (`ArchStone`); in a toon shell of its
-// own, its highlight, strokes and steps the doors folder's (`ArchShell`). Both
+// own, matt, its rim, strokes and steps the doors folder's (`ArchShell`). Both
 // start much as the road and the floor are as the page opens (roadside.ts). The
 // file has no texture layout of its own, so the arch's is worked out as it
 // loads.
@@ -25,7 +25,7 @@ import { modelLoader, unpackNormals } from '../look/gltf'
 import { loadRoad, type RoadLook } from './ground'
 import type { Plain, Point } from './plain'
 import type { RoadLine } from './road'
-import { ShellToonMaterial, type PaintLook, type ShellLook } from '../look/shell'
+import { NO_HIGHLIGHT, ShellToonMaterial, type PaintLook, type RimLook } from '../look/shell'
 import type { ToonLook } from '../look/toon'
 
 /** How far along the road from a fire no arch stands, m, either way: clear of its brazier and its scene. */
@@ -58,8 +58,8 @@ export function defaultArchLook(): ArchLook {
  */
 export type ArchStone = Pick<RoadLook, 'lightness' | 'saturation' | 'hue' | 'scale' | 'rotation' | 'relief'> & { offsetX?: number; offsetY?: number }
 
-/** The arches' own toon shell as the doors folder edits it, read live: its highlight and rim, its painted strokes and its toon steps. */
-export type ArchShell = ShellLook & { paint: PaintLook; toon: ToonLook }
+/** The arches' own toon shell as the doors folder edits it, read live: its rim, matt, its painted strokes and its toon steps. */
+export type ArchShell = RimLook & { paint: PaintLook; toon: ToonLook }
 
 /**
  * The file, in its own units: the arch's mesh, and the middle of its foot. The
@@ -342,7 +342,7 @@ export async function createStone(stone: ArchStone, extent: number): Promise<Sto
       setStretch()
     },
     setShell(next) {
-      shell.set(next)
+      shell.set({ ...next, ...NO_HIGHLIGHT })
       shell.setPaint(next.paint)
       shell.setToon(next.toon)
     },

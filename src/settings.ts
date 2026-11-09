@@ -5,7 +5,7 @@ import type { GooseLook } from './characters/goose'
 import type { KeyTaken } from './game/goosescenes'
 import type { FlameLook } from './light/flame'
 import type { AOLook, BloomLook, DofLook, GrainLook, HatchLook, ScreenLook, VignetteLook } from './look/post'
-import type { PaintLook, ShellLook } from './look/shell'
+import type { PaintLook, RimLook, ShellLook } from './look/shell'
 import type { ToonLook } from './look/toon'
 import type { LevelsLook, Part, StaggerLook, TrailLook, Variant } from './swarm/rats'
 import type { FloorLook } from './world/ground'
@@ -93,10 +93,10 @@ export interface Look {
   /**
    * The rats' colours: one for each part the model has, in the model's own to
    * start, and a tint over them all; the variants, each a tint over its share
-   * of the rats, the eyes left out; their shell's sheen and highlight; and
-   * their toon steps.
+   * of the rats, the eyes left out; their shell's rim, matt; and their toon
+   * steps.
    */
-  rats: { color: number; parts: Part[]; variants: Variant[]; glow: number; toon: ToonLook; paint: PaintLook; levels: LevelsLook; stagger: StaggerLook } & ShellLook
+  rats: { color: number; parts: Part[]; variants: Variant[]; glow: number; toon: ToonLook; paint: PaintLook; levels: LevelsLook; stagger: StaggerLook } & RimLook
   /** The flagstone floor: how light, how saturated, how big a tile is in metres, how deep its relief; its shell; its painted normals; its toon steps. */
   floor: FloorLook & { shell: ShellLook; paint: PaintLook; toon: ToonLook }
   /** The ambient occlusion over the frame. */

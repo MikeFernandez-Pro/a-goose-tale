@@ -29,6 +29,7 @@ import { getMaxTextureSize, type VATTimeUniform } from 'three-vat/tsl'
 import { benchOn, debugOn, featureOn, filming, noPanel, phone, post0, url } from './game/address'
 import { GOOSE_EYES, measuringSwitches, startingLook } from './look/startinglook'
 import { createPost, defaultDark, leaveUnshaded } from './look/post'
+import { NO_HIGHLIGHT } from './look/shell'
 import { DEATH_DOWN } from './characters/goosedeath'
 import { defaultBedLook, defaultRoadLook, defaultWellGroundLook, floor } from './world/ground'
 import { defaultRoadShape } from './world/road'
@@ -344,7 +345,7 @@ const gooseScenes = await createGooseScenes(goosePlay, standAt)
 gooseScenes.object.name = 'scenes'
 scene.add(gooseScenes.object)
 feel.key.taken = gooseScenes.keyTaken
-// Its shell laid now, before the panel reads the cart's and the corpse's highlight and rim, which start as it.
+// Its shell laid now, before the panel reads the cart's rim and the corpse's highlight and rim, which start as it.
 gooseScenes.setShell(look.goose)
 goslings.object.name = 'goslings'
 scene.add(goslings.object)
@@ -467,7 +468,8 @@ function lookChanged() {
   skyFog.set(look.fog)
 
   rats.material.color.set(look.rats.color)
-  rats.material.set(look.rats)
+  // Matt: their shell has no highlight.
+  rats.material.set({ ...look.rats, ...NO_HIGHLIGHT })
   rats.material.setToon(look.rats.toon)
   rats.material.setPaint(look.rats.paint)
   rats.material.setBeat(shade(5), nudge(6), nudge(7))
@@ -500,16 +502,16 @@ function lookChanged() {
   graveCandles?.setShell(look.goose)
   tent.setShell(look.goose)
   picnic.setShell(look.goose)
-  islandTree.setShell({ ...look.goose, ...deadTreeShine })
-  // The dead trees in the scenes' shell, with a highlight and a rim of their own: none of either to start, matt since
-  // 2026-10-26, the dead trees folder's to give them.
-  deadTreesMesh.setShell({ ...look.goose, ...deadTreeShine })
+  islandTree.setShell({ ...look.goose, ...deadTreeShine, specular: 0 })
+  // The dead trees in the scenes' shell, matt since 2026-10-26 with no highlight, under a rim of their own, the dead
+  // trees folder's.
+  deadTreesMesh.setShell({ ...look.goose, ...deadTreeShine, specular: 0 })
   bushesMesh.setShell(look.goose)
   flame.set(look.flame)
   embers.set(look.flame.embers)
   smoke.set(look.flame.smoke)
   // The burning branch in the dead trees' shell, as their wood is; its embers the torch's.
-  burningBranch?.setShell({ ...look.goose, ...deadTreeShine })
+  burningBranch?.setShell({ ...look.goose, ...deadTreeShine, specular: 0 })
   branchEmbers?.set(look.flame.embers)
   // The torch out, burnt down or put out: its flame and its embers go with it, its smoke once it has died away.
   flame.object.visible &&= light.on

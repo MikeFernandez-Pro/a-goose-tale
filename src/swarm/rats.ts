@@ -314,7 +314,7 @@ const batchSizeFor = (count: number, capacity: number) =>
 export class Rats {
   /** What the scene adds: it holds the batch, which is rebuilt as the count grows. */
   readonly object = new Group()
-  /** The shell: the tint over the parts' colours, its sheen and highlight, its toon steps. */
+  /** The shell: the tint over the parts' colours, its rim, matt, its toon steps. */
   readonly material: ShellToonMaterial
   /** The vertices one rat is drawn with. */
   readonly vertices: number

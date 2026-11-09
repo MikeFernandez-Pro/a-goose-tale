@@ -50,7 +50,7 @@ import { modelLoader, unpackNormals } from '../look/gltf'
 import { CAGE_CAMPFIRE, CART_MIDDLE, WELL_RADIUS, airOf, turned as turnedBy, type GoosePlay, type SceneState, type Tree, type Trunk } from './gooseplay'
 import { keptShown, shownOf, type Brazier, type Point, type Shown } from '../world/plain'
 import type { LightLook } from '../light/lights'
-import { ShellToonMaterial, type PaintLook, type ShellLook, type ShineLook } from '../look/shell'
+import { ShellToonMaterial, type PaintLook, type RimLook, type ShellLook, type ShineLook } from '../look/shell'
 import { createCartWood, defaultCartWood, type CartWood, type CartWoodLook } from '../world/cartwood'
 import type { ToonLook } from '../look/toon'
 import type { Lift } from '../characters/goslings'
@@ -133,13 +133,9 @@ const CAGE_COLOURS: Record<string, number> = {
   'Material.013': 0x9b9797,
   Skeleton: 0xe7e7e7,
 }
-/** The cart's and the corpse's own highlight and rim, as set from the panel on 2026-10-29: the cart with no highlight
- * and the faintest orange rim, the skull glinting and rimmed in pale violet. */
-const CART_SHINE: ShineLook = {
-  specular: 0,
-  shininess: 30,
-  softness: 0.17,
-  specularColor: 0xc0d8f0,
+/** The cart's own rim and the corpse's own highlight and rim, as set from the panel on 2026-10-29: the cart matt, with
+ * no highlight, and the faintest orange rim, the skull glinting and rimmed in pale violet. */
+const CART_SHINE: RimLook = {
   rim: true,
   rimStrength: 0.04,
   rimWidth: 0.37,
@@ -157,8 +153,8 @@ const SKULL_SHINE: ShineLook = {
   rimSoftness: 0.1,
   rimColor: 0xe7c1fb,
 }
-/** The fire pit's iron: no highlight, a warm rim, as set from the panel on 2026-10-30. */
-const PIT_SHINE: ShineLook = { ...CART_SHINE, specular: 0, rim: true, rimStrength: 0.6 }
+/** The fire pit's iron: matt, no highlight, a warm rim, as set from the panel on 2026-10-30. */
+const PIT_SHINE: RimLook = { ...CART_SHINE, rim: true, rimStrength: 0.6 }
 const SCALE = WELL_RADIUS / MODEL_RING.radius
 /** How high the winch's axle is, m, and how deep the bucket hangs down the shaft, m, out of sight under the ground. */
 const WINCH = (MODEL_AXLE.y + MODEL_LIFT) * SCALE
@@ -473,8 +469,8 @@ export interface GooseScenes {
   /** The fire pits' iron colour, as the well folder edits it: `pitChanged` lays it on. */
   pitLook: { colour: number }
   pitChanged(): void
-  /** The fire pits' own highlight and rim, over the shell `setShell` lays: changed, lay the shell again. */
-  pitShine: ShineLook
+  /** The fire pits' own rim, over the shell `setShell` lays, with no highlight: changed, lay the shell again. */
+  pitShine: RimLook
   /**
    * Where the gosling up `tree` lands jumping down, off its trunk's middle, m, along x and z: jumpForward ahead of
    * where he sits as drawn, the way he faces, and jumpRight to the screen's right, the tree's size, turn and edit with
@@ -497,10 +493,13 @@ export interface GooseScenes {
   /** How bright those of them that glow glow, by the material's name, 0 not at all: their own colour added as light. */
   cageGlows: Record<string, number>
   cageChanged(): void
-  /** The cart's, the corpse's and the well's own highlight and rim, over the shell `setShell` lays: changed, lay the shell again. */
-  cartShine: ShineLook
+  /**
+   * The cart's and the well's own rim, with no highlight, and the corpse's own highlight and rim, over the shell
+   * `setShell` lays: changed, lay the shell again.
+   */
+  cartShine: RimLook
   skullShine: ShineLook
-  wellShine: ShineLook
+  wellShine: RimLook
   /** The cart's planks, as the cart wood folder edits them: `cartWoodChanged` lays them on. */
   cartWood: CartWoodLook
   cartWoodChanged(): void
@@ -980,7 +979,7 @@ export async function createGooseScenes(
   }
   const wellPits = play.wellFires.map(() => newPit())
   const pitLook = { colour: PIT_IRON }
-  const pitShine: ShineLook = { ...PIT_SHINE }
+  const pitShine: RimLook = { ...PIT_SHINE }
   const shaft = new MeshBasicNodeMaterial({ color: SHAFT })
   const pit = undefined
   /** A point of the burning tree's file, `c`, where `tree` lays it on the plain, into `out`: as the dead trees scale and turn it. */
@@ -1128,17 +1127,13 @@ export async function createGooseScenes(
   // Set from the panel on 2026-10-22: the campfire a little smaller than its file's.
   // The key bigger, on the ground and in his wing alike, and the dropped padlock turned, since 2026-10-29.
   const cage: CageLook = { turn: 0, campfire: 0.8, key: 1.3, lockTurnX: -97, lockTurnY: -4, lockTurnZ: 106 }
-  // The cart's and the corpse's highlight and rim, over the shell they share with the pits: their own, the panel's to
-  // change after.
-  const cartShine: ShineLook = { ...CART_SHINE }
+  // The cart's rim and the corpse's highlight and rim, over the shell they share with the pits: their own, the panel's
+  // to change after.
+  const cartShine: RimLook = { ...CART_SHINE }
   const skullShine: ShineLook = { ...SKULL_SHINE }
-  // The well's, on its rope and the dead trees' pumpkins too, as set from the panel on 2026-10-28: no highlight, a
-  // thin pink rim; fainter and violet since 2026-10-29.
-  const wellShine: ShineLook = {
-    specular: 0,
-    shininess: 30,
-    softness: 0.17,
-    specularColor: 0xc0d8f0,
+  // The well's rim, on its rope and the dead trees' pumpkins too, as set from the panel on 2026-10-28: matt, no
+  // highlight, a thin pink rim; fainter and violet since 2026-10-29.
+  const wellShine: RimLook = {
     rim: true,
     rimStrength: 0.12,
     rimWidth: 0.37,
@@ -1246,16 +1241,16 @@ export async function createGooseScenes(
       })
     },
     setShell(look) {
-      const lay = (shell: ShellToonMaterial, shine?: ShineLook) => {
-        shell.set(shine ? { ...look, ...shine } : look)
+      const lay = (shell: ShellToonMaterial, own: Partial<ShellLook> = {}) => {
+        shell.set({ ...look, ...own })
         shell.setPaint(look.paint)
         shell.setToon(look.toon)
       }
       for (const shell of shells) lay(shell)
-      for (const shell of cageSet.shells.cart) lay(shell, cartShine)
+      for (const shell of cageSet.shells.cart) lay(shell, { ...cartShine, specular: 0 })
       for (const shell of cageSet.shells.corpse) lay(shell, skullShine)
-      for (const shell of [wellShell, pumpkinShell, ropeMaterial]) lay(shell, wellShine)
-      if (pitFile) lay(iron, pitShine)
+      for (const shell of [wellShell, pumpkinShell, ropeMaterial]) lay(shell, { ...wellShine, specular: 0 })
+      if (pitFile) lay(iron, { ...pitShine, specular: 0 })
     },
     wellChanged,
     keyInWing,

@@ -2,11 +2,6 @@
 // gradient of its own, with two terms three's toon material lacks, each on a
 // uniform a panel folder edits.
 //
-// A sheen: the light's own colour, in the same toon steps, laid on the shell
-// whatever its colour is. Three's toon lighting multiplies the light by the
-// colour, so a black shell reflects nothing and reads flat; the sheen is the
-// light that a black shell still shows.
-//
 // A highlight: a cel specular, one hard-edged spot of the light's colour where
 // the light glances off the shell toward the camera. Blinn-Phong's lobe, cut
 // into a step so it reads as a painted highlight, not a hot spot.
@@ -14,9 +9,8 @@
 // A rim: a hard band of the light's colour along the shell's silhouette, on
 // the lit side, as a painted figure is edged to lift it off the ground.
 //
-// All three reach shadow: the light's colour arrives already shadowed, so a
-// shell in another's shadow loses its sheen, its highlight and its rim with
-// its light.
+// Both reach shadow: the light's colour arrives already shadowed, so a shell
+// in another's shadow loses its highlight and its rim with its light.
 //
 // A model modelled in several flat colours keeps them as parts: each vertex
 // names its part in a `part` attribute, each part has a colour of its own on a
@@ -70,8 +64,6 @@ import { createToonGradient, writeToon, type ToonLook } from './toon'
 
 /** What the rats folder edits of the shell, beyond its colour. */
 export interface ShellLook {
-  /** The sheen, 0 to 1: how much of the light's own colour the shell shows whatever its colour. */
-  sheen: number
   /** The highlight's strength, 0 none. */
   specular: number
   /** How tight the highlight is: the Blinn-Phong exponent, higher a smaller spot. */
@@ -91,6 +83,12 @@ export interface ShellLook {
 
 /** A shell's highlight and rim: what a model may show of them apart from the shell it shares. */
 export type ShineLook = Pick<ShellLook, 'specular' | 'shininess' | 'softness' | 'specularColor' | 'rim' | 'rimStrength' | 'rimWidth' | 'rimSoftness' | 'rimColor'>
+
+/** A shell's rim alone: what a matt model shows of it, its own or apart from the shell it shares. */
+export type RimLook = Pick<ShellLook, 'rim' | 'rimStrength' | 'rimWidth' | 'rimSoftness' | 'rimColor'>
+
+/** No highlight, as a matt shell is laid: at no strength its shader draws none. */
+export const NO_HIGHLIGHT: Pick<ShellLook, 'specular' | 'shininess' | 'softness' | 'specularColor'> = { specular: 0, shininess: 30, softness: 0, specularColor: 0xffffff }
 
 /** What a painted-normals folder edits. */
 
@@ -118,7 +116,6 @@ export interface Painted {
 
 /** The shell's uniforms, as the lighting model reads them. */
 const shellUniforms = () => ({
-  sheen: uniform(0),
   specular: uniform(0),
   shininess: uniform(30),
   softness: uniform(0.05),
@@ -153,9 +150,8 @@ export interface RimScale {
   width: Node<'float'>
 }
 
-/** Which of the sheen, the highlight and the rim a shader draws: none at 0, its maths paid on every pixel for nothing. */
+/** Which of the highlight and the rim a shader draws: none at 0, its maths paid on every pixel for nothing. */
 interface ShellTerms {
-  sheen: boolean
   highlight: boolean
   rim: boolean
 }
@@ -174,7 +170,7 @@ class ShellLightingModel extends LightingModel {
 
   override direct({ lightDirection: direction, lightColor, lightNode, reflectedLight }: LightingModelDirectInput): void {
     const color = this.thin ? asVec3(lightColor).mul(leafLight) : lightColor
-    const { sheen, shininess, softness, specularColor, rimSoftness, rimColor } = this.shell
+    const { shininess, softness, specularColor, rimSoftness, rimColor } = this.shell
     const specular = this.specularScale === undefined ? this.shell.specular : this.shell.specular.mul(this.specularScale)
     const rimStrength = this.rimScale === undefined ? this.shell.rimStrength : this.shell.rimStrength.mul(this.rimScale.strength)
     const rimWidth = this.rimScale === undefined ? this.shell.rimWidth : this.shell.rimWidth.mul(this.rimScale.width)
@@ -186,8 +182,6 @@ class ShellLightingModel extends LightingModel {
 
     // Three's toon diffuse: the colour, in steps.
     directDiffuse.addAssign(irradiance.mul(lambert(diffuseColor.rgb)))
-    // The sheen: the light itself, in the same steps, as if the shell were that much white.
-    if (this.terms.sheen) directDiffuse.addAssign(irradiance.mul(lambert(vec3(sheen))))
 
     const lit = step(0, dotNL)
     if (this.terms.highlight) {
@@ -212,16 +206,15 @@ class ShellLightingModel extends LightingModel {
     // The fill and the scene's environment map, if it has one, as a sky lights a matt surface: smooth, not in steps.
     const irradiance = asVec3(context.irradiance).add(asVec3(context.iblIrradiance))
     const indirectDiffuse = asVec3(context.reflectedLight.indirectDiffuse)
-    // The fill, on the colour and on the sheen alike.
+    // The fill, on the colour.
     indirectDiffuse.addAssign(irradiance.mul(lambert(diffuseColor.rgb)))
-    if (this.terms.sheen) indirectDiffuse.addAssign(irradiance.mul(lambert(vec3(this.shell.sheen))))
     indirectDiffuse.mulAssign(asVec3(context.ambientOcclusion))
   }
 }
 
 /**
- * Three's toon material on a gradient of its own, lit with a sheen and a cel
- * highlight: `set` takes a folder's shell values, `setToon` its toon steps.
+ * Three's toon material on a gradient of its own, lit with a cel highlight
+ * and a rim: `set` takes a folder's shell values, `setToon` its toon steps.
  */
 export class ShellToonMaterial extends MeshToonNodeMaterial {
   static override get type(): string {
@@ -248,10 +241,9 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   /** The strokes' texture node, its texture the one at the folder's stroke size. */
   private readonly strokes: { value: Texture } | undefined
   /**
-   * Whether its shader draws the sheen, the highlight and the rim: each only while its strength is more than 0, a
-   * change across 0 building the shader again. Own properties, so three's key for the shader tells them apart.
+   * Whether its shader draws the highlight and the rim: each only while its strength is more than 0, a change across 0
+   * building the shader again. Own properties, so three's key for the shader tells them apart.
    */
-  withSheen = false
   withHighlight = false
   withRim = false
   /** The shells of one look, this one among them: each built again as `set` turns a term on or off on any. */
@@ -277,7 +269,6 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     }
     this.sharers = sharing?.sharers ?? []
     this.sharers.push(this)
-    this.withSheen = sharing?.withSheen ?? false
     this.withHighlight = sharing?.withHighlight ?? false
     this.withRim = sharing?.withRim ?? false
     this.rimScale = rimScale
@@ -326,7 +317,7 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
   }
 
   override setupLightingModel(): ShellLightingModel {
-    const terms = { sheen: this.withSheen, highlight: this.withHighlight, rim: this.withRim }
+    const terms = { highlight: this.withHighlight, rim: this.withRim }
     return new ShellLightingModel(this.shell, this.gradient, terms, this.rimScale, this.specularScale, this.thin)
   }
 
@@ -361,7 +352,6 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
 
   /** Take the rats folder's values; the shader reads them from the next frame. */
   set(look: ShellLook): void {
-    this.shell.sheen.value = look.sheen
     this.shell.specular.value = look.specular
     this.shell.shininess.value = Math.max(1, look.shininess)
     this.shell.softness.value = look.softness
@@ -370,12 +360,10 @@ export class ShellToonMaterial extends MeshToonNodeMaterial {
     this.shell.rimWidth.value = look.rimWidth
     this.shell.rimSoftness.value = look.rimSoftness
     this.shell.rimColor.value.set(look.rimColor)
-    const sheen = this.shell.sheen.value > 0
     const highlight = this.shell.specular.value > 0
     const rim = this.shell.rimStrength.value > 0
     for (const shell of this.sharers) {
-      if (shell.withSheen === sheen && shell.withHighlight === highlight && shell.withRim === rim) continue
-      shell.withSheen = sheen
+      if (shell.withHighlight === highlight && shell.withRim === rim) continue
       shell.withHighlight = highlight
       shell.withRim = rim
       shell.needsUpdate = true    }

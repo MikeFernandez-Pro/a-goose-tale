@@ -20,7 +20,7 @@ import { offWay, defaultDeadTreeShape, defaultBarkLook, defaultGrassLook, defaul
 import { createGraveCandles, mountCandleControls } from './gravecandles'
 import { defaultArchLook, type ArchStone, type ArchShell, createArches, archesOf, archStones } from './arches'
 import { defaultRoadWallLook, ROAD_WALL_STYLES, type RoadWallLook, createRoadWalls, type StoneBlock, roadWallStones, roadWallsOf, roadWallLines } from './roadwalls'
-import type { ShineLook } from '../look/shell'
+import type { RimLook } from '../look/shell'
 import { defaultTreeWindLook } from './treesway'
 import { defaultBushShape, defaultBushLeafLook, createBushes, bushes, offGraves } from './bushes'
 import { defaultNoiseSeeThrough, noiseSeeThrough, seeThroughZone } from '../look/seethrough'
@@ -164,15 +164,15 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   }
   // The old road's arches over it out in the dark between its fires (arches.ts), as the road folder edits them.
   const archLook = defaultArchLook()
-  // Their slabs and their toon shell, as the doors folder edits them: the road's and the floor's as the page opens, the
-  // floor's glossy highlight making them wet as the road is; theirs from then. As the folder was set on 2026-10-25:
-  // smaller slabs than the road's; a theme's own shell over that. Their stone 0.68 light, and no highlight, whatever the
-  // theme, since 2026-10-26, and a thin soft periwinkle rim, as set from the panel on 2026-10-27; the walls' the same.
+  // Their slabs and their toon shell, as the doors folder edits them: the road's and the floor's as the page opens,
+  // theirs from then. As the folder was set on 2026-10-25: smaller slabs than the road's; a theme's own shell over that.
+  // Their stone 0.68 light, and matt, no highlight, since 2026-10-26; whatever the theme, a thin soft periwinkle rim, as
+  // set from the panel on 2026-10-27; the walls' the same.
   const STONE_LIGHTNESS = 0.68
-  const matted = { specular: 0, rim: true, rimStrength: 0.32, rimWidth: 0.23, rimSoftness: 0.075, rimColor: 0x9097fe }
+  const matted: RimLook = { rim: true, rimStrength: 0.32, rimWidth: 0.23, rimSoftness: 0.075, rimColor: 0x9097fe }
   const { saturation: stoneSaturation, hue: stoneHue, rotation: stoneRotation, relief: stoneRelief } = roadLook
   const archStone: ArchStone = { lightness: STONE_LIGHTNESS, saturation: stoneSaturation, hue: stoneHue, scale: 1.1, rotation: stoneRotation, relief: stoneRelief }
-  const archShell: ArchShell = structuredClone({ ...look.floor.shell, rim: true, rimStrength: 3, rimWidth: 0.31, rimSoftness: 0.075, paint: look.floor.paint, toon: look.floor.toon })
+  const archShell: ArchShell = structuredClone({ rim: true, rimStrength: 3, rimWidth: 0.31, rimSoftness: 0.075, rimColor: look.floor.shell.rimColor, paint: look.floor.paint, toon: look.floor.toon })
   if (gooseTheme?.doors) Object.assign(archShell, gooseTheme.doors)
   Object.assign(archShell, matted)
   const arches = await createArches(archLook, archStone, groundAt)
@@ -199,12 +199,8 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   // justASimpleTree's trees do.
   const deadTreeShape = defaultDeadTreeShape()
   const deadTreeLook = { show: true, wood: 0xe4aff3, saturation: 0.64, y: -0.31, trunk: 0.09, rings: 6 }
-  /** The dead trees' highlight and rim, over the scenes' shell they share, as set from the panel on 2026-10-26: no highlight, a soft lilac rim. */
-  const deadTreeShine: ShineLook = {
-    specular: 0,
-    shininess: 30,
-    softness: 0.17,
-    specularColor: 0xc0d8f0,
+  /** The dead trees' rim, over the scenes' shell they share, as set from the panel on 2026-10-26: a soft lilac rim; matt, no highlight. */
+  const deadTreeShine: RimLook = {
     rim: true,
     rimStrength: 0.51,
     rimWidth: 0.37,

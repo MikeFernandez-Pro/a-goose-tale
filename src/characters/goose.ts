@@ -222,7 +222,6 @@ export const defaultGoose = (): GooseLook => ({
   // fainter lilac since 2026-10-29, the goslings' too.
   castShadow: true,
   parts: [],
-  sheen: 0,
   specular: 0.27,
   shininess: 30,
   softness: 0.17,

@@ -22,7 +22,7 @@ const stylizedFloor = (texture: FloorName, own: Partial<Look['floor']> = {}): Lo
   scale: 2.5,
   relief: 1,
   rotation: 0,
-  shell: { sheen: 0, specular: 0, shininess: 53, softness: 0, specularColor: 0xffffff, rim: false, rimStrength: 0.25, rimWidth: 0, rimSoftness: 0, rimColor: 0xe7febe },
+  shell: { specular: 0, shininess: 53, softness: 0, specularColor: 0xffffff, rim: false, rimStrength: 0.25, rimWidth: 0, rimSoftness: 0, rimColor: 0xe7febe },
   paint: { strength: 4, density: 0.7, size: 3.35, rounding: 0.01 },
   toon: { steps: 3, three: [0.3, 0.51, 1], five: [0.2, 0.4, 0.6, 0.8, 1] },
   ...own,
@@ -91,11 +91,11 @@ export function startingLook() {
     // Round the light, not the camera: the dark closes in on the holder from every side, further out than the lamp
     // reaches; on to start, a plain ring, its density 1 and no wisps (`?fog=0` or the folder's switch for none).
     fog: { enabled: url.get('fog') !== '0', color: 0x141916, near: 1, far: 5.5, density: 1, wisp: 0, scale: 2.75, drift: 0.6, lit: 0, litColor: 0xff7a2e, litSpread: 1.5 },
-    // Matt rats in the creature's own colours, with a wide, soft, green-tinted
-    // highlight: the mass is one body that glints.
+    // Matt rats in the creature's own colours, with no highlight: the mass is
+    // one body, edged by its rim.
     // Its parts' colours are the model's own, read once it is loaded. Set from
-    // the panel on 2026-10-05: a broad soft highlight, long light strokes,
-    // and three steps from a black shade to a dim half-light.
+    // the panel on 2026-10-05: long light strokes, and three steps from a
+    // black shade to a dim half-light.
     rats: {
       color: RAT.color,
       parts: [],
@@ -111,11 +111,6 @@ export function startingLook() {
       ],
       // The eyes glow twice their colour, points of light in the dark.
       glow: 2,
-      sheen: 0,
-      specular: 0.27,
-      shininess: 30,
-      softness: 0.17,
-      specularColor: 0x1c401c,
       rim: true,
       // Faint, wide and very soft, pale green: set from the panel on 2026-10-05, it slides over the rats rather than flashing.
       rimStrength: 0.17,
@@ -189,12 +184,12 @@ export function startingLook() {
   Object.assign(look.sun, { color: 0x67a8fe, intensity: 1.6, x: -30, y: 23, z: 0, shadows: true, softness: 1.5, darkness: 0.9 })
   Object.assign(look.fill, { sky: 0x67a8fe, ground: 0x633618, intensity: 0.75 })
   Object.assign(look.fog, { color: 0x0e6a7c, band: 15, near: 0, far: 15.75, density: 1, wisp: 0, scale: 0.5, drift: 0, lit: 0, litColor: 0xcc682e, litSpread: 0.8 })
-  Object.assign(look.rats, { glow: 1.4, sheen: 0, specular: 0.27, shininess: 30, softness: 0.28, specularColor: 0x3acb9a, rim: true, rimStrength: 0.82, rimWidth: 0.24, rimSoftness: 0.34, rimColor: 0x58937f })
+  Object.assign(look.rats, { glow: 1.4, rim: true, rimStrength: 0.82, rimWidth: 0.24, rimSoftness: 0.34, rimColor: 0x58937f })
   Object.assign(look.trails, { enabled: true, seconds: 0.11, width: 0.01, taper: 1.9, wave: 2, strength: 4, fade: 6, wiggle: 0, wiggleSpeed: 1.6, eyeColour: true })
   const gooseTheme = gooseThemeOf(url.get('theme') ?? GOOSE_THEME)
   if (gooseTheme) layInto(look, gooseTheme.look)
-  // The game's rats matt, whatever the theme, since 2026-10-26: no highlight. Their rim, the theme's, back in violet since 2026-11-09.
-  Object.assign(look.rats, { specular: 0, rim: true, rimColor: 0x875cff })
+  // The game's rats matt since 2026-10-26, whatever the theme: no highlight. Their rim, the theme's, back in violet since 2026-11-09.
+  Object.assign(look.rats, { rim: true, rimColor: 0x875cff })
   // Since 2026-10-26: no fog, a pale violet moon, a mauve fill, and the rats all one dusty
   // mauve; the lamp, the moon and the fill as set from the panel, the lamp's light reaching less far.
   look.fog.enabled = false

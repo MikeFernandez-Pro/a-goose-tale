@@ -29,7 +29,7 @@ import { dFdx, dFdy, materialColor, max, normalView, positionView, renderGroup, 
 import { modelLoader } from '../look/gltf'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
-import { ShellToonMaterial, type ShellLook, type ShineLook, type PaintLook } from '../look/shell'
+import { ShellToonMaterial, type ShellLook, type RimLook, type PaintLook } from '../look/shell'
 import { NO_NORMALS, setLayer } from '../look/texturesets'
 import { random } from '../swarm/swarm'
 import { createInscriptions, inscribable, inscribe, mountInscriptionControls, type Inscriptions } from './inscriptions'
@@ -67,8 +67,8 @@ export interface GraveLook {
   clear: number
   spread: number
   seed: number
-  /** Their own highlight and rim, over the scene pieces' shell. */
-  shine: ShineLook
+  /** Their own rim, over the scene pieces' shell; matt, no highlight. */
+  shine: RimLook
   /** The stone set whose relief is laid over the plain colour, or `none`, no relief. */
   texture: StoneName
   /** How wide one tile is on a stone, m; how far the tiles are turned, degrees; how deep the relief, 1 as painted. */
@@ -87,7 +87,7 @@ const defaultGraveStoneLook = (): GraveLook => ({
   clear: 0.65,
   spread: 1.5,
   seed: 12,
-  shine: { specular: 0, shininess: 30, softness: 0.17, specularColor: 0xc0d8f0, rim: true, rimStrength: 0.45, rimWidth: 0.35, rimSoftness: 0.1, rimColor: 0xc6c2ff },
+  shine: { rim: true, rimStrength: 0.45, rimWidth: 0.35, rimSoftness: 0.1, rimColor: 0xc6c2ff },
   texture: 'desert_rocks_01',
   scale: 3.1,
   rotation: 90,
@@ -108,9 +108,9 @@ export interface Graves {
   footprints(): { at: P; outline: P[] }[]
   /** Their stone in the folder's colour and its set, as the folder has them. */
   recolour(): void
-  /** The scene pieces' shell, as the look folder sets it, under their own highlight and rim. */
+  /** The scene pieces' shell, as the look folder sets it, under their own rim, and no highlight. */
   setShell(look: ShellLook & { paint: PaintLook; toon: ToonLook }): void
-  /** Their own highlight and rim again, as the folder has them. */
+  /** Their own rim again, as the folder has it. */
   shineChanged(): void
   /** The words cut in them. */
   readonly inscriptions: Inscriptions
@@ -416,10 +416,10 @@ export async function createGraves(where: GraveGround, groundAt: (x: number, z: 
     old.dispose()
   }
   set()
-  /** The shell they share, last handed over: its sheen, strokes and toon steps kept under their own highlight and rim. */
+  /** The shell they share, last handed over: its strokes and toon steps kept under their own rim, its highlight left off. */
   let shared: (ShellLook & { paint: PaintLook; toon: ToonLook }) | undefined
   const shineChanged = () => {
-    if (shared) material.set({ ...shared, ...look.shine })
+    if (shared) material.set({ ...shared, ...look.shine, specular: 0 })
   }
   return {
     object,
@@ -482,12 +482,8 @@ export function mountGraveControls(graves: Graves, gui: GUI, laid: () => void): 
   stone.add(look, 'scale', 0.1, 4, 0.05).name('tile m').onChange(recolour)
   stone.add(look, 'rotation', 0, 180, 1).name('tile turn deg').onChange(recolour)
   mountInscriptionControls(graves.inscriptions, folder)
-  const shine = folder.addFolder('highlight and rim')
+  const shine = folder.addFolder('rim')
   const { shine: own } = look
-  shine.add(own, 'specular', 0, 4, 0.01).name('highlight').onChange(shineChanged)
-  shine.add(own, 'shininess', 1, 200, 1).name('highlight tightness').onChange(shineChanged)
-  shine.add(own, 'softness', 0, 0.5, 0.01).name('highlight softness').onChange(shineChanged)
-  shine.addColor(own, 'specularColor').name('highlight colour').onChange(shineChanged)
   shine.add(own, 'rim').name('rim light').onChange(shineChanged)
   shine.add(own, 'rimStrength', 0, 3, 0.01).name('rim strength').onChange(shineChanged)
   shine.add(own, 'rimWidth', 0, 1, 0.01).name('rim width').onChange(shineChanged)

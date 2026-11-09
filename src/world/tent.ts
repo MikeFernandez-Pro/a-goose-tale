@@ -2,13 +2,13 @@
 // 2026-10-29: one mesh of three flat colours, y-up, its foot on the
 // origin, about 0.93 x 0.77 x 1 m), its colours merged into one draw on a
 // palette (palettemesh.ts), in the scene pieces' shell (the well's, the
-// cage's), with no brush strokes, under a highlight and rim of its own.
+// cage's), with no brush strokes, matt, under a rim of its own.
 // It stands on the island's crown, off its middle as the tent folder moves it,
 // its foot on the ground there (pond.ts's `groundOf`), turned and sized by the
 // folder too.
 import { DoubleSide, Group, type Color, type Material, type Mesh } from 'three/webgpu'
 import { modelLoader } from '../look/gltf'
-import { ShellToonMaterial, type PaintLook, type ShellLook, type ShineLook } from '../look/shell'
+import { ShellToonMaterial, type PaintLook, type RimLook, type ShellLook } from '../look/shell'
 import { createPalette } from '../look/palettemesh'
 import { groundOf, islandMiddle, type PondLook } from './pond'
 import type { ToonLook } from '../look/toon'
@@ -34,8 +34,8 @@ export interface TentLook {
   size: number
   /** Each of the file's materials' colour, by its name. */
   colours: Record<string, number>
-  /** Its own highlight and rim, over the scene pieces' shell. */
-  shine: ShineLook
+  /** Its own rim, over the scene pieces' shell; matt, no highlight. */
+  shine: RimLook
 }
 
 /** The tent to start, as set from the panel on 2026-10-29: off the island's middle, 2.9 m tall and sunk into the crown, matt, a soft warm rim. */
@@ -48,7 +48,7 @@ export function defaultTentLook(): TentLook {
     turn: 18,
     size: 2.9,
     colours: {},
-    shine: { specular: 0, shininess: 30, softness: 0.17, specularColor: 0xffe2c0, rim: true, rimStrength: 0.45, rimWidth: 0.35, rimSoftness: 0.1, rimColor: 0xffc890 },
+    shine: { rim: true, rimStrength: 0.45, rimWidth: 0.35, rimSoftness: 0.1, rimColor: 0xffc890 },
   }
 }
 
@@ -63,9 +63,9 @@ export interface Tent {
   door(): Point
   /** Its colours again, as the folder has them. */
   recolour(): void
-  /** The scene pieces' shell, as the look folder sets it, under its own highlight and rim. */
+  /** The scene pieces' shell, as the look folder sets it, under its own rim, and no highlight. */
   setShell(look: ShellLook & { paint: PaintLook; toon: ToonLook }): void
-  /** Its own highlight and rim again, as the folder has them. */
+  /** Its own rim again, as the folder has it. */
   shineChanged(): void
 }
 
@@ -90,10 +90,10 @@ export async function createTent(look: TentLook = defaultTentLook()): Promise<Te
     for (const [name, colour] of Object.entries(look.colours)) palette.set(name, colour)
   }
   recolour()
-  /** The shell it shares, last handed over: its sheen kept under its own highlight and rim. */
+  /** The shell it shares, last handed over: kept under its own rim, its highlight left off. */
   let shared: (ShellLook & { paint: PaintLook; toon: ToonLook }) | undefined
   const shineChanged = () => {
-    if (shared) material.set({ ...shared, ...look.shine })
+    if (shared) material.set({ ...shared, ...look.shine, specular: 0 })
   }
   return {
     object,

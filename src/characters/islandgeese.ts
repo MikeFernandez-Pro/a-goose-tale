@@ -15,7 +15,7 @@ import { attribute, mix, uniform } from 'three/tsl'
 import { modelLoader } from '../look/gltf'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { oneMesh } from './goslings'
-import { ShellToonMaterial, type ShellLook } from '../look/shell'
+import { NO_HIGHLIGHT, ShellToonMaterial, type ShellLook } from '../look/shell'
 import { blendAct, type Act, type ActBlend } from '../game/endingscript'
 import type { Point } from '../world/plain'
 
@@ -229,7 +229,7 @@ export async function createIslandGeese(places: IslandPlaces, goslingHeight: { h
       downGlow.value = strength
     },
     setRim(rim) {
-      for (const shell of shells) shell.set({ ...rim, sheen: 0, specular: 0, shininess: 30, softness: 0, specularColor: 0xffffff })
+      for (const shell of shells) shell.set({ ...rim, ...NO_HIGHLIGHT })
     },
     update(dt, time) {
       const step = Number.isNaN(playedTo) ? 0 : Math.max(0, time - playedTo)
