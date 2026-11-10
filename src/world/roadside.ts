@@ -22,7 +22,7 @@ import { defaultArchLook, type ArchStone, type ArchShell, createArches, archesOf
 import { defaultRoadWallLook, ROAD_WALL_STYLES, type RoadWallLook, createRoadWalls, type StoneBlock, roadWallStones, roadWallsOf, roadWallLines } from './roadwalls'
 import type { RimLook } from '../look/shell'
 import { defaultTreeWindLook } from './treesway'
-import { defaultBushShape, defaultBushLeafLook, createBushes, bushes, offGraves } from './bushes'
+import { defaultBushForm, defaultBushKind, defaultBushShape, defaultBushLeafLook, createBushes, bushes, offGraves } from './bushes'
 import { defaultNoiseSeeThrough, noiseSeeThrough, seeThroughZone } from '../look/seethrough'
 import { uniform, renderGroup, positionWorld } from 'three/tsl'
 import { type Wall, nearestWalls } from '../swarm/walls'
@@ -243,7 +243,9 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
   const bushShape = defaultBushShape()
   const bushLook = { show: true, y: -0.15 }
   const bushLeaves = defaultBushLeafLook()
-  const bushesMesh = await createBushes(bushLeaves, groundAt)
+  const bushForm = defaultBushForm()
+  const bushKind = defaultBushKind()
+  const bushesMesh = await createBushes(bushLeaves, groundAt, bushForm, bushKind)
   bushesMesh.object.name = 'bushes'
   scene.add(bushesMesh.object)
   bushesMesh.object.position.setY(bushLook.y)
@@ -428,13 +430,13 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     const pondWoods = pondWoodsGround(byRoad, bushShape.spacing)
     const byPond = bushes(goosePlay.plain, pondWoodsLine(), bushesMesh.variants, treesLaid, pondWoodsShape(bushShape), [], archesLaid, (x, z) => pondWoods(x, z) && offStones(x, z))
     scattered = [...byRoad, ...byPond]
-    bushesMesh.lay([...scattered, ...roadside.islandBushes])
+    bushesMesh.lay(scattered, roadside.islandBushes)
   }
   /** The island's bushes laid again, the oak's stand-in come or gone, the rest as they were scattered. */
   function layIslandBushes() {
     if (!bushLook.show) return
     roadside.islandBushes = islandBushes(bushesMesh.variants)
-    bushesMesh.lay([...scattered, ...roadside.islandBushes])
+    bushesMesh.lay(scattered, roadside.islandBushes)
   }
   /** The old road laid along the play's plain, and its arches over it, again on every change to its way. */
   const layRoad = () => {
@@ -479,7 +481,7 @@ export async function createRoadside({ scene, goosePlay, lights, fakeLamps, back
     arches, archLook, archStone, archShell, archesChanged, archesShell, layArches,
     roadWalls, roadWallLook, wallStone, wallShell, layWalls,
     deadTreesMesh, deadTreeLook, deadTreeShape, deadTreeShine, deadTreeBark, deadTreeGrass, deadTreeLeaves, deadTreeWind, leavesFallAsTrees, layTrees,
-    bushesMesh, bushLook, bushShape, bushLeaves, layBushes, layIslandBushes,
+    bushesMesh, bushLook, bushShape, bushForm, bushKind, bushLeaves, layBushes, layIslandBushes,
     gooseSee, gooseSeeLook, gooseSeeZone, seenThrough, cutSeenThrough,
     layRoad,
     /** The island tree's trunk as last stood, none while it is hidden: a body as the dead trees' are. */

@@ -69,7 +69,7 @@ export interface PageParts {
 /** The panel on `parts`. */
 export function mountPagePanel({ settings, tuning, look, capacity, rats, RAT_RADIUS, torchChanged, lookChanged, shadowsChanged, runTuning, layout, goosePlay, zoneRings, darkLook, feel, openingShow, pondLook, pondWorld, roadside, fires, ground, pondWater, bedLook, gooseGround, goosePlain, pondPlace, rollingLook, roadShape, roadLook, goslingSpeeds, goslingSize, burningTreeLight, fireShadowLook, gooseScenes, wellGroundLook, view, tilt }: PageParts) {
   const { waterLook, water, pond, nest, nestLook, nestLeaves, nestNeedles, layNest, islandFireLook, layIslandFire, tent, picnic, islandTree, layIslandTree, islandGeese } = pondWorld
-  const { arches, archLook, archStone, archShell, archesChanged, archesShell, layArches, roadWalls, roadWallLook, wallStone, wallShell, layWalls, deadTreesMesh, deadTreeLook, deadTreeShape, deadTreeShine, deadTreeBark, deadTreeGrass, deadTreeLeaves, deadTreeWind, leavesFallAsTrees, layTrees, bushesMesh, bushLook, bushShape, bushLeaves, layBushes, gooseSee, gooseSeeLook, layRoad } = roadside
+  const { arches, archLook, archStone, archShell, archesChanged, archesShell, layArches, roadWalls, roadWallLook, wallStone, wallShell, layWalls, deadTreesMesh, deadTreeLook, deadTreeShape, deadTreeShine, deadTreeBark, deadTreeGrass, deadTreeLeaves, deadTreeWind, leavesFallAsTrees, layTrees, bushesMesh, bushLook, bushShape, bushForm, bushKind, bushLeaves, layBushes, gooseSee, gooseSeeLook, layRoad } = roadside
   const { fireLook, fireLooks, pitFireLook, crownFireLook, trunkFireLook, footFireLook, branchLook, burningBranch } = fires
   /** A scene's fire as its folder edits it: its reach, which holds the rats off; its flame the flames folder's, its zone the interaction zones folder's. */
   function sceneFirePanel(kind: FireScene) {
@@ -177,6 +177,10 @@ export function mountPagePanel({ settings, tuning, look, capacity, rats, RAT_RAD
         look: bushLook,
         shape: bushShape as DeadTreeShape,
         changed: layBushes,
+        form: bushForm,
+        formChanged: () => bushesMesh.setForm(bushForm),
+        kind: bushKind,
+        kindChanged: () => bushesMesh.setKind(bushKind),
         leaves: bushLeaves,
         leavesChanged: () => bushesMesh.setLeaves(bushLeaves),
         yChanged: () => {

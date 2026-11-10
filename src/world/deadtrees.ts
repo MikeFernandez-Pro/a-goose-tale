@@ -45,7 +45,8 @@ import { cardCentres, createTreeWind, type TreeWindLook } from './treesway'
 /**
  * A dead tree where the plain has it: its variant, one of the file's trees, how far it is turned, rad, how tall it
  * stands, m, and how much wider than that makes it (DeadTreeShape.width); and how far over the ground its foot stands,
- * m, none if not given.
+ * m, none if not given. A bush may be narrower one way than the other, `depth` its width that way, and lean `lean` rad
+ * off upright, over toward `leanTo`, rad round its upright: as wide both ways and upright if not given.
  */
 export interface DeadTree extends Point {
   variant: number
@@ -53,6 +54,9 @@ export interface DeadTree extends Point {
   height: number
   width: number
   lift?: number
+  depth?: number
+  lean?: number
+  leanTo?: number
 }
 
 /** How the dead trees are scattered, as the dead trees folder edits it. */
@@ -456,6 +460,8 @@ export function createStretches(kinds: readonly BufferGeometry[], material: Mate
   let drawn: KindDrawn[] = []
   const matrix = new Matrix4()
   const turn = new Quaternion()
+  const lean = new Quaternion()
+  const over = new Vector3()
   const up = new Vector3(0, 1, 0)
   const at = new Vector3()
   const scale = new Vector3()
@@ -488,7 +494,9 @@ export function createStretches(kinds: readonly BufferGeometry[], material: Mate
           stretches: stretches.map((these) => {
             const bound = new Sphere()
             these.forEach((t, i) => {
-              matrix.compose(at.set(t.x, groundAt(t.x, t.z) + (t.lift ?? 0), t.z), turn.setFromAxisAngle(up, t.turn), scale.set(t.width, t.height / laid, t.width))
+              turn.setFromAxisAngle(up, t.turn)
+              if (t.lean) turn.premultiply(lean.setFromAxisAngle(over.set(Math.cos(t.leanTo ?? 0), 0, Math.sin(t.leanTo ?? 0)), t.lean))
+              matrix.compose(at.set(t.x, groundAt(t.x, t.z) + (t.lift ?? 0), t.z), turn, scale.set(t.width, t.height / laid, t.depth ?? t.width))
               matrix.toArray(matrices, (from + i) * 16)
               bound.union(tree.copy(geometry.boundingSphere!).applyMatrix4(matrix))
             })
